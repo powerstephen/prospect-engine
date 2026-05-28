@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prospect Engine · Signal-Ops</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060c18;
+  --surface: #0a1628;
+  --surface2: #0f2040;
+  --border: #1a3050;
+  --teal: #00c4d4;
+  --teal2: #0096a8;
+  --teal-glow: rgba(0,196,212,0.15);
+  --text: #e8edf5;
+  --muted: #64748b;
+  --red: #ef4444;
+  --orange: #f97316;
+  --amber: #f59e0b;
+  --green: #10b981;
+  --purple: #8b5cf6;
+  --radius: 10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Header */
+header{padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(10,22,40,0.95);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-text{font-size:16px;font-weight:800;letter-spacing:-0.5px}
+.logo-text span{color:var(--teal)}
+.logo-sub{font-size:10px;color:var(--muted);margin-left:4px;font-weight:500}
+.header-right{display:flex;align-items:center;gap:16px}
+.powered{font-size:10px;color:var(--muted);border:1px solid var(--border);padding:4px 10px;border-radius:20px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 6px var(--teal);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* Mode tabs */
+.mode-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;gap:0}
+.mode-tab{padding:14px 24px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;transition:all 0.15s;display:flex;align-items:center;gap:8px;letter-spacing:0.3px}
+.mode-tab:hover{color:var(--text)}
+.mode-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.mode-tab .tab-icon{font-size:14px}
+
+/* Search panel */
+.search-panel{background:var(--surface);border-bottom:1px solid var(--border);padding:20px 32px}
+.search-bar{display:grid;gap:12px;align-items:end;max-width:1000px}
+.search-bar.roast-bar{grid-template-columns:1fr 1fr 100px 100px auto}
+.search-bar.harvest-bar{grid-template-columns:1fr 1fr 120px auto}
+.field label{display:block;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.field input,.field select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:12px;font-family:'Montserrat',sans-serif;outline:none;transition:border-color 0.15s}
+.field input:focus,.field select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,196,212,0.08)}
+.field input::placeholder{color:var(--muted)}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#060c18;border:none;border-radius:8px;padding:11px 22px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Montserrat',sans-serif;letter-spacing:0.3px;white-space:nowrap;transition:opacity 0.15s}
+.btn-primary:hover{opacity:0.9}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+
+/* Single URL audit */
+.single-row{margin-top:12px;display:flex;gap:10px;align-items:center;max-width:1000px}
+.single-row input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-size:12px;font-family:'Montserrat',sans-serif;outline:none}
+.single-row input:focus{border-color:var(--teal)}
+.btn-outline{background:none;border:1px solid var(--teal);border-radius:8px;color:var(--teal);padding:8px 16px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif}
+.btn-outline:hover{background:var(--teal-glow)}
+
+/* Log bar */
+.log-bar{background:rgba(0,196,212,0.04);border-bottom:1px solid var(--border);padding:8px 32px;font-family:monospace;font-size:11px;color:var(--teal);display:none}
+
+/* Stats */
+.stats-bar{display:grid;gap:0;border-bottom:1px solid var(--border);display:none}
+.stats-bar.roast-stats{grid-template-columns:repeat(5,1fr)}
+.stats-bar.harvest-stats{grid-template-columns:repeat(4,1fr)}
+.stat{padding:16px 24px;border-right:1px solid var(--border);text-align:center}
+.stat:last-child{border-right:none}
+.stat-n{font-size:24px;font-weight:900;color:var(--teal)}
+.stat-l{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* AI Agent cards */
+.agents-bar{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:24px 32px;border-bottom:1px solid var(--border);background:var(--surface)}
+.agent-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;transition:border-color 0.15s}
+.agent-card:hover{border-color:rgba(0,196,212,0.3)}
+.agent-card.active{border-color:var(--teal);background:rgba(0,196,212,0.03)}
+.agent-avatar{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.agent-avatar.roast{background:linear-gradient(135deg,rgba(249,115,22,0.2),rgba(239,68,68,0.2));border:1px solid rgba(249,115,22,0.3)}
+.agent-avatar.harvest{background:linear-gradient(135deg,rgba(0,196,212,0.2),rgba(139,92,246,0.15));border:1px solid rgba(0,196,212,0.3)}
+.agent-info{}
+.agent-name{font-size:12px;font-weight:800;letter-spacing:0.3px}
+.agent-desc{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4}
+.agent-status{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:6px;display:inline-block}
+.status-ready{background:rgba(16,185,129,0.1);color:var(--green)}
+.status-idle{background:rgba(100,116,139,0.1);color:var(--muted)}
+.status-running{background:rgba(0,196,212,0.1);color:var(--teal)}
+
+/* Content */
+.content{padding:24px 32px}
+
+/* Results */
+.results{display:flex;flex-direction:column;gap:10px}
+
+/* Business card */
+.biz-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color 0.15s}
+.biz-card:hover{border-color:rgba(0,196,212,0.3)}
+.biz-header{padding:16px 20px;display:grid;grid-template-columns:36px 1fr auto;gap:14px;align-items:center}
+.biz-rank{font-size:14px;font-weight:900;color:var(--muted);text-align:center}
+.biz-name{font-size:13px;font-weight:700;color:var(--text)}
+.biz-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.biz-meta a{color:var(--teal);text-decoration:none}
+.biz-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:120px}
+.opp-score{font-size:34px;font-weight:900;line-height:1}
+.opp-label{font-size:10px;color:var(--muted)}
+.opp-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.grade-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px}
+.detail-btn{margin-top:6px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:3px 10px;font-size:11px;cursor:pointer;font-family:'Montserrat',sans-serif;width:100%;text-align:center}
+.detail-btn:hover{border-color:var(--teal);color:var(--teal)}
+.action-btns{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;justify-content:flex-end}
+.btn-report{background:none;border:1px solid var(--teal);border-radius:6px;color:var(--teal);padding:4px 10px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap}
+.btn-enrich{background:rgba(0,196,212,0.1);border:1px solid var(--teal);border-radius:6px;color:var(--teal);padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap}
+.btn-enrich:hover{background:rgba(0,196,212,0.2)}
+
+/* Detail panel */
+.detail-panel{display:none;border-top:1px solid var(--border);padding:16px 20px}
+.detail-section-title{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.dims-row{display:grid;grid-template-columns:repeat(10,1fr);gap:8px;margin-bottom:16px}
+.dim-item{display:flex;flex-direction:column;align-items:center;gap:5px}
+.dim-ring{position:relative;width:44px;height:44px}
+.dim-ring svg{transform:rotate(-90deg)}
+.dim-val{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:800}
+.dim-name{font-size:8px;color:var(--muted);text-align:center;line-height:1.3}
+.dim-flag{font-size:8px;padding:1px 5px;border-radius:3px;font-weight:700}
+.flag-critical{background:rgba(239,68,68,0.15);color:#fca5a5}
+.flag-work{background:rgba(245,158,11,0.12);color:#fcd34d}
+.icp-section{border-top:1px solid var(--border);padding-top:14px}
+.pills-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.pill{font-size:9px;padding:2px 8px;border-radius:20px;font-weight:700}
+.pill-teal{background:rgba(0,196,212,0.1);color:var(--teal)}
+.pill-purple{background:rgba(139,92,246,0.1);color:#a78bfa}
+.pill-green{background:rgba(16,185,129,0.1);color:var(--green)}
+.pill-amber{background:rgba(245,158,11,0.1);color:var(--amber)}
+.pill-red{background:rgba(239,68,68,0.1);color:var(--red)}
+.pill-blue{background:rgba(59,130,246,0.1);color:#60a5fa}
+.revenue-leak{font-size:10px;font-weight:700;color:var(--red);background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);padding:5px 10px;border-radius:6px;margin-bottom:8px}
+
+/* Harvest results table */
+.harvest-table-wrap{overflow-x:auto}
+.harvest-table{width:100%;border-collapse:collapse;font-size:12px}
+.harvest-table th{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0}
+.harvest-table td{padding:10px 12px;border-bottom:1px solid rgba(26,48,80,0.5);vertical-align:middle}
+.harvest-table tr:hover td{background:rgba(15,32,64,0.5)}
+.email-verified{font-size:9px;padding:2px 6px;border-radius:20px;background:rgba(16,185,129,0.12);color:var(--green);font-weight:700}
+
+/* Single result panel */
+.single-result{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:12px;display:none;max-width:1000px}
+
+/* Empty state */
+.empty{text-align:center;padding:80px 20px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:0.5}
+.empty-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:12px;line-height:1.6}
+
+/* Export */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.toolbar-left{font-size:12px;color:var(--muted)}
+.btn-export{background:none;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Montserrat',sans-serif;display:none}
+.btn-export:hover{border-color:var(--teal);color:var(--teal)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">🎯</div>
+    <div>
+      <div class="logo-text">Prospect<span>Engine</span></div>
+      <div style="font-size:10px;color:var(--muted)">by Signal-Ops</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="powered">Powered by Eversite Intelligence</div>
+    <div class="status-dot" id="statusDot"></div>
+    <span style="font-size:11px;color:var(--muted)" id="statusText">ready</span>
+  </div>
+</header>
+
+<!-- Mode tabs -->
+<div class="mode-bar">
+  <button class="mode-tab active" onclick="setMode('roast')" id="tab-roast">
+    <span class="tab-icon">🔥</span> ROAST — Find & Score
+  </button>
+  <button class="mode-tab" onclick="setMode('harvest')" id="tab-harvest">
+    <span class="tab-icon">🌾</span> HARVEST — Find & Enrich
+  </button>
+</div>
+
+<!-- Agent cards -->
+<div class="agents-bar">
+  <div class="agent-card active" id="agent-roast">
+    <div class="agent-avatar roast">🔥</div>
+    <div class="agent-info">
+      <div class="agent-name">ROAST AGENT</div>
+      <div class="agent-desc">Finds local businesses via Google Maps. Scores websites across 58 signals. Detects ad spend, tech stack, company size, and ICP fit. Generates personalised reports.</div>
+      <div class="agent-status status-ready" id="roast-status">● Ready</div>
+    </div>
+  </div>
+  <div class="agent-card" id="agent-harvest">
+    <div class="agent-avatar harvest">🌾</div>
+    <div class="agent-info">
+      <div class="agent-name">HARVEST AGENT</div>
+      <div class="agent-desc">Finds businesses with emails indexed by Google. Discovers owner names via BBB & LinkedIn. Generates email permutations. SMTP & Google verification. Exports cadence-ready CSV.</div>
+      <div class="agent-status status-idle" id="harvest-status">● Idle</div>
+    </div>
+  </div>
+</div>
+
+<!-- Search panel -->
+<div class="search-panel">
+  <!-- Roast mode -->
+  <div id="roast-search">
+    <div class="search-bar roast-bar">
+      <div class="field"><label>Industry</label><input id="industry" placeholder="e.g. roofing contractors"></div>
+      <div class="field"><label>Location</label><input id="location" placeholder="e.g. Miami FL"></div>
+      <div class="field"><label>Results</label><input id="limit" type="number" value="10" min="1" max="50"></div>
+      <div class="field"><label>Min Score</label><select id="minScore"><option value="0">All</option><option value="50">50+</option><option value="60">60+</option><option value="70">70+</option></select></div>
+      <div class="field"><label>&nbsp;</label><button class="btn-primary" id="roastBtn" onclick="startRoast()">🔥 Roast 'Em</button></div>
+    </div>
+    <div class="single-row">
+      <input type="text" id="singleUrl" placeholder="Single URL audit — paste any website URL here">
+      <button class="btn-outline" onclick="singleAudit()">Audit URL →</button>
+    </div>
+    <div class="single-result" id="singleResult"></div>
+  </div>
+
+  <!-- Harvest mode -->
+  <div id="harvest-search" style="display:none">
+    <div class="search-bar harvest-bar">
+      <div class="field"><label>Industry</label><input id="h-industry" placeholder="e.g. roofing contractor"></div>
+      <div class="field"><label>Location</label><input id="h-location" placeholder="e.g. Miami FL"></div>
+      <div class="field"><label>Max results</label><input id="h-limit" type="number" value="20" min="1" max="50"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn-primary" id="harvestBtn" onclick="startHarvest()">🌾 Harvest</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Log bar -->
+<div class="log-bar" id="logBar"></div>
+
+<!-- Stats -->
+<div class="stats-bar roast-stats" id="roastStats">
+  <div class="stat"><div class="stat-n" id="sTotal">0</div><div class="stat-l">Businesses</div></div>
+  <div class="stat"><div class="stat-n" id="sHigh">0</div><div class="stat-l">Sweet Spot</div></div>
+  <div class="stat"><div class="stat-n" id="sAvg">0</div><div class="stat-l">Avg Website</div></div>
+  <div class="stat"><div class="stat-n" id="sCritical">0</div><div class="stat-l">Critical Issues</div></div>
+  <div class="stat"><div class="stat-n" id="sAdSpend">0</div><div class="stat-l">Running Ads</div></div>
+</div>
+
+<div class="stats-bar harvest-stats" id="harvestStats" style="display:none">
+  <div class="stat"><div class="stat-n" id="hTotal">0</div><div class="stat-l">Prospects</div></div>
+  <div class="stat"><div class="stat-n" id="hEmails">0</div><div class="stat-l">With Email</div></div>
+  <div class="stat"><div class="stat-n" id="hContacts">0</div><div class="stat-l">Named Contact</div></div>
+  <div class="stat"><div class="stat-n" id="hVerified">0</div><div class="stat-l">Verified</div></div>
+</div>
+
+<div class="content">
+  <div class="toolbar">
+    <div class="toolbar-left" id="toolbarLabel"></div>
+    <button class="btn-export" id="exportBtn" onclick="doExport()">⬇ Export CSV</button>
+  </div>
+  <div id="results">
+    <div class="empty">
+      <div class="empty-icon">🎯</div>
+      <div class="empty-title">Prospect Engine ready</div>
+      <div class="empty-sub">Use <strong>Roast</strong> to find and score businesses via Google Maps<br>Use <strong>Harvest</strong> to find prospects with verified emails via Google Search</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SIGNAL_HARVEST_URL = 'https://web-production-20c3d.up.railway.app';
+let currentMode = 'roast';
+let sse = null;
+let pollInterval = null;
+let roastResults = [];
+let harvestProspects = [];
+let currentSessionId = null;
+
+// ── Mode switching ────────────────────────────────────────────────────────────
+function setMode(m) {
+  currentMode = m;
+  document.getElementById('tab-roast').classList.toggle('active', m === 'roast');
+  document.getElementById('tab-harvest').classList.toggle('active', m === 'harvest');
+  document.getElementById('roast-search').style.display = m === 'roast' ? 'block' : 'none';
+  document.getElementById('harvest-search').style.display = m === 'harvest' ? 'block' : 'none';
+  document.getElementById('roastStats').style.display = m === 'roast' ? 'grid' : 'none';
+  document.getElementById('harvestStats').style.display = m === 'harvest' ? 'grid' : 'none';
+  document.getElementById('agent-roast').classList.toggle('active', m === 'roast');
+  document.getElementById('agent-harvest').classList.toggle('active', m === 'harvest');
+  document.getElementById('exportBtn').style.display = 'none';
+  if (m === 'roast' && roastResults.length) renderRoastResults(roastResults);
+  if (m === 'harvest' && harvestProspects.length) renderHarvestResults(harvestProspects);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function oppColor(s) {
+  if (s >= 80) return '#10b981';
+  if (s >= 60) return '#00c4d4';
+  if (s >= 40) return '#f59e0b';
+  return '#ef4444';
+}
+
+function gradeStyle(g) {
+  if (!g) return '';
+  if (g.startsWith('A')) return 'background:rgba(16,185,129,0.12);color:#6ee7b7;';
+  if (g.startsWith('B')) return 'background:rgba(0,196,212,0.1);color:#67e8f9;';
+  if (g.startsWith('C')) return 'background:rgba(245,158,11,0.12);color:#fcd34d;';
+  return 'background:rgba(239,68,68,0.12);color:#fca5a5;';
+}
+
+function setRunning(running) {
+  document.getElementById('statusDot').style.background = running ? 'var(--teal)' : 'var(--muted)';
+  document.getElementById('statusText').textContent = running ? 'running...' : 'ready';
+  const btn = currentMode === 'roast' ? 'roastBtn' : 'harvestBtn';
+  document.getElementById(btn).disabled = running;
+  document.getElementById('logBar').style.display = running ? 'block' : 'none';
+  if (running) {
+    document.getElementById('roast-status').textContent = currentMode === 'roast' ? '● Running' : '● Ready';
+    document.getElementById('roast-status').className = 'agent-status ' + (currentMode === 'roast' ? 'status-running' : 'status-ready');
+    document.getElementById('harvest-status').textContent = currentMode === 'harvest' ? '● Running' : '● Idle';
+    document.getElementById('harvest-status').className = 'agent-status ' + (currentMode === 'harvest' ? 'status-running' : 'status-idle');
+  } else {
+    document.getElementById('roast-status').textContent = '● Ready';
+    document.getElementById('roast-status').className = 'agent-status status-ready';
+    document.getElementById('harvest-status').textContent = '● Idle';
+    document.getElementById('harvest-status').className = 'agent-status status-idle';
+  }
+}
+
+// ── Roast mode ────────────────────────────────────────────────────────────────
+async function startRoast() {
+  const industry = document.getElementById('industry').value.trim();
+  const location = document.getElementById('location').value.trim();
+  const limit = parseInt(document.getElementById('limit').value);
+  if (!industry || !location) { alert('Enter industry and location.'); return; }
+
+  roastResults = [];
+  document.getElementById('results').innerHTML = '<div class="empty"><div class="empty-icon" style="animation:spin 1s linear infinite">🔥</div><div class="empty-title">Roasting...</div><div class="empty-sub">Finding businesses and scoring websites</div></div>';
+  document.getElementById('roastStats').style.display = 'none';
+  document.getElementById('exportBtn').style.display = 'none';
+  setRunning(true);
+
+  const resp = await fetch('/api/roast', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({industry, location, limit})
+  });
+  if (!resp.ok) { alert('Failed to start'); setRunning(false); return; }
+  connectRoastSSE();
+  startRoastPoll();
+}
+
+function connectRoastSSE() {
+  if (sse) sse.close();
+  sse = new EventSource('/api/stream');
+  sse.addEventListener('log', e => {
+    document.getElementById('logBar').textContent = JSON.parse(e.data).msg;
+  });
+  sse.addEventListener('done', e => {
+    const d = JSON.parse(e.data);
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    roastResults = d.results || [];
+    setRunning(false);
+    updateRoastStats(roastResults);
+    renderRoastResults(roastResults);
+    if (sse) { sse.close(); sse = null; }
+  });
+  sse.onerror = () => { if(sse) sse.close(); };
+}
+
+function startRoastPoll() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    try {
+      const r = await fetch('/api/status');
+      const s = await r.json();
+      if (!s.running && roastResults.length === 0) {
+        const res = await fetch('/api/results');
+        roastResults = await res.json();
+        if (roastResults.length) {
+          clearInterval(pollInterval);
+          setRunning(false);
+          updateRoastStats(roastResults);
+          renderRoastResults(roastResults);
+        }
+      }
+    } catch(e) {}
+  }, 2000);
+}
+
+function updateRoastStats(res) {
+  document.getElementById('sTotal').textContent = res.length;
+  document.getElementById('sHigh').textContent = res.filter(r => r.icp_tier === 'A' || r.icp_tier === 'B').length;
+  document.getElementById('sAvg').textContent = Math.round(res.reduce((a,r) => a + (r.website_score||0), 0) / (res.length||1));
+  document.getElementById('sCritical').textContent = res.filter(r => r.critical_count > 0).length;
+  document.getElementById('sAdSpend').textContent = res.filter(r => r.running_ads && r.running_ads.length).length;
+  document.getElementById('roastStats').style.display = 'grid';
+  document.getElementById('exportBtn').style.display = 'inline-block';
+  document.getElementById('toolbarLabel').textContent = res.length + ' businesses scored · ' + new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+}
+
+// ── Roast card rendering ──────────────────────────────────────────────────────
+function renderDims(dims) {
+  if (!dims) return '';
+  const order = ['speed','mobile','ssl','cta','trust','booking','social','seo','visual','tech'];
+  return order.map(function(key) {
+    const d = dims[key] || {};
+    const score = d.score || 0;
+    const max = 10;
+    const pct = score / max;
+    const color = score >= 7 ? '#10b981' : score >= 4 ? '#f59e0b' : '#ef4444';
+    const r = 18, circ = 2 * Math.PI * r;
+    const dash = pct * circ;
+    const flagHtml = d.flag === 'Critical'
+      ? '<span class="dim-flag flag-critical">Critical</span>'
+      : d.flag === 'Needs Work'
+      ? '<span class="dim-flag flag-work">Work</span>'
+      : '';
+    return '<div class="dim-item">' +
+      '<div class="dim-ring">' +
+        '<svg width="44" height="44" viewBox="0 0 44 44">' +
+          '<circle cx="22" cy="22" r="' + r + '" fill="none" stroke="#1a3050" stroke-width="4"/>' +
+          '<circle cx="22" cy="22" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="4" stroke-dasharray="' + dash + ' ' + circ + '" stroke-linecap="round"/>' +
+        '</svg>' +
+        '<div class="dim-val" style="color:' + color + '">' + score + '</div>' +
+      '</div>' +
+      '<div class="dim-name">' + (d.label || key) + '</div>' +
+      flagHtml +
+    '</div>';
+  }).join('');
+}
+
+function renderIntelPills(r) {
+  let out = '';
+  if (!r.intel_pills || !r.intel_pills.length) return out;
+  r.intel_pills.filter(function(p){ return !p.label.includes('Revenue Leak'); }).forEach(function(p) {
+    const cls = {blue:'pill-blue',green:'pill-green',red:'pill-red',amber:'pill-amber',orange:'pill-amber',purple:'pill-purple'}[p.color] || 'pill-teal';
+    out += '<span class="pill ' + cls + '">' + p.icon + ' ' + p.label + '</span>';
+  });
+  return out;
+}
+
+function renderRoastResults(res) {
+  if (!res.length) {
+    document.getElementById('results').innerHTML = '<div class="empty"><div class="empty-icon">🤷</div><div class="empty-title">No results</div><div class="empty-sub">Try a different industry or location</div></div>';
+    return;
+  }
+  const minScore = parseInt(document.getElementById('minScore').value) || 0;
+  const filtered = minScore ? res.filter(r => (r.combined_score||r.website_score||0) >= minScore) : res;
+  document.getElementById('results').innerHTML = filtered.map(function(r, i) { return renderRoastCard(r, i+1); }).join('');
+}
+
+function renderRoastCard(r, rank) {
+  const score = r.combined_score || r.website_score || 0;
+  const oppC = oppColor(score);
+  const stars = r.rating ? ('★'.repeat(Math.round(r.rating)) + ' ' + r.rating) : '';
+  const reviews = r.reviews ? '(' + Number(r.reviews).toLocaleString() + ' reviews)' : '';
+  const webHost = r.website ? r.website.replace(/^https?:\/\//, '').split('/')[0] : '';
+  const websiteHtml = r.website ? '<a href="' + r.website + '" target="_blank">' + webHost + '</a>' : '<span style="color:var(--red)">No website</span>';
+
+  const tierBg = r.icp_tier==='A' ? 'background:rgba(16,185,129,0.12);color:#6ee7b7'
+    : r.icp_tier==='B' ? 'background:rgba(0,196,212,0.1);color:var(--teal)'
+    : r.icp_tier==='C' ? 'background:rgba(245,158,11,0.1);color:var(--amber)'
+    : 'background:rgba(100,116,139,0.08);color:var(--muted)';
+
+  const enrichBtn = (r.icp_tier === 'A' || r.icp_tier === 'B')
+    ? '<button class="btn-enrich" data-website="' + (r.website||'') + '" data-name="' + (r.name||'').replace(/"/g,'') + '" onclick="sendToHarvest(event, this.dataset.website, this.dataset.name)">🌾 Enrich</button>'
+    : '';
+
+  const reportSlug = r.slug || (rank - 1);
+
+  const sizeSignals = (r.size_signals||[]).map(function(s){ return '<span class="pill pill-purple">' + s + '</span>'; }).join('');
+  const revLeak = r.revenue_leak ? '<div class="revenue-leak">💸 REVENUE LEAK — ' + (r.revenue_leak_reason||'') + '</div>' : '';
+  const icpPills = (r.icp_pills||[]).map(function(p){ return '<span class="pill pill-teal">' + p + '</span>'; }).join('');
+  const staleness = (r.staleness_flags||[]).map(function(f){ return '<span class="pill pill-red">' + f + '</span>'; }).join('');
+
+  return '<div class="biz-card">' +
+    '<div class="biz-header">' +
+      '<div class="biz-rank">#' + rank + '</div>' +
+      '<div>' +
+        '<div class="biz-name">' + (r.name||'Unknown') + '</div>' +
+        '<div class="biz-meta"><span style="color:var(--amber)">' + stars + '</span> ' + reviews + ' · ' + (r.address||'') + '</div>' +
+        '<div class="biz-meta">' + websiteHtml + ' · Load: ' + (r.load_time||'?') + 's · SSL: ' + (r.is_ssl?'✓':'✗') + (r.phone ? ' · ' + r.phone : '') + '</div>' +
+        (staleness ? '<div class="pills-wrap" style="margin-top:5px">' + staleness + '</div>' : '') +
+        (sizeSignals ? '<div class="pills-wrap" style="margin-top:5px">' + sizeSignals + '</div>' : '') +
+      '</div>' +
+      '<div class="biz-right">' +
+        '<div class="opp-score" style="color:' + oppC + '">' + score + '</div>' +
+        '<div class="opp-label">Opportunity</div>' +
+        '<div class="opp-sub">Web <strong style="color:var(--text)">' + (r.website_score||0) + '</strong> · ICP <strong style="color:var(--teal)">' + (r.icp_score||0) + '</strong></div>' +
+        (r.icp_label ? '<div style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;margin-top:4px;' + tierBg + '">' + r.icp_label + '</div>' : '') +
+        '<button class="detail-btn" data-rank="' + rank + '" onclick="toggleDetail(event, this.dataset.rank)">▼ Details</button>' +
+        '<div class="action-btns">' +
+          '<a href="/r/' + reportSlug + '" target="_blank" class="btn-report">📄 Report</a>' +
+          enrichBtn +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div id="detail-' + rank + '" class="detail-panel">' +
+      '<div class="detail-section-title">Website Score — ' + (r.website_score||0) + '/100</div>' +
+      '<div class="dims-row">' + renderDims(r.dimensions) + '</div>' +
+      '<div class="icp-section">' +
+        '<div class="detail-section-title">ICP Intelligence — ' + (r.icp_score||0) + '/100</div>' +
+        revLeak +
+        '<div class="pills-wrap">' +
+          renderIntelPills(r) +
+          icpPills +
+          sizeSignals +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function toggleDetail(e, rank) {
+  e.stopPropagation();
+  const el = document.getElementById('detail-' + rank);
+  const btn = e.target;
+  if (el.style.display === 'none' || el.style.display === '') {
+    el.style.display = 'block';
+    btn.textContent = '▲ Details';
+  } else {
+    el.style.display = 'none';
+    btn.textContent = '▼ Details';
+  }
+}
+
+// ── Harvest mode ──────────────────────────────────────────────────────────────
+async function startHarvest() {
+  const industry = document.getElementById('h-industry').value.trim();
+  const location = document.getElementById('h-location').value.trim();
+  const limit = parseInt(document.getElementById('h-limit').value) || 20;
+  if (!industry || !location) { alert('Enter industry and location.'); return; }
+
+  harvestProspects = [];
+  setRunning(true);
+  document.getElementById('harvestStats').style.display = 'none';
+  document.getElementById('results').innerHTML = '<div class="empty"><div class="empty-icon" style="animation:spin 1s linear infinite">🌾</div><div class="empty-title">Harvesting...</div><div class="empty-sub">Searching Google for prospects with indexed emails</div></div>';
+
+  try {
+    await fetch(SIGNAL_HARVEST_URL + '/api/google-email', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({industry, location, limit, enrichment: 'owner', client_name: industry + ' - ' + location})
+    });
+    connectHarvestSSE();
+    startHarvestPoll();
+  } catch(e) {
+    alert('Could not connect to Harvest agent. Check Signal Harvest is running.');
+    setRunning(false);
+  }
+}
+
+function connectHarvestSSE() {
+  try {
+    const harvestSSE = new EventSource(SIGNAL_HARVEST_URL + '/api/stream');
+    harvestSSE.addEventListener('log', e => {
+      document.getElementById('logBar').textContent = JSON.parse(e.data).msg;
+    });
+    harvestSSE.addEventListener('prospect', e => {
+      const d = JSON.parse(e.data);
+      harvestProspects.push(d.prospect);
+      renderHarvestResults(harvestProspects);
+      updateHarvestStats(harvestProspects);
+    });
+    harvestSSE.addEventListener('done', e => {
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      setRunning(false);
+      updateHarvestStats(harvestProspects);
+      const d = JSON.parse(e.data);
+      currentSessionId = d.session_id;
+      harvestSSE.close();
+    });
+    harvestSSE.onerror = () => harvestSSE.close();
+  } catch(e) {}
+}
+
+function startHarvestPoll() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    try {
+      const r = await fetch(SIGNAL_HARVEST_URL + '/api/status');
+      const s = await r.json();
+      if (!s.running) { clearInterval(pollInterval); setRunning(false); }
+      else { document.getElementById('logBar').textContent = 'Harvesting... ' + harvestProspects.length + ' prospects found'; }
+    } catch(e) {}
+  }, 2000);
+}
+
+function updateHarvestStats(prospects) {
+  document.getElementById('hTotal').textContent = prospects.length;
+  document.getElementById('hEmails').textContent = prospects.filter(p=>p.email).length;
+  document.getElementById('hContacts').textContent = prospects.filter(p=>p.first_name).length;
+  document.getElementById('hVerified').textContent = prospects.filter(p=>p.signal&&p.signal.includes('✅')).length;
+  document.getElementById('harvestStats').style.display = 'grid';
+  document.getElementById('exportBtn').style.display = 'inline-block';
+  document.getElementById('toolbarLabel').textContent = prospects.length + ' prospects found · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function renderHarvestResults(prospects) {
+  if (!prospects.length) return;
+  const rows = prospects.map(function(p) {
+    const verified = p.signal && p.signal.includes('✅');
+    return '<tr>' +
+      '<td><div style="font-size:12px;font-weight:600">' + (p.company||'') + '</div><div style="font-size:10px;color:var(--muted)">' + (p.industry||'') + '</div></td>' +
+      '<td><div style="font-size:11px;color:var(--teal)">' + (p.website||'').replace(/^https?:\/\//,'').split('?')[0].split('/')[0] + '</div>' + (p.phone?'<div style="font-size:10px;color:var(--muted)">' + p.phone + '</div>':'') + '</td>' +
+      '<td>' + (p.first_name||p.last_name ? '<div style="font-size:12px;font-weight:500">' + (p.first_name||'') + ' ' + (p.last_name||'') + '</div><div style="font-size:10px;color:var(--muted)">' + (p.job_title||'') + '</div>' : '<span style="color:var(--muted)">—</span>') + '</td>' +
+      '<td>' + (p.email ? '<a href="mailto:' + p.email + '" style="font-size:11px;color:var(--teal);font-weight:500">' + p.email + '</a>' + (verified ? '<br><span class="email-verified">✓ verified</span>' : '') : '<span style="color:var(--muted)">—</span>') + '</td>' +
+      '<td style="font-size:11px;color:var(--muted);max-width:200px">' + (p.description||'').substring(0,100) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('results').innerHTML = '<div class="harvest-table-wrap"><table class="harvest-table"><thead><tr><th>Company</th><th>Website / Phone</th><th>Contact</th><th>Email</th><th>Description</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// ── Send to Harvest ───────────────────────────────────────────────────────────
+async function sendToHarvest(e, website, name) {
+  e.stopPropagation();
+  const btn = e.target;
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  try {
+    const resp = await fetch(SIGNAL_HARVEST_URL + '/api/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({mode:'domain',client_name:name,domains:[[website,'Roaster ICP qualified']],country:'US',notes:'Pre-qualified by Roast Agent',input_data:website})
+    });
+    if (resp.ok) {
+      btn.textContent = '✅';
+      btn.style.background = 'rgba(16,185,129,0.15)';
+      btn.style.color = '#10b981';
+    } else { btn.textContent = '❌'; }
+  } catch(e) { btn.textContent = '❌'; }
+}
+
+// ── Single URL audit ──────────────────────────────────────────────────────────
+async function singleAudit() {
+  const url = document.getElementById('singleUrl').value.trim();
+  if (!url) { alert('Enter a URL.'); return; }
+  const panel = document.getElementById('singleResult');
+  panel.style.display = 'block';
+  panel.innerHTML = '<div style="color:var(--muted);font-size:12px">Auditing ' + url + '...</div>';
+  try {
+    const resp = await fetch('/api/roast/single', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const r = await resp.json();
+    const saveResp = await fetch('/api/roast/single/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...r, url, name: url.replace(/^https?:\/\//,'').split('/')[0]})});
+    const score = r.website_score || 0;
+    const oppC = oppColor(score);
+    let reportLink = '';
+    if (saveResp.ok) {
+      const saved = await saveResp.json();
+      reportLink = '<a href="/r/' + saved.slug + '" target="_blank" class="btn-report" style="margin-top:10px;display:inline-block">📄 View Full Report →</a>';
+    }
+    panel.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
+      '<div><div style="font-size:13px;font-weight:700">' + url + '</div><div style="font-size:11px;color:var(--muted);margin-top:3px">Score: <strong style="color:' + oppC + '">' + score + '/100</strong> · ' + (r.critical_count||0) + ' critical issues</div></div>' +
+      reportLink + '</div>' +
+      '<div class="dims-row" style="margin-top:14px">' + renderDims(r.dimensions) + '</div>';
+  } catch(e) { panel.innerHTML = '<div style="color:var(--red)">Error auditing URL.</div>'; }
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+async function doExport() {
+  if (currentMode === 'roast') {
+    window.location.href = '/api/export.csv';
+  } else {
+    if (currentSessionId) {
+      window.location.href = SIGNAL_HARVEST_URL + '/api/sessions/' + currentSessionId + '/export.csv';
+    } else {
+      try {
+        const r = await fetch(SIGNAL_HARVEST_URL + '/api/sessions');
+        const sessions = await r.json();
+        if (sessions.length) window.location.href = SIGNAL_HARVEST_URL + '/api/sessions/' + sessions[0].id + '/export.csv';
+      } catch(e) {}
+    }
+  }
+}
+
+// ── Animations ────────────────────────────────────────────────────────────────
+const style = document.createElement('style');
+style.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+document.head.appendChild(style);
+
+// Enter key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    if (currentMode === 'roast') startRoast();
+    else startHarvest();
+  }
+});
+</script>
+</body>
+</html>
