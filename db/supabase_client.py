@@ -1,88 +1,62 @@
 """
-Supabase database layer for Prospect Engine.
-Handles all contact CRUD, status tracking, and batch operations.
+Supabase database layer using direct REST API calls.
+Avoids the Python client library which has host allowlist issues.
 """
 import os
-from supabase import create_client, Client
+import httpx
 
-_client: Client | None = None
+def _headers():
+    key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    return {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
 
-def get_client() -> Client:
-    global _client
-    if not _client:
-        url = os.environ.get("SUPABASE_URL", "")
-        key = os.environ.get("SUPABASE_SERVICE_KEY", "")
-        if not url or not key:
-            raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
-        _client = create_client(url, key)
-    return _client
+def _url(table: str) -> str:
+    base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    return f"{base}/rest/v1/{table}"
 
-
-# ── Contacts ──────────────────────────────────────────────────────────────────
 
 def upsert_contacts(contacts: list[dict]) -> int:
-    """
-    Insert or update contacts. Matches on website domain.
-    Returns count inserted.
-    """
-    db = get_client()
-    # Normalise domains for dedup
+    if not contacts:
+        return 0
     for c in contacts:
         if c.get("website"):
             c["website"] = c["website"].lower().strip().rstrip("/")
-    result = db.table("contacts").upsert(contacts, on_conflict="website").execute()
-    return len(result.data or [])
+    headers = {**_headers(), "Prefer": "resolution=merge-duplicates,return=representation"}
+    r = httpx.post(_url("contacts"), json=contacts, headers=headers, timeout=30)
+    r.raise_for_status()
+    return len(r.json() or [])
 
 
-def get_contacts(
-    status: str | None = None,
-    industry: str | None = None,
-    limit: int = 500,
-    offset: int = 0,
-) -> list[dict]:
-    """Fetch contacts with optional filters."""
-    db = get_client()
-    q = db.table("contacts").select("*")
+def get_contacts(status=None, industry=None, limit=500, offset=0) -> list[dict]:
+    params = {"limit": limit, "offset": offset, "order": "created_at.desc"}
     if status:
-        q = q.eq("status", status)
+        params["status"] = f"eq.{status}"
     if industry:
-        q = q.ilike("industry", f"%{industry}%")
-    q = q.order("created_at", desc=True).range(offset, offset + limit - 1)
-    result = q.execute()
-    return result.data or []
+        params["industry"] = f"ilike.%{industry}%"
+    r = httpx.get(_url("contacts"), params=params, headers=_headers(), timeout=30)
+    r.raise_for_status()
+    return r.json() or []
 
 
 def get_contact_stats() -> dict:
-    """Return counts by status for dashboard."""
-    db = get_client()
-    result = db.table("contacts").select("status").execute()
-    rows = result.data or []
-    stats = {
-        "total": len(rows),
-        "new": 0, "scored": 0, "enriched": 0,
-        "report_sent": 0, "nurture": 0, "archived": 0,
-    }
-    for r in rows:
-        s = r.get("status", "new")
+    r = httpx.get(_url("contacts"), params={"select": "status", "limit": 10000}, headers=_headers(), timeout=30)
+    r.raise_for_status()
+    rows = r.json() or []
+    stats = {"total": len(rows), "new": 0, "scored": 0, "enriched": 0, "report_sent": 0, "nurture": 0, "archived": 0}
+    for row in rows:
+        s = row.get("status", "new")
         if s in stats:
             stats[s] += 1
     return stats
 
 
-def update_contact_score(
-    contact_id: int,
-    opportunity_score: int,
-    icp_score: int,
-    website_score: int,
-    icp_tier: str,
-    intel_pills: list,
-    size_signals: list,
-    revenue_leak: bool,
-    status: str,
-) -> None:
-    """Update scoring results for a single contact."""
-    db = get_client()
-    db.table("contacts").update({
+def update_contact_score(contact_id, opportunity_score, icp_score, website_score,
+                          icp_tier, intel_pills, size_signals, revenue_leak, status):
+    payload = {
         "opportunity_score": opportunity_score,
         "icp_score": icp_score,
         "website_score": website_score,
@@ -92,28 +66,27 @@ def update_contact_score(
         "revenue_leak": revenue_leak,
         "status": status,
         "scored_at": "now()",
-    }).eq("id", contact_id).execute()
+    }
+    r = httpx.patch(f"{_url('contacts')}?id=eq.{contact_id}", json=payload, headers=_headers(), timeout=30)
+    r.raise_for_status()
 
 
-def update_contact_status(contact_id: int, status: str, **extra) -> None:
-    """Update status and any extra fields."""
-    db = get_client()
+def update_contact_status(contact_id, status, **extra):
     payload = {"status": status, **extra}
-    db.table("contacts").update(payload).eq("id", contact_id).execute()
+    r = httpx.patch(f"{_url('contacts')}?id=eq.{contact_id}", json=payload, headers=_headers(), timeout=30)
+    r.raise_for_status()
 
 
-def get_contacts_for_batch_score(limit: int = 50) -> list[dict]:
-    """Get contacts ready to be scored (status = new)."""
+def get_contacts_for_batch_score(limit=50) -> list[dict]:
     return get_contacts(status="new", limit=limit)
 
 
-def get_contacts_for_instantly(threshold: int = 70, limit: int = 100) -> list[dict]:
-    """Get scored contacts above threshold ready for Instantly push."""
-    db = get_client()
-    result = db.table("contacts") \
-        .select("*") \
-        .eq("status", "enriched") \
-        .gte("opportunity_score", threshold) \
-        .limit(limit) \
-        .execute()
-    return result.data or []
+def get_contacts_for_instantly(threshold=70, limit=100) -> list[dict]:
+    params = {
+        "status": "eq.enriched",
+        "opportunity_score": f"gte.{threshold}",
+        "limit": limit,
+    }
+    r = httpx.get(_url("contacts"), params=params, headers=_headers(), timeout=30)
+    r.raise_for_status()
+    return r.json() or []
