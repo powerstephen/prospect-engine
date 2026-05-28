@@ -25,20 +25,14 @@ header{height:56px;background:var(--surface);border-bottom:1px solid var(--borde
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
 /* Top nav - SignalOps style */
-nav{height:52px;background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:stretch;gap:0;flex-shrink:0}
-.tab-btn{display:flex;align-items:center;gap:8px;padding:0 20px;border:none;background:transparent;color:var(--muted);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;position:relative;text-transform:uppercase}
-.tab-btn:hover{color:var(--text)}
+nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:stretch;flex-shrink:0}
+.tab-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;border:none;background:transparent;color:var(--muted);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;text-transform:uppercase}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,0.02)}
 .tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
 .tab-btn .badge{font-size:9px;padding:1px 5px;border-radius:10px;background:var(--teal-glow);color:var(--teal);font-weight:700}
-
-/* Bot avatar in tab */
-.bot-tab-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.bot-tab-icon.insights{background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4)}
-.bot-tab-icon.scorer{background:rgba(249,115,22,0.2);border:1px solid rgba(249,115,22,0.4)}
-.bot-tab-icon.find{background:rgba(0,196,212,0.15);border:1px solid rgba(0,196,212,0.35)}
-.bot-tab-icon.reports{background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35)}
-.tab-btn.active .bot-tab-icon.scorer{background:rgba(249,115,22,0.3);border-color:rgba(249,115,22,0.6)}
-.tab-btn.active .bot-tab-icon.find{background:rgba(0,196,212,0.25);border-color:var(--teal)}
+.bot-tab-icon{width:28px;height:28px;flex-shrink:0;opacity:0.5;transition:opacity 0.15s}
+.tab-btn:hover .bot-tab-icon{opacity:0.7}
+.tab-btn.active .bot-tab-icon{opacity:1}
 
 /* Content area */
 .content{flex:1;overflow:hidden;display:flex;flex-direction:column}
@@ -199,19 +193,60 @@ nav{height:52px;background:var(--surface);border-bottom:1px solid var(--border);
 
 <!-- Top nav -->
 <nav>
-  <button class="tab-btn" onclick="showTab('insights')" id="tab-insights">
-    <div class="bot-tab-icon insights">📊</div>INSIGHTS
+  <button class="tab-btn" onclick="showTab('insights')" id="tab-insights"><svg class="bot-tab-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="6" y="8" width="16" height="13" rx="3" stroke="#00c4d4" stroke-width="1.5"/>
+  <circle cx="10.5" cy="13" r="1.5" fill="#00c4d4"/>
+  <circle cx="17.5" cy="13" r="1.5" fill="#00c4d4"/>
+  <line x1="14" y1="4" x2="14" y2="8" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="14" cy="3.5" r="1" fill="#00c4d4"/>
+  <path d="M9 18h2.5M12.5 18H16M17 18h2" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="6" y1="24" x2="11" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="17" y1="24" x2="22" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="11" y1="21" x2="11" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="17" y1="21" x2="17" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+</svg>INSIGHTS
   </button>
-  <button class="tab-btn active" onclick="showTab('scorer')" id="tab-scorer">
-    <div class="bot-tab-icon scorer">🔥</div>SCORER
-    <span class="badge" id="scorer-badge" style="display:none">0</span>
+  <button class="tab-btn active" onclick="showTab('scorer')" id="tab-scorer"><svg class="bot-tab-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="6" y="8" width="16" height="13" rx="3" stroke="#00c4d4" stroke-width="1.5"/>
+  <rect x="9.5" y="11.5" width="3.5" height="3" rx="1" stroke="#00c4d4" stroke-width="1.2" fill="rgba(0,196,212,0.15)"/>
+  <rect x="15" y="11.5" width="3.5" height="3" rx="1" stroke="#00c4d4" stroke-width="1.2" fill="rgba(0,196,212,0.15)"/>
+  <path d="M10 18h8" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="14" y1="4" x2="14" y2="8" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="14" cy="3.5" r="1" fill="#00c4d4"/>
+  <line x1="8" y1="21" x2="8" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="20" y1="21" x2="20" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="6" y1="24" x2="10" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="18" y1="24" x2="22" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+</svg>SCORER <span class="badge" id="scorer-badge" style="display:none">0</span>
   </button>
-  <button class="tab-btn" onclick="showTab('find')" id="tab-find">
-    <div class="bot-tab-icon find">🎯</div>FIND
-    <span class="badge" id="find-badge" style="display:none">0</span>
+  <button class="tab-btn" onclick="showTab('find')" id="tab-find"><svg class="bot-tab-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="6" y="8" width="16" height="13" rx="3" stroke="#00c4d4" stroke-width="1.5"/>
+  <circle cx="14" cy="14" r="4" stroke="#00c4d4" stroke-width="1.2"/>
+  <circle cx="14" cy="14" r="1.5" fill="#00c4d4"/>
+  <line x1="14" y1="10.5" x2="14" y2="9" stroke="#00c4d4" stroke-width="1" stroke-linecap="round"/>
+  <line x1="14" y1="17.5" x2="14" y2="19" stroke="#00c4d4" stroke-width="1" stroke-linecap="round"/>
+  <line x1="10.5" y1="14" x2="9" y2="14" stroke="#00c4d4" stroke-width="1" stroke-linecap="round"/>
+  <line x1="17.5" y1="14" x2="19" y2="14" stroke="#00c4d4" stroke-width="1" stroke-linecap="round"/>
+  <line x1="14" y1="4" x2="14" y2="8" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="14" cy="3.5" r="1" fill="#00c4d4"/>
+  <line x1="8" y1="21" x2="8" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="20" y1="21" x2="20" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="6" y1="24" x2="10" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="18" y1="24" x2="22" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+</svg>FIND <span class="badge" id="find-badge" style="display:none">0</span>
   </button>
-  <button class="tab-btn" onclick="showTab('reports')" id="tab-reports">
-    <div class="bot-tab-icon reports">📄</div>REPORTS
+  <button class="tab-btn" onclick="showTab('reports')" id="tab-reports"><svg class="bot-tab-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="6" y="8" width="16" height="13" rx="3" stroke="#00c4d4" stroke-width="1.5"/>
+  <circle cx="11" cy="13" r="1.5" fill="#00c4d4"/>
+  <circle cx="17" cy="13" r="1.5" fill="#00c4d4"/>
+  <path d="M10.5 16.5 Q14 15 17.5 16.5" stroke="#00c4d4" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+  <line x1="14" y1="4" x2="14" y2="8" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="14" cy="3.5" r="1" fill="#00c4d4"/>
+  <line x1="8" y1="21" x2="8" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="20" y1="21" x2="20" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="6" y1="24" x2="10" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="18" y1="24" x2="22" y2="24" stroke="#00c4d4" stroke-width="1.5" stroke-linecap="round"/>
+</svg>REPORTS
   </button>
 </nav>
 
