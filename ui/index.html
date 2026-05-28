@@ -25,8 +25,8 @@ header{height:56px;background:var(--surface);border-bottom:1px solid var(--borde
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
 /* Top nav - SignalOps style */
-nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:stretch;flex-shrink:0;padding:0 28px}
-.tab-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:0 28px;border:none;background:transparent;color:var(--muted);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;text-transform:uppercase;white-space:nowrap}
+nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:stretch;flex-shrink:0}
+.tab-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:0;width:17.5%;border:none;background:transparent;color:var(--muted);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;text-transform:uppercase;white-space:nowrap}
 .tab-btn:hover{color:var(--text);background:rgba(255,255,255,0.02)}
 .tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
 .tab-btn .badge{font-size:9px;padding:1px 5px;border-radius:10px;background:var(--teal-glow);color:var(--teal);font-weight:700}
@@ -171,6 +171,12 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
 .empty-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
 .empty-sub{font-size:11px;line-height:1.6}
 
+.weight-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.weight-label{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text);width:130px;flex-shrink:0}
+.weight-icon{font-size:11px}
+.weight-row input[type=range]{flex:1;height:3px;-webkit-appearance:none;background:var(--border);border-radius:2px;outline:none}
+.weight-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--teal);cursor:pointer}
+.weight-val{font-size:10px;font-weight:700;color:var(--teal);width:28px;text-align:right;flex-shrink:0}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
@@ -272,8 +278,26 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
       </div>
       <div class="fsection">
         <h3>Quick Actions</h3>
-        <button class="btn-ghost" onclick="showTab('scorer')" style="margin-bottom:6px">🔥 Go to Scorer →</button>
-        <button class="btn-ghost" onclick="showTab('find')">🎯 Go to Find →</button>
+        <button class="btn-ghost" onclick="showTab('scorer')" style="margin-bottom:6px">🔥 Score in Scorer →</button>
+        <button class="btn-ghost" onclick="showTab('find')">🎯 Enrich in Find →</button>
+      </div>
+      <div class="fsection">
+        <h3>Scorer Weights</h3>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.5">Adjust signal weights to match your targeting. Scorer re-ranks all results instantly.</div>
+        <div id="weight-sliders">
+          <div class="weight-row"><div class="weight-label"><span class="weight-icon">📢</span>Running Ads</div><input type="range" min="0" max="50" value="30" id="w-ads" oninput="updateWeight(this,'w-ads-val')"><span class="weight-val" id="w-ads-val">+30</span></div>
+          <div class="weight-row"><div class="weight-label"><span class="weight-icon">🎯</span>Sweet spot website</div><input type="range" min="0" max="50" value="25" id="w-sweet" oninput="updateWeight(this,'w-sweet-val')"><span class="weight-val" id="w-sweet-val">+25</span></div>
+          <div class="weight-row"><div class="weight-label"><span class="weight-icon">🏗</span>Outdated tech</div><input type="range" min="0" max="50" value="20" id="w-tech" oninput="updateWeight(this,'w-tech-val')"><span class="weight-val" id="w-tech-val">+20</span></div>
+          <div class="weight-row"><div class="weight-label"><span class="weight-icon">📱</span>Poor mobile</div><input type="range" min="0" max="50" value="15" id="w-mobile" oninput="updateWeight(this,'w-mobile-val')"><span class="weight-val" id="w-mobile-val">+15</span></div>
+          <div class="weight-row"><div class="weight-label"><span class="weight-icon">👥</span>SMB size (10-50)</div><input type="range" min="0" max="50" value="20" id="w-size" oninput="updateWeight(this,'w-size-val')"><span class="weight-val" id="w-size-val">+20</span></div>
+          <div class="weight-row"><div class="weight-label"><span class="weight-icon">📅</span>No booking tool</div><input type="range" min="0" max="50" value="10" id="w-booking" oninput="updateWeight(this,'w-booking-val')"><span class="weight-val" id="w-booking-val">+10</span></div>
+          <div class="weight-row"><div class="weight-label"><span class="weight-icon">🔴</span>No analytics</div><input type="range" min="0" max="50" value="8" id="w-analytics" oninput="updateWeight(this,'w-analytics-val')"><span class="weight-val" id="w-analytics-val">+8</span></div>
+          <div class="weight-row"><div class="weight-label"><span class="weight-icon">⭐</span>Reviews 20-200</div><input type="range" min="0" max="50" value="7" id="w-reviews" oninput="updateWeight(this,'w-reviews-val')"><span class="weight-val" id="w-reviews-val">+7</span></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-ghost" onclick="resetWeights()" style="flex:1;margin-top:0;font-size:10px;padding:6px">Reset</button>
+          <button class="btn-go" onclick="applyWeights()" style="flex:2;padding:8px;font-size:11px">Apply & Re-rank</button>
+        </div>
       </div>
     </div>
     <div class="split-right" id="insights-results">
@@ -518,8 +542,8 @@ function renderScorer(res) {
   document.getElementById('scorerResults').innerHTML = filtered.map(function(r,i){ return buildCard(r,i+1); }).join('');
 }
 
-function buildCard(r, rank) {
-  var sc = r.combined_score||r.website_score||0, c = oppColor(sc);
+function buildCard(r, rank, overrideScore) {
+  var sc = overrideScore || r.combined_score||r.website_score||0, c = oppColor(sc);
   var stars = r.rating ? '★'.repeat(Math.round(r.rating))+' '+r.rating : '';
   var reviews = r.reviews ? '('+Number(r.reviews).toLocaleString()+' reviews)' : '';
   var webHost = r.website ? r.website.replace(/^https?:\/\//,'').split('/')[0] : '';
@@ -703,6 +727,59 @@ function analyseContacts() {
     '<button class="btn-go" onclick="showTab(\'find\')" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6d28d9)">🎯 Find in Find →</button>' +
   '</div>';
   document.getElementById('insights-results').innerHTML = html;
+}
+
+// ── ICP WEIGHTS ───────────────────────────────────────────────────────────────
+var defaultWeights = {ads:30,sweet:25,tech:20,mobile:15,size:20,booking:10,analytics:8,reviews:7};
+
+function updateWeight(slider, valId) {
+  document.getElementById(valId).textContent = '+' + slider.value;
+}
+
+function resetWeights() {
+  Object.entries(defaultWeights).forEach(function(kv) {
+    var el = document.getElementById('w-' + kv[0]);
+    var val = document.getElementById('w-' + kv[0] + '-val');
+    if (el) { el.value = kv[1]; val.textContent = '+' + kv[1]; }
+  });
+}
+
+function getWeights() {
+  var w = {};
+  Object.keys(defaultWeights).forEach(function(k) {
+    var el = document.getElementById('w-' + k);
+    w[k] = el ? parseInt(el.value) : defaultWeights[k];
+  });
+  return w;
+}
+
+function applyWeights() {
+  if (!roastResults.length) { showTab('scorer'); alert('Run a Scorer search first, then apply weights.'); return; }
+  var w = getWeights();
+  var reranked = roastResults.map(function(r) {
+    var bonus = 0;
+    if (r.running_ads && r.running_ads.length) bonus += w.ads;
+    var ws = r.website_score || 0;
+    if (ws >= 40 && ws <= 70) bonus += w.sweet;
+    else if (ws >= 35 && ws <= 75) bonus += Math.round(w.sweet * 0.5);
+    var dims = r.dimensions || {};
+    var techScore = dims.tech ? (dims.tech.score || 5) : 5;
+    if (techScore <= 3) bonus += w.tech;
+    var mobileScore = dims.mobile ? (dims.mobile.score || 5) : 5;
+    if (mobileScore <= 4) bonus += w.mobile;
+    if (r.size_tier === 'smb') bonus += w.size;
+    else if (r.size_tier === 'micro') bonus += Math.round(w.size * 0.5);
+    var bookingScore = dims.booking ? (dims.booking.score || 5) : 5;
+    if (bookingScore <= 2) bonus += w.booking;
+    if (r.intel_signals && r.intel_signals.no_tracking) bonus += w.analytics;
+    var rv = r.reviews || 0;
+    if (rv >= 20 && rv <= 200) bonus += w.reviews;
+    return Object.assign({}, r, {weighted_score: Math.min(100, (r.combined_score || r.website_score || 0) + Math.round(bonus * 0.4))});
+  });
+  reranked.sort(function(a,b){ return b.weighted_score - a.weighted_score; });
+  showTab('scorer');
+  document.getElementById('scorerResults').innerHTML = reranked.map(function(r,i){ return buildCard(r,i+1,r.weighted_score); }).join('');
+  document.getElementById('scorerLabel').textContent = roastResults.length + ' businesses re-ranked by custom weights';
 }
 
 document.addEventListener('keydown', function(e) {
