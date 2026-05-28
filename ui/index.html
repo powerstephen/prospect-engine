@@ -174,6 +174,18 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
 .fpill{padding:4px 12px;font-size:10px;font-weight:700;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Montserrat',sans-serif;transition:all 0.15s;white-space:nowrap}
 .fpill:hover{border-color:var(--teal);color:var(--teal)}
 .fpill.active{background:var(--teal-glow);border-color:var(--teal);color:var(--teal)}
+.expand-arrow{background:none;border:none;color:var(--teal);cursor:pointer;padding:3px 8px;font-size:12px;transition:transform 0.2s;display:inline-block}
+.expand-arrow.open{transform:rotate(180deg)}
+.action-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+.abtn{padding:7px 4px;font-size:10px;font-weight:700;border-radius:7px;cursor:pointer;font-family:'Montserrat',sans-serif;border:1px solid var(--border);background:transparent;color:var(--muted);text-align:center;transition:all 0.15s;width:100%}
+.abtn:hover{background:var(--surface2)}
+.abtn.enrich{border-color:rgba(139,92,246,0.4);color:var(--purple)}
+.abtn.enrich:hover{background:rgba(139,92,246,0.1)}
+.abtn.roast{border-color:rgba(249,115,22,0.4);color:var(--orange)}
+.abtn.roast:hover{background:rgba(249,115,22,0.1)}
+.abtn.nurture{border-color:rgba(16,185,129,0.4);color:var(--green)}
+.abtn.nurture:hover{background:rgba(16,185,129,0.1)}
+.abtn.undo{border-color:var(--border);color:var(--muted);font-size:14px}
 .weight-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .weight-label{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text);width:130px;flex-shrink:0}
 .weight-icon{font-size:11px}
@@ -338,7 +350,7 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
         <div class="panel-title" id="scorerLabel">Run a search to find prospects</div>
         <button class="btn-csv" id="exportScorer" onclick="window.location.href='/api/export.csv'">⬇ Export CSV</button>
       </div>
-      <div id="filterBar" style="display:none;padding:10px 20px;border-bottom:1px solid var(--border);display:none;flex-wrap:wrap;gap:6px;align-items:center;background:var(--surface);flex-shrink:0">
+      <div id="filterBar" style="display:none;padding:10px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px;align-items:center;background:var(--surface);flex-shrink:0">
         <span style="font-size:10px;color:var(--muted);font-weight:600;margin-right:2px">FILTER</span>
         <button class="fpill active" onclick="setFilter('all')">All</button>
         <button class="fpill" onclick="setFilter('ads')">Running Ads</button>
@@ -496,6 +508,72 @@ function startRoastPoll() {
 }
 
 var activeFilter = 'all';
+var nurtureList = [];
+
+function actionEnrich(e, cardId, website, name) {
+  e.preventDefault(); e.stopPropagation();
+  var card = document.getElementById(cardId);
+  if (!card) return;
+  card.style.transition = 'opacity 0.3s';
+  card.style.opacity = '0';
+  setTimeout(function() {
+    card.style.display = 'none';
+    // Show undo
+    showActionUndo(cardId, 'Enriching ' + name + '...', function() { card.style.display=''; card.style.opacity='1'; });
+  }, 300);
+  // Send to Find
+  fetch(HARVEST_URL+'/api/run', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'domain',client_name:name,domains:[[website,'Scorer → Enrich']],country:'US',input_data:website})});
+  // Update Find badge
+  var fb = document.getElementById('find-badge'); fb.textContent = (parseInt(fb.textContent)||0)+1; fb.style.display='inline-block';
+}
+
+function actionRoast(e, cardId) {
+  e.stopPropagation();
+  var card = document.getElementById(cardId);
+  if (!card) return;
+  card.style.transition = 'opacity 0.3s';
+  card.style.opacity = '0';
+  setTimeout(function() {
+    card.style.display = 'none';
+    showActionUndo(cardId, 'Report sent to Roasts', function() { card.style.display=''; card.style.opacity='1'; });
+  }, 300);
+}
+
+function actionNurture(e, cardId, name) {
+  e.stopPropagation();
+  var card = document.getElementById(cardId);
+  if (!card) return;
+  nurtureList.push({cardId, name});
+  card.style.transition = 'opacity 0.3s';
+  card.style.opacity = '0';
+  setTimeout(function() {
+    card.style.display = 'none';
+    showActionUndo(cardId, name + ' added to Nurture', function() {
+      card.style.display=''; card.style.opacity='1';
+      nurtureList = nurtureList.filter(function(n){ return n.cardId !== cardId; });
+    });
+  }, 300);
+}
+
+function showActionUndo(cardId, msg, undoFn) {
+  var bar = document.getElementById('undoBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'undoBar';
+    bar.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--teal);border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:12px;font-size:12px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = '<span style="color:var(--text)">'+msg+'</span><button onclick="undoAction(''+cardId+'')" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--teal);padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Montserrat,sans-serif">← Undo</button>';
+  bar.style.display = 'flex';
+  bar._undoFn = undoFn;
+  clearTimeout(bar._timer);
+  bar._timer = setTimeout(function(){ bar.style.display='none'; }, 5000);
+}
+
+function undoAction(cardId) {
+  var bar = document.getElementById('undoBar');
+  if (bar && bar._undoFn) { bar._undoFn(); bar.style.display='none'; }
+}
 
 function setFilter(f) {
   activeFilter = f;
@@ -561,11 +639,11 @@ function renderIntelPills(r) {
   return r.intel_pills.filter(function(p){return !p.label.includes('Revenue Leak');}).map(function(p){ return '<span class="pill '+(cls[p.color]||'pt')+'">'+p.icon+' '+p.label+'</span>'; }).join('');
 }
 
-function toggleDP(rank) {
-  var el = document.getElementById('dp-'+rank), btn = document.querySelector('[data-rank="'+rank+'"]');
+function toggleDP(rank, btn) {
+  var el = document.getElementById('dp-'+rank);
   var open = el.style.display === 'block';
   el.style.display = open ? 'none' : 'block';
-  if (btn) btn.textContent = open ? '▼ Details' : '▲ Details';
+  if (btn) btn.classList.toggle('open', !open);
 }
 
 function renderScorer(res) {
