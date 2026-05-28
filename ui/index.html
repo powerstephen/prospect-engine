@@ -171,6 +171,9 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
 .empty-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
 .empty-sub{font-size:11px;line-height:1.6}
 
+.fpill{padding:4px 12px;font-size:10px;font-weight:700;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Montserrat',sans-serif;transition:all 0.15s;white-space:nowrap}
+.fpill:hover{border-color:var(--teal);color:var(--teal)}
+.fpill.active{background:var(--teal-glow);border-color:var(--teal);color:var(--teal)}
 .weight-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .weight-label{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text);width:130px;flex-shrink:0}
 .weight-icon{font-size:11px}
@@ -281,24 +284,7 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
         <button class="btn-ghost" onclick="showTab('scorer')" style="margin-bottom:6px">🔥 Score in Scorer →</button>
         <button class="btn-ghost" onclick="showTab('find')">🎯 Enrich in Find →</button>
       </div>
-      <div class="fsection">
-        <h3>Scorer Weights</h3>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.5">Adjust signal weights to match your targeting. Scorer re-ranks all results instantly.</div>
-        <div id="weight-sliders">
-          <div class="weight-row"><div class="weight-label"><span class="weight-icon">📢</span>Running Ads</div><input type="range" min="0" max="50" value="30" id="w-ads" oninput="updateWeight(this,'w-ads-val')"><span class="weight-val" id="w-ads-val">+30</span></div>
-          <div class="weight-row"><div class="weight-label"><span class="weight-icon">🎯</span>Sweet spot website</div><input type="range" min="0" max="50" value="25" id="w-sweet" oninput="updateWeight(this,'w-sweet-val')"><span class="weight-val" id="w-sweet-val">+25</span></div>
-          <div class="weight-row"><div class="weight-label"><span class="weight-icon">🏗</span>Outdated tech</div><input type="range" min="0" max="50" value="20" id="w-tech" oninput="updateWeight(this,'w-tech-val')"><span class="weight-val" id="w-tech-val">+20</span></div>
-          <div class="weight-row"><div class="weight-label"><span class="weight-icon">📱</span>Poor mobile</div><input type="range" min="0" max="50" value="15" id="w-mobile" oninput="updateWeight(this,'w-mobile-val')"><span class="weight-val" id="w-mobile-val">+15</span></div>
-          <div class="weight-row"><div class="weight-label"><span class="weight-icon">👥</span>SMB size (10-50)</div><input type="range" min="0" max="50" value="20" id="w-size" oninput="updateWeight(this,'w-size-val')"><span class="weight-val" id="w-size-val">+20</span></div>
-          <div class="weight-row"><div class="weight-label"><span class="weight-icon">📅</span>No booking tool</div><input type="range" min="0" max="50" value="10" id="w-booking" oninput="updateWeight(this,'w-booking-val')"><span class="weight-val" id="w-booking-val">+10</span></div>
-          <div class="weight-row"><div class="weight-label"><span class="weight-icon">🔴</span>No analytics</div><input type="range" min="0" max="50" value="8" id="w-analytics" oninput="updateWeight(this,'w-analytics-val')"><span class="weight-val" id="w-analytics-val">+8</span></div>
-          <div class="weight-row"><div class="weight-label"><span class="weight-icon">⭐</span>Reviews 20-200</div><input type="range" min="0" max="50" value="7" id="w-reviews" oninput="updateWeight(this,'w-reviews-val')"><span class="weight-val" id="w-reviews-val">+7</span></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn-ghost" onclick="resetWeights()" style="flex:1;margin-top:0;font-size:10px;padding:6px">Reset</button>
-          <button class="btn-go" onclick="applyWeights()" style="flex:2;padding:8px;font-size:11px">Apply & Re-rank</button>
-        </div>
-      </div>
+
     </div>
     <div class="split-right" id="insights-results">
       <div class="empty" style="margin:auto">
@@ -351,6 +337,20 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
       <div class="panel-topbar">
         <div class="panel-title" id="scorerLabel">Run a search to find prospects</div>
         <button class="btn-csv" id="exportScorer" onclick="window.location.href='/api/export.csv'">⬇ Export CSV</button>
+      </div>
+      <div id="filterBar" style="display:none;padding:10px 20px;border-bottom:1px solid var(--border);display:none;flex-wrap:wrap;gap:6px;align-items:center;background:var(--surface);flex-shrink:0">
+        <span style="font-size:10px;color:var(--muted);font-weight:600;margin-right:2px">FILTER</span>
+        <button class="fpill active" onclick="setFilter('all')">All</button>
+        <button class="fpill" onclick="setFilter('ads')">Running Ads</button>
+        <button class="fpill" onclick="setFilter('sweet')">Sweet Spot</button>
+        <button class="fpill" onclick="setFilter('icp-a')">Perfect ICP</button>
+        <button class="fpill" onclick="setFilter('leak')">Revenue Leak</button>
+        <button class="fpill" onclick="setFilter('no-analytics')">No Analytics</button>
+        <button class="fpill" onclick="setFilter('poor-mobile')">Poor Mobile</button>
+        <button class="fpill" onclick="setFilter('no-booking')">No Booking</button>
+        <button class="fpill" onclick="setFilter('smb')">SMB Size</button>
+        <button class="fpill" onclick="setFilter('outdated-tech')">Outdated Tech</button>
+        <span style="margin-left:auto;font-size:10px;color:var(--muted)" id="filterCount"></span>
       </div>
       <div class="results" id="scorerResults">
         <div class="empty">
@@ -493,6 +493,39 @@ function startRoastPoll() {
       if (!s.running) { clearInterval(poll); if(!roastResults.length){roastResults = await (await fetch('/api/results')).json();} finishRoast(); }
     } catch(e){}
   }, 2000);
+}
+
+var activeFilter = 'all';
+
+function setFilter(f) {
+  activeFilter = f;
+  document.querySelectorAll('.fpill').forEach(function(p){ p.classList.remove('active'); });
+  event.target.classList.add('active');
+  applyFilter();
+}
+
+function matchesFilter(r, f) {
+  if (f === 'all') return true;
+  if (f === 'ads') return r.running_ads && r.running_ads.length > 0;
+  if (f === 'sweet') { var ws = r.website_score||0; return ws >= 40 && ws <= 70; }
+  if (f === 'icp-a') return r.icp_tier === 'A';
+  if (f === 'leak') return r.revenue_leak === true;
+  if (f === 'no-analytics') return r.intel_signals && r.intel_signals.no_tracking;
+  if (f === 'poor-mobile') { var dims = r.dimensions||{}; return dims.mobile && dims.mobile.score <= 4; }
+  if (f === 'no-booking') { var dims = r.dimensions||{}; return dims.booking && dims.booking.score <= 2; }
+  if (f === 'smb') return r.size_tier === 'smb';
+  if (f === 'outdated-tech') { var dims = r.dimensions||{}; return dims.tech && dims.tech.score <= 3; }
+  return true;
+}
+
+function applyFilter() {
+  var filtered = roastResults.filter(function(r){ return matchesFilter(r, activeFilter); });
+  document.getElementById('filterCount').textContent = filtered.length + ' of ' + roastResults.length;
+  if (!filtered.length) {
+    document.getElementById('scorerResults').innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No matches</div><div class="empty-sub">No businesses match this filter. Try another.</div></div>';
+    return;
+  }
+  document.getElementById('scorerResults').innerHTML = filtered.map(function(r,i){ return buildCard(r,i+1); }).join('');
 }
 
 function finishRoast() {
