@@ -289,12 +289,13 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
           <label>Or Google Sheet URL</label>
           <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/...">
         </div>
-        <button class="btn-go" onclick="analyseContacts()" style="margin-top:8px">📊 Analyse Contacts</button>
+        <div id="upload-status" style="font-size:10px;color:var(--muted);margin:8px 0;min-height:14px"></div><button class="btn-go" onclick="analyseContacts()" style="margin-top:4px">📊 Analyse Contacts</button><div id="pipeline-stats"></div>
       </div>
       <div class="fsection">
         <h3>Quick Actions</h3>
         <button class="btn-ghost" onclick="showTab('scorer')" style="margin-bottom:6px">🔥 Score in Scorer →</button>
-        <button class="btn-ghost" onclick="showTab('find')">🎯 Enrich in Find →</button>
+        <button class="btn-ghost" onclick="showTab('find')" style="margin-bottom:6px">🎯 Enrich in Find →</button>
+        <button class="btn-ghost" onclick="runBatchScore()" id="batchScoreBtn">⚡ Batch Score All New →</button>
       </div>
 
     </div>
@@ -811,15 +812,114 @@ function handleCSV(event) {
   var reader = new FileReader();
   reader.onload = function(e) {
     var lines = e.target.result.split('\n').filter(function(l){return l.trim();});
-    var headers = lines[0].toLowerCase().split(',').map(function(h){return h.trim();});
+    var headers = lines[0].toLowerCase().split(',').map(function(h){return h.trim().replace(/"/g,'');});
     contactsData = lines.slice(1).map(function(line) {
-      var vals = line.split(','), obj = {};
-      headers.forEach(function(h,i){obj[h]=(vals[i]||'').trim();});
+      // Handle quoted CSV values
+      var vals = line.match(/(".*?"|[^,]+)(?=,|$)/g) || line.split(',');
+      vals = vals.map(function(v){return (v||'').trim().replace(/^"|"$/g,'');});
+      var obj = {};
+      headers.forEach(function(h,i){obj[h]=vals[i]||'';});
       return obj;
     }).filter(function(r){return r.company||r.website;});
+    
+    // Show count immediately
+    document.getElementById('upload-status').textContent = contactsData.length + ' contacts loaded — analysing...';
     analyseContacts();
+    
+    // Push to Supabase in background
+    uploadToSupabase(contactsData);
   };
   reader.readAsText(file);
+}
+
+async function uploadToSupabase(contacts) {
+  try {
+    var resp = await fetch('/api/contacts/upload', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({contacts: contacts})
+    });
+    if (resp.ok) {
+      var result = await resp.json();
+      document.getElementById('upload-status').textContent = 
+        result.inserted + ' contacts saved to database ✓';
+      loadPipelineStats();
+
+async function runBatchScore() {
+  var btn = document.getElementById('batchScoreBtn');
+  btn.textContent = '⏳ Scoring...'; btn.disabled = true;
+  try {
+    var resp = await fetch('/api/batch/score', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:50})});
+    if (resp.ok) {
+      // Stream the log
+      var es = new EventSource('/api/batch/stream');
+      es.addEventListener('log', function(e){ 
+        document.getElementById('upload-status').textContent = JSON.parse(e.data).msg;
+      });
+      es.addEventListener('done', function() {
+        es.close();
+        btn.textContent = '✅ Batch Complete'; 
+        setTimeout(function(){ btn.textContent='⚡ Batch Score All New →'; btn.disabled=false; loadPipelineStats(); }, 2000);
+      });
+    } else {
+      btn.textContent = '❌ Failed'; setTimeout(function(){ btn.disabled=false; btn.textContent='⚡ Batch Score All New →'; }, 2000);
+    }
+  } catch(e) { btn.disabled=false; btn.textContent='⚡ Batch Score All New →'; }
+}
+    }
+  } catch(e) {
+    console.log('Supabase upload failed (env vars not set?):', e);
+  }
+}
+
+async function loadPipelineStats() {
+  try {
+    var resp = await fetch('/api/contacts/stats');
+    if (!resp.ok) return;
+    var stats = await resp.json();
+    var el = document.getElementById('pipeline-stats');
+    if (!el) return;
+    el.innerHTML = 
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">' +
+      pipelineStat('New', stats.new||0, 'var(--muted)') +
+      pipelineStat('Scored Hot', stats.scored||0, 'var(--teal)') +
+      pipelineStat('Nurture', stats.nurture||0, 'var(--amber)') +
+      pipelineStat('Enriched', stats.enriched||0, 'var(--purple)') +
+      pipelineStat('Sent', stats.report_sent||0, 'var(--green)') +
+      pipelineStat('Archived', stats.archived||0, 'var(--red)') +
+      '</div>';
+  } catch(e) {}
+}
+
+function pipelineStat(label, count, color) {
+  return '<div style="background:var(--surface2);border-radius:7px;padding:8px;text-align:center">' +
+    '<div style="font-size:18px;font-weight:900;color:'+color+'">'+count+'</div>' +
+    '<div style="font-size:9px;color:var(--muted);margin-top:2px">'+label+'</div>' +
+  '</div>';
+}
+
+loadPipelineStats();
+
+async function runBatchScore() {
+  var btn = document.getElementById('batchScoreBtn');
+  btn.textContent = '⏳ Scoring...'; btn.disabled = true;
+  try {
+    var resp = await fetch('/api/batch/score', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:50})});
+    if (resp.ok) {
+      // Stream the log
+      var es = new EventSource('/api/batch/stream');
+      es.addEventListener('log', function(e){ 
+        document.getElementById('upload-status').textContent = JSON.parse(e.data).msg;
+      });
+      es.addEventListener('done', function() {
+        es.close();
+        btn.textContent = '✅ Batch Complete'; 
+        setTimeout(function(){ btn.textContent='⚡ Batch Score All New →'; btn.disabled=false; loadPipelineStats(); }, 2000);
+      });
+    } else {
+      btn.textContent = '❌ Failed'; setTimeout(function(){ btn.disabled=false; btn.textContent='⚡ Batch Score All New →'; }, 2000);
+    }
+  } catch(e) { btn.disabled=false; btn.textContent='⚡ Batch Score All New →'; }
 }
 
 function analyseContacts() {

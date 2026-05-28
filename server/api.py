@@ -5,7 +5,7 @@ import json
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -283,6 +283,125 @@ def _render_report(biz: dict) -> HTMLResponse:
     )
     return HTMLResponse(report_html)
 
+
+
+
+# ── Contacts & Pipeline ───────────────────────────────────────────────────────
+
+import csv as _csv
+import io as _io
+
+class ContactsUpload(BaseModel):
+    contacts: list[dict]
+
+@app.post("/api/contacts/upload")
+async def upload_contacts(payload: ContactsUpload):
+    """Bulk upsert contacts from CSV upload."""
+    try:
+        from db.supabase_client import upsert_contacts
+        count = upsert_contacts(payload.contacts)
+        return {"inserted": count, "total": len(payload.contacts)}
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
+
+@app.get("/api/contacts")
+async def list_contacts(
+    status: str = None,
+    industry: str = None,
+    limit: int = 200,
+    offset: int = 0,
+):
+    """List contacts with optional filters."""
+    try:
+        from db.supabase_client import get_contacts
+        contacts = get_contacts(status=status, industry=industry, limit=limit, offset=offset)
+        return contacts
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
+
+@app.get("/api/contacts/stats")
+async def contact_stats():
+    """Pipeline stats by status."""
+    try:
+        from db.supabase_client import get_contact_stats
+        return get_contact_stats()
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
+
+@app.patch("/api/contacts/{contact_id}")
+async def update_contact(contact_id: int, payload: dict):
+    """Update a single contact's fields."""
+    try:
+        from db.supabase_client import update_contact_status
+        update_contact_status(contact_id, payload.get("status"), **{k:v for k,v in payload.items() if k != "status"})
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@app.get("/api/contacts/export.csv")
+async def export_contacts(status: str = None, industry: str = None):
+    """Export contacts as cadence-ready CSV."""
+    from db.supabase_client import get_contacts
+    contacts = get_contacts(status=status, industry=industry, limit=5000)
+    buf = _io.StringIO()
+    fields = ["company","website","industry","location","first_name","last_name",
+              "email","phone","job_title","opportunity_score","icp_tier","status","report_url"]
+    writer = _csv.DictWriter(buf, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for c in contacts:
+        writer.writerow(c)
+    fname = f"contacts_{status or 'all'}.csv"
+    return StreamingResponse(
+        _io.BytesIO(buf.getvalue().encode("utf-8")),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'}
+    )
+
+
+# ── Batch Scorer ──────────────────────────────────────────────────────────────
+
+_batch_running = False
+_batch_log = []
+
+@app.post("/api/batch/score")
+async def start_batch_score(background_tasks: BackgroundTasks, limit: int = 50):
+    """Kick off batch scoring of new contacts."""
+    global _batch_running, _batch_log
+    if _batch_running:
+        raise HTTPException(409, "Batch already running")
+    _batch_running = True
+    _batch_log = []
+    background_tasks.add_task(_run_batch_score, limit)
+    return {"started": True, "limit": limit}
+
+async def _run_batch_score(limit: int):
+    global _batch_running, _batch_log
+    try:
+        from db.batch_scorer import run_batch_score
+        async def log(msg):
+            _batch_log.append(msg)
+        await run_batch_score(limit=limit, log_cb=log)
+    finally:
+        _batch_running = False
+
+@app.get("/api/batch/status")
+async def batch_status():
+    return {"running": _batch_running, "log": _batch_log[-20:]}
+
+@app.get("/api/batch/stream")
+async def batch_stream(request: Request):
+    async def gen():
+        last = 0
+        while _batch_running or last < len(_batch_log):
+            if last < len(_batch_log):
+                for msg in _batch_log[last:]:
+                    yield {"event": "log", "data": json.dumps({"msg": msg})}
+                last = len(_batch_log)
+            if not _batch_running:
+                yield {"event": "done", "data": "{}"}
+                break
+            await asyncio.sleep(0.5)
+    return EventSourceResponse(gen())
 
 if UI_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(UI_DIR)), name="static")
