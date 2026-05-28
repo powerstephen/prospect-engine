@@ -298,12 +298,13 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
       </div>
 
     </div>
-    <div class="split-right" id="insights-results">
-      <div class="empty" style="margin:auto">
-        <div class="empty-icon">📊</div>
-        <div class="empty-title">Upload contacts to get started</div>
-        <div class="empty-sub">Upload a CSV and we'll analyse your list — industry breakdown, size distribution, and estimated opportunity scores.</div>
+    <div class="split-right" id="insights-results" style="overflow-y:auto">
+      <div id="icp-empty" style="padding:60px 40px;text-align:center;color:var(--muted)">
+        <div style="font-size:36px;margin-bottom:14px;opacity:0.5">📊</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">ICP Analysis</div>
+        <div style="font-size:11px;line-height:1.7">Upload a CSV or connect a Google Sheet to get an instant ICP breakdown.<br>Industry distribution, company size tiers, geographic spread,<br>opportunity scoring and top targets to prioritise first.</div>
       </div>
+      <div id="icp-analysis" style="display:none;padding:20px"></div>
     </div>
   </div>
 </div>
