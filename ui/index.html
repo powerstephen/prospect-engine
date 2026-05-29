@@ -295,6 +295,7 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
         <h3>Quick Actions</h3>
         <button class="btn-ghost" onclick="showTab('scorer')" style="margin-bottom:6px">🔥 Score in Scorer →</button>
         <button class="btn-ghost" onclick="showTab('find')" style="margin-bottom:6px">🎯 Enrich in Find →</button>
+        <button class="btn-ghost" id="verifyBtn" onclick="batchVerifyEmails()" style="margin-bottom:6px">✉ Verify Emails in List →</button>
         <button class="btn-ghost" onclick="runBatchScore()" id="batchScoreBtn">⚡ Batch Score All New →</button>
       </div>
 
@@ -643,9 +644,11 @@ function renderIntelPills(r) {
 
 function toggleDP(rank, btn) {
   var el = document.getElementById('dp-'+rank);
+  if (!el) return;
   var open = el.style.display === 'block';
   el.style.display = open ? 'none' : 'block';
-  if (btn) btn.classList.toggle('open', !open);
+  var arrow = document.getElementById('arrow-'+rank);
+  if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
 }
 
 function renderScorer(res) {
@@ -667,24 +670,27 @@ function buildCard(r, rank, overrideScore) {
   var rl = r.revenue_leak ? '<div class="rev-leak">💸 REVENUE LEAK — '+(r.revenue_leak_reason||'')+'</div>' : '';
   var eb = (r.icp_tier==='A'||r.icp_tier==='B') ? '<button class="btn-sm btn-sm-enrich" data-website="'+(r.website||'')+'" data-name="'+(r.name||'').replace(/"/g,'')+'" onclick="sendToFind(event,this.dataset.website,this.dataset.name)">🎯 Enrich</button>' : '';
   var slug = r.slug||(rank-1);
-  return '<div class="biz-card">' +
+  return '<div class="biz-card" id="card-'+rank+'">' +
     '<div class="biz-header">' +
       '<div class="biz-rank">#'+rank+'</div>' +
-      '<div>' +
+      '<div style="flex:1;min-width:0">' +
         '<div class="biz-name">'+(r.name||'Unknown')+'</div>' +
         '<div class="biz-meta"><span style="color:var(--amber)">'+stars+'</span> '+reviews+' · '+(r.address||'')+'</div>' +
-        '<div class="biz-meta">'+wLink+' · Load: '+(r.load_time||'?')+'s · SSL: '+(r.is_ssl?'✓':'✗')+(r.phone?' · '+r.phone:'')+'</div>' +
+        '<div class="biz-meta">'+wLink+(r.phone?' · '+r.phone:'')+'&nbsp;' +
+          '<button onclick="toggleDP('+rank+', this)" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:14px;padding:0 4px;line-height:1;transition:transform 0.2s" id="arrow-'+rank+'">⌄</button>' +
+        '</div>' +
+        '<div id="email-slot-'+rank+'" style="margin-top:4px;min-height:16px"></div>' +
         (ss?'<div class="pills" style="margin-top:4px">'+ss+'</div>':'') +
       '</div>' +
       '<div class="biz-right">' +
         '<div class="opp-score" style="color:'+c+'">'+sc+'</div>' +
         '<div class="opp-label">Opportunity</div>' +
         '<div class="opp-sub">Web <strong style="color:var(--text)">'+(r.website_score||0)+'</strong> · ICP <strong style="color:var(--teal)">'+(r.icp_score||0)+'</strong></div>' +
-        (r.icp_label?'<div style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:2px;'+tb+'">'+r.icp_label+'</div>':'') +
-        '<button class="detail-btn" data-rank="'+rank+'" onclick="toggleDP('+rank+')">▼ Details</button>' +
-        '<div class="action-row">' +
-          '<a href="/r/'+slug+'" target="_blank" class="btn-sm" onclick="event.stopPropagation()">📄 Report</a>' +
-          eb +
+        (r.icp_label?'<div style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:3px;'+tb+'">'+r.icp_label+'</div>':'') +
+        '<div class="action-btns" style="margin-top:8px">' +
+          '<button class="abtn enrich" onclick="getEmail('+rank+',\''+webHost+'\',\''+encodeURIComponent(r.name||'')+'\')" id="gemail-'+rank+'">✉ Get Email</button>' +
+          '<a href="/r/'+slug+'" target="_blank" class="abtn roast" onclick="actionRoast(event,\'card-'+rank+'\')" style="display:flex;align-items:center;justify-content:center;text-decoration:none">🔥 Roast</a>' +
+          '<button class="abtn nurture" onclick="actionNurture(event,\'card-'+rank+'\',\''+encodeURIComponent(r.name||'')+'\')" >💧 Nurture</button>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -858,6 +864,94 @@ async function uploadToSupabase(contacts) {
   alert(withWebsites.length + ' contacts ready in Scorer. Hit Ignite Search or use single URL audit for individual contacts.');
 }
 
+async function getEmail(rank, domain, nameEncoded) {
+  var btn = document.getElementById('gemail-'+rank);
+  var slot = document.getElementById('email-slot-'+rank);
+  if (!btn || !slot) return;
+  var name = decodeURIComponent(nameEncoded);
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  slot.innerHTML = '<span style="font-size:10px;color:var(--muted)">Searching for email...</span>';
+
+  try {
+    // Try Signal Harvest owner finder
+    var resp = await fetch(HARVEST_URL + '/api/owner-email', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({domain: domain, company: name})
+    });
+
+    if (resp.ok) {
+      var data = await resp.json();
+      if (data.email) {
+        slot.innerHTML = '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">' +
+          '<a href="mailto:'+data.email+'" style="font-size:11px;color:var(--teal);font-weight:600">'+data.email+'</a>' +
+          (data.verified ? '<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:rgba(16,185,129,0.12);color:var(--green);font-weight:700">✓ verified</span>' : '') +
+          (data.name ? '<span style="font-size:10px;color:var(--muted)">'+data.name+'</span>' : '') +
+        '</div>';
+        btn.textContent = '✅';
+        btn.style.color = 'var(--green)';
+        btn.style.borderColor = 'rgba(16,185,129,0.4)';
+      } else {
+        slot.innerHTML = '<span style="font-size:10px;color:var(--muted)">No email found</span>';
+        btn.textContent = '✉ Try again';
+        btn.disabled = false;
+      }
+    } else {
+      // Fallback — generate common permutations
+      var guesses = generateEmailGuesses(domain);
+      slot.innerHTML = '<div style="font-size:10px;color:var(--muted)">Guessed: ' + 
+        guesses.map(function(e){ return '<a href="mailto:'+e+'" style="color:var(--teal)">'+e+'</a>'; }).join(', ') + '</div>';
+      btn.textContent = '✉ Get Email';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    // Offline fallback - generate permutations
+    var guesses = generateEmailGuesses(domain);
+    slot.innerHTML = '<div style="font-size:10px;color:var(--muted)">Possible: ' + 
+      guesses.slice(0,2).map(function(e){ return '<a href="mailto:'+e+'" style="color:var(--teal)">'+e+'</a>'; }).join(', ') + '</div>';
+    btn.textContent = '✉ Get Email';
+    btn.disabled = false;
+  }
+}
+
+function generateEmailGuesses(domain) {
+  var prefixes = ['info', 'contact', 'hello', 'admin', 'owner'];
+  return prefixes.map(function(p){ return p + '@' + domain; });
+}
+
+// Batch verify emails from uploaded contacts
+async function batchVerifyEmails() {
+  var withEmails = contactsData.filter(function(c){ return c.email && c.email.includes('@'); });
+  if (!withEmails.length) { alert('No contacts with emails found in your list.'); return; }
+  
+  var btn = document.getElementById('verifyBtn');
+  if (btn) { btn.textContent = '⏳ Verifying ' + withEmails.length + ' emails...'; btn.disabled = true; }
+  
+  var verified = 0, invalid = 0;
+  for (var i = 0; i < Math.min(withEmails.length, 100); i++) {
+    var c = withEmails[i];
+    try {
+      var resp = await fetch(HARVEST_URL + '/api/verify-email', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email: c.email})
+      });
+      if (resp.ok) {
+        var d = await resp.json();
+        c._verified = d.valid;
+        if (d.valid) verified++; else invalid++;
+      }
+    } catch(e) {}
+    if (btn) btn.textContent = '⏳ ' + (i+1) + '/' + Math.min(withEmails.length,100) + ' verified';
+    await new Promise(function(r){ setTimeout(r, 200); });
+  }
+  
+  if (btn) { btn.textContent = '✅ ' + verified + ' valid · ' + invalid + ' invalid'; btn.disabled = false; }
+  // Re-render contacts table
+  analyseContacts();
+}
+
 function scoreOne(website, company) {
   if (!website) { alert('No website for this contact.'); return; }
   showTab('scorer');
@@ -894,6 +988,94 @@ async function runBatchScore() {
   // Store for batch
   window._batchContacts = withWebsites;
   alert(withWebsites.length + ' contacts ready in Scorer. Hit Ignite Search or use single URL audit for individual contacts.');
+}
+
+async function getEmail(rank, domain, nameEncoded) {
+  var btn = document.getElementById('gemail-'+rank);
+  var slot = document.getElementById('email-slot-'+rank);
+  if (!btn || !slot) return;
+  var name = decodeURIComponent(nameEncoded);
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  slot.innerHTML = '<span style="font-size:10px;color:var(--muted)">Searching for email...</span>';
+
+  try {
+    // Try Signal Harvest owner finder
+    var resp = await fetch(HARVEST_URL + '/api/owner-email', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({domain: domain, company: name})
+    });
+
+    if (resp.ok) {
+      var data = await resp.json();
+      if (data.email) {
+        slot.innerHTML = '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">' +
+          '<a href="mailto:'+data.email+'" style="font-size:11px;color:var(--teal);font-weight:600">'+data.email+'</a>' +
+          (data.verified ? '<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:rgba(16,185,129,0.12);color:var(--green);font-weight:700">✓ verified</span>' : '') +
+          (data.name ? '<span style="font-size:10px;color:var(--muted)">'+data.name+'</span>' : '') +
+        '</div>';
+        btn.textContent = '✅';
+        btn.style.color = 'var(--green)';
+        btn.style.borderColor = 'rgba(16,185,129,0.4)';
+      } else {
+        slot.innerHTML = '<span style="font-size:10px;color:var(--muted)">No email found</span>';
+        btn.textContent = '✉ Try again';
+        btn.disabled = false;
+      }
+    } else {
+      // Fallback — generate common permutations
+      var guesses = generateEmailGuesses(domain);
+      slot.innerHTML = '<div style="font-size:10px;color:var(--muted)">Guessed: ' + 
+        guesses.map(function(e){ return '<a href="mailto:'+e+'" style="color:var(--teal)">'+e+'</a>'; }).join(', ') + '</div>';
+      btn.textContent = '✉ Get Email';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    // Offline fallback - generate permutations
+    var guesses = generateEmailGuesses(domain);
+    slot.innerHTML = '<div style="font-size:10px;color:var(--muted)">Possible: ' + 
+      guesses.slice(0,2).map(function(e){ return '<a href="mailto:'+e+'" style="color:var(--teal)">'+e+'</a>'; }).join(', ') + '</div>';
+    btn.textContent = '✉ Get Email';
+    btn.disabled = false;
+  }
+}
+
+function generateEmailGuesses(domain) {
+  var prefixes = ['info', 'contact', 'hello', 'admin', 'owner'];
+  return prefixes.map(function(p){ return p + '@' + domain; });
+}
+
+// Batch verify emails from uploaded contacts
+async function batchVerifyEmails() {
+  var withEmails = contactsData.filter(function(c){ return c.email && c.email.includes('@'); });
+  if (!withEmails.length) { alert('No contacts with emails found in your list.'); return; }
+  
+  var btn = document.getElementById('verifyBtn');
+  if (btn) { btn.textContent = '⏳ Verifying ' + withEmails.length + ' emails...'; btn.disabled = true; }
+  
+  var verified = 0, invalid = 0;
+  for (var i = 0; i < Math.min(withEmails.length, 100); i++) {
+    var c = withEmails[i];
+    try {
+      var resp = await fetch(HARVEST_URL + '/api/verify-email', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email: c.email})
+      });
+      if (resp.ok) {
+        var d = await resp.json();
+        c._verified = d.valid;
+        if (d.valid) verified++; else invalid++;
+      }
+    } catch(e) {}
+    if (btn) btn.textContent = '⏳ ' + (i+1) + '/' + Math.min(withEmails.length,100) + ' verified';
+    await new Promise(function(r){ setTimeout(r, 200); });
+  }
+  
+  if (btn) { btn.textContent = '✅ ' + verified + ' valid · ' + invalid + ' invalid'; btn.disabled = false; }
+  // Re-render contacts table
+  analyseContacts();
 }
 
 function scoreOne(website, company) {
@@ -957,6 +1139,94 @@ function scoreFromContacts() {
   alert(withWebsites.length + ' contacts ready in Scorer. Hit Ignite Search or use single URL audit for individual contacts.');
 }
 
+async function getEmail(rank, domain, nameEncoded) {
+  var btn = document.getElementById('gemail-'+rank);
+  var slot = document.getElementById('email-slot-'+rank);
+  if (!btn || !slot) return;
+  var name = decodeURIComponent(nameEncoded);
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  slot.innerHTML = '<span style="font-size:10px;color:var(--muted)">Searching for email...</span>';
+
+  try {
+    // Try Signal Harvest owner finder
+    var resp = await fetch(HARVEST_URL + '/api/owner-email', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({domain: domain, company: name})
+    });
+
+    if (resp.ok) {
+      var data = await resp.json();
+      if (data.email) {
+        slot.innerHTML = '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">' +
+          '<a href="mailto:'+data.email+'" style="font-size:11px;color:var(--teal);font-weight:600">'+data.email+'</a>' +
+          (data.verified ? '<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:rgba(16,185,129,0.12);color:var(--green);font-weight:700">✓ verified</span>' : '') +
+          (data.name ? '<span style="font-size:10px;color:var(--muted)">'+data.name+'</span>' : '') +
+        '</div>';
+        btn.textContent = '✅';
+        btn.style.color = 'var(--green)';
+        btn.style.borderColor = 'rgba(16,185,129,0.4)';
+      } else {
+        slot.innerHTML = '<span style="font-size:10px;color:var(--muted)">No email found</span>';
+        btn.textContent = '✉ Try again';
+        btn.disabled = false;
+      }
+    } else {
+      // Fallback — generate common permutations
+      var guesses = generateEmailGuesses(domain);
+      slot.innerHTML = '<div style="font-size:10px;color:var(--muted)">Guessed: ' + 
+        guesses.map(function(e){ return '<a href="mailto:'+e+'" style="color:var(--teal)">'+e+'</a>'; }).join(', ') + '</div>';
+      btn.textContent = '✉ Get Email';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    // Offline fallback - generate permutations
+    var guesses = generateEmailGuesses(domain);
+    slot.innerHTML = '<div style="font-size:10px;color:var(--muted)">Possible: ' + 
+      guesses.slice(0,2).map(function(e){ return '<a href="mailto:'+e+'" style="color:var(--teal)">'+e+'</a>'; }).join(', ') + '</div>';
+    btn.textContent = '✉ Get Email';
+    btn.disabled = false;
+  }
+}
+
+function generateEmailGuesses(domain) {
+  var prefixes = ['info', 'contact', 'hello', 'admin', 'owner'];
+  return prefixes.map(function(p){ return p + '@' + domain; });
+}
+
+// Batch verify emails from uploaded contacts
+async function batchVerifyEmails() {
+  var withEmails = contactsData.filter(function(c){ return c.email && c.email.includes('@'); });
+  if (!withEmails.length) { alert('No contacts with emails found in your list.'); return; }
+  
+  var btn = document.getElementById('verifyBtn');
+  if (btn) { btn.textContent = '⏳ Verifying ' + withEmails.length + ' emails...'; btn.disabled = true; }
+  
+  var verified = 0, invalid = 0;
+  for (var i = 0; i < Math.min(withEmails.length, 100); i++) {
+    var c = withEmails[i];
+    try {
+      var resp = await fetch(HARVEST_URL + '/api/verify-email', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email: c.email})
+      });
+      if (resp.ok) {
+        var d = await resp.json();
+        c._verified = d.valid;
+        if (d.valid) verified++; else invalid++;
+      }
+    } catch(e) {}
+    if (btn) btn.textContent = '⏳ ' + (i+1) + '/' + Math.min(withEmails.length,100) + ' verified';
+    await new Promise(function(r){ setTimeout(r, 200); });
+  }
+  
+  if (btn) { btn.textContent = '✅ ' + verified + ' valid · ' + invalid + ' invalid'; btn.disabled = false; }
+  // Re-render contacts table
+  analyseContacts();
+}
+
 function scoreOne(website, company) {
   if (!website) { alert('No website for this contact.'); return; }
   showTab('scorer');
@@ -993,6 +1263,94 @@ async function runBatchScore() {
   // Store for batch
   window._batchContacts = withWebsites;
   alert(withWebsites.length + ' contacts ready in Scorer. Hit Ignite Search or use single URL audit for individual contacts.');
+}
+
+async function getEmail(rank, domain, nameEncoded) {
+  var btn = document.getElementById('gemail-'+rank);
+  var slot = document.getElementById('email-slot-'+rank);
+  if (!btn || !slot) return;
+  var name = decodeURIComponent(nameEncoded);
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  slot.innerHTML = '<span style="font-size:10px;color:var(--muted)">Searching for email...</span>';
+
+  try {
+    // Try Signal Harvest owner finder
+    var resp = await fetch(HARVEST_URL + '/api/owner-email', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({domain: domain, company: name})
+    });
+
+    if (resp.ok) {
+      var data = await resp.json();
+      if (data.email) {
+        slot.innerHTML = '<div style="display:flex;align-items:center;gap:6px;margin-top:2px">' +
+          '<a href="mailto:'+data.email+'" style="font-size:11px;color:var(--teal);font-weight:600">'+data.email+'</a>' +
+          (data.verified ? '<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:rgba(16,185,129,0.12);color:var(--green);font-weight:700">✓ verified</span>' : '') +
+          (data.name ? '<span style="font-size:10px;color:var(--muted)">'+data.name+'</span>' : '') +
+        '</div>';
+        btn.textContent = '✅';
+        btn.style.color = 'var(--green)';
+        btn.style.borderColor = 'rgba(16,185,129,0.4)';
+      } else {
+        slot.innerHTML = '<span style="font-size:10px;color:var(--muted)">No email found</span>';
+        btn.textContent = '✉ Try again';
+        btn.disabled = false;
+      }
+    } else {
+      // Fallback — generate common permutations
+      var guesses = generateEmailGuesses(domain);
+      slot.innerHTML = '<div style="font-size:10px;color:var(--muted)">Guessed: ' + 
+        guesses.map(function(e){ return '<a href="mailto:'+e+'" style="color:var(--teal)">'+e+'</a>'; }).join(', ') + '</div>';
+      btn.textContent = '✉ Get Email';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    // Offline fallback - generate permutations
+    var guesses = generateEmailGuesses(domain);
+    slot.innerHTML = '<div style="font-size:10px;color:var(--muted)">Possible: ' + 
+      guesses.slice(0,2).map(function(e){ return '<a href="mailto:'+e+'" style="color:var(--teal)">'+e+'</a>'; }).join(', ') + '</div>';
+    btn.textContent = '✉ Get Email';
+    btn.disabled = false;
+  }
+}
+
+function generateEmailGuesses(domain) {
+  var prefixes = ['info', 'contact', 'hello', 'admin', 'owner'];
+  return prefixes.map(function(p){ return p + '@' + domain; });
+}
+
+// Batch verify emails from uploaded contacts
+async function batchVerifyEmails() {
+  var withEmails = contactsData.filter(function(c){ return c.email && c.email.includes('@'); });
+  if (!withEmails.length) { alert('No contacts with emails found in your list.'); return; }
+  
+  var btn = document.getElementById('verifyBtn');
+  if (btn) { btn.textContent = '⏳ Verifying ' + withEmails.length + ' emails...'; btn.disabled = true; }
+  
+  var verified = 0, invalid = 0;
+  for (var i = 0; i < Math.min(withEmails.length, 100); i++) {
+    var c = withEmails[i];
+    try {
+      var resp = await fetch(HARVEST_URL + '/api/verify-email', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email: c.email})
+      });
+      if (resp.ok) {
+        var d = await resp.json();
+        c._verified = d.valid;
+        if (d.valid) verified++; else invalid++;
+      }
+    } catch(e) {}
+    if (btn) btn.textContent = '⏳ ' + (i+1) + '/' + Math.min(withEmails.length,100) + ' verified';
+    await new Promise(function(r){ setTimeout(r, 200); });
+  }
+  
+  if (btn) { btn.textContent = '✅ ' + verified + ' valid · ' + invalid + ' invalid'; btn.disabled = false; }
+  // Re-render contacts table
+  analyseContacts();
 }
 
 function scoreOne(website, company) {
