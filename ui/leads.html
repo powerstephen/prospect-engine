@@ -1280,7 +1280,7 @@ async function runImport() {
     try {
       await sbFetch('contacts', {
         method: 'POST',
-        headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body: JSON.stringify(batch)
       });
       imported += batch.length;
