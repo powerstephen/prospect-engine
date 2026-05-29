@@ -704,10 +704,15 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     else:              icp_tier, icp_label = "D", "✗ Poor fit"
  
     # ── Combined opportunity score ──
-    # Website weakness + ICP score
-    # Bad mobile site with good reviews = very high opportunity
-    website_weakness = (100 - ws) * 0.15
-    combined = round(min(100, score * 0.85 + website_weakness))
+    # ICP score IS the opportunity. Website/mobile problems add urgency bonus on top.
+    # Any issue = more opportunity. Broken mobile = massive opportunity (60%+ leads lost).
+    website_bonus = 0
+    if ws < 80:           website_bonus += 5   # Not a perfect website
+    if ws < 60:           website_bonus += 8   # Average website — clear gaps
+    if ws < 40:           website_bonus += 12  # Poor website — urgent
+    if mobile_score <= 4: website_bonus += 15  # Broken mobile — losing 60%+ of leads
+    elif mobile_score <= 6: website_bonus += 8 # Poor mobile
+    combined = round(min(99, score + website_bonus))
  
     # ── Pills ──
     pills = []
