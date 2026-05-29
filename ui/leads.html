@@ -994,7 +994,8 @@ async function bulkAction(action) {
     updatePipelineCounts();
     applyFilters();
     clearSelection();
-    showToast(`Done — ${ids.length} leads updated`, 'success');
+showToast(`Done — ${ids.length} leads updated`, 'success');
+await loadLeads();
   } catch(e) { showToast('Action failed: ' + e.message, 'error'); }
 }
 
