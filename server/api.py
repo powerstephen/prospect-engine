@@ -21,10 +21,8 @@ UI_DIR = Path(__file__).resolve().parent.parent / "ui"
  
 app = FastAPI(title="Roaster Bot")
  
-# Init DB on startup
 init_db()
  
-# ── In-memory state for streaming ─────────────────────────────────────────────
 _running = False
 _task = None
 _results: list[dict] = []
@@ -41,7 +39,6 @@ async def _broadcast(ev: dict):
         except asyncio.QueueFull: pass
  
  
-# ── Models ────────────────────────────────────────────────────────────────────
 class RoastParams(BaseModel):
     industry: str = Field(min_length=2, max_length=100)
     location: str = Field(min_length=2, max_length=100)
@@ -57,7 +54,6 @@ class BulkScoreParams(BaseModel):
     ids: list[int]
  
  
-# ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def index():
     return HTMLResponse((UI_DIR / "index.html").read_text(encoding="utf-8"))
@@ -449,6 +445,75 @@ async def _run_bulk_score(ids: list[int]):
                 errors += 1
  
         await log(f"\n✓ Done — {scored} scored, {errors} errors")
+ 
+    finally:
+        _batch_running = False
+ 
+ 
+@app.post("/api/bulk/find-website")
+async def bulk_find_website(params: BulkScoreParams, background_tasks: BackgroundTasks):
+    """Find websites for selected contacts via Google Maps then auto-score them."""
+    global _batch_running, _batch_log
+    if _batch_running:
+        raise HTTPException(409, "Scorer already running — wait for current batch to finish")
+    if not params.ids:
+        raise HTTPException(400, "No IDs provided")
+    if not SERPAPI_KEY:
+        raise HTTPException(400, "SERPAPI_KEY not configured")
+    _batch_running = True
+    _batch_log = []
+    background_tasks.add_task(_run_find_and_score, params.ids)
+    return {"started": True, "count": len(params.ids)}
+ 
+ 
+async def _run_find_and_score(ids: list[int]):
+    global _batch_running, _batch_log
+ 
+    async def log(msg):
+        _batch_log.append(msg)
+ 
+    try:
+        from db.find_website import run_find_websites
+        from db.supabase_client import get_contacts, update_contact_score
+        from db.batch_scorer import score_contact
+ 
+        # Step 1 — find websites
+        await log("Step 1: Finding websites via Google Maps...")
+        await run_find_websites(ids, SERPAPI_KEY, log_cb=log)
+ 
+        # Step 2 — score the ones we found websites for
+        await log("\nStep 2: Scoring contacts with websites...")
+        all_contacts = get_contacts(limit=5000)
+        id_set   = set(ids)
+        contacts = [c for c in all_contacts if c["id"] in id_set and c.get("website")]
+ 
+        scored = 0
+        errors = 0
+ 
+        for contact in contacts:
+            try:
+                result = await score_contact(contact, log_cb=log)
+                if result.get("error") and result.get("status") == "new":
+                    errors += 1
+                    continue
+                update_contact_score(
+                    contact_id=contact["id"],
+                    opportunity_score=result.get("opportunity_score", 0),
+                    icp_score=result.get("icp_score", 0),
+                    website_score=result.get("website_score", 0),
+                    icp_tier=result.get("icp_tier", "D"),
+                    intel_pills=result.get("intel_pills", []),
+                    size_signals=result.get("size_signals", []),
+                    revenue_leak=result.get("revenue_leak", False),
+                    status=result.get("status", "new"),
+                )
+                scored += 1
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                await log(f"  ✗ Score error: {e}")
+                errors += 1
+ 
+        await log(f"\n✓ All done — {scored} scored, {errors} errors")
  
     finally:
         _batch_running = False
