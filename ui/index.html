@@ -841,47 +841,62 @@ async function scoreAllFromFind() {
   var batchResults = [];
   for (var i = 0; i < withWebsites.length; i++) {
     var p = withWebsites[i];
-    document.getElementById('batch-progress').textContent = 
-      'Scoring ' + (i+1) + ' of ' + withWebsites.length + ' — ' + (p.website||'').replace(/^https?:\/\//,'').split('/')[0];
     
+    // Skip bad domains
+    var dom = (p.website||'').replace(/^https?:\/\//,'').split('/')[0].toLowerCase();
+    var skipDomains = ['aol.com','gmail.com','yahoo.com','facebook.com','linkedin.com',
+      'google.com','yelp.com','yellowpages.com','palmbeachschools.org','facebook.com'];
+    if (!p.website || skipDomains.some(function(s){return dom===s||dom.endsWith('.gov')||dom.endsWith('.mil');})) {
+      document.getElementById('batch-progress').textContent = 'Skipping ' + dom + ' (directory/gov)';
+      continue;
+    }
+
+    var progEl = document.getElementById('batch-progress');
+    if (progEl) progEl.textContent = 'Scoring ' + (i+1) + ' of ' + withWebsites.length + ' — ' + dom;
+
     try {
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function(){ controller.abort(); }, 15000);
+      
       var resp = await fetch('/api/roast/single', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({url: p.website})
+        body: JSON.stringify({url: p.website}),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
       if (resp.ok) {
         var audit = await resp.json();
         var sc = audit.website_score || 0;
         var opp = audit.combined_score || sc;
-        
-        // Merge prospect data with audit
         var merged = Object.assign({}, p, audit, {
-          name: p.company,
-          combined_score: opp,
-          email: p.email,
-          first_name: p.first_name,
-          last_name: p.last_name,
+          name: p.company, combined_score: opp,
+          email: p.email, first_name: p.first_name, last_name: p.last_name,
         });
         batchResults.push(merged);
-        
-        // Show result card immediately
+
         var c = oppColor(opp);
         var verified = p.signal && p.signal.includes('✅');
-        document.getElementById('batch-results').innerHTML += 
+        var batchEl = document.getElementById('batch-results');
+        if (batchEl) batchEl.innerHTML +=
           '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px">' +
-            '<div style="font-size:22px;font-weight:900;color:'+c+';width:40px;text-align:center">'+opp+'</div>' +
-            '<div style="flex:1">' +
-              '<div style="font-size:12px;font-weight:700">'+(p.company||'')+'</div>' +
-              '<div style="font-size:10px;color:var(--muted)">'+(p.website||'').replace(/^https?:\/\//,'').split('/')[0]+'</div>' +
-              (p.email ? '<div style="font-size:11px;color:var(--teal);margin-top:2px">'+p.email+(verified?'&nbsp;<span style="font-size:9px;padding:1px 5px;background:rgba(16,185,129,0.12);color:var(--green);border-radius:10px">✓</span>':'')+'</div>' : '') +
+            '<div style="font-size:22px;font-weight:900;color:'+c+';width:44px;text-align:center;flex-shrink:0">'+opp+'</div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-size:12px;font-weight:700">'+(p.company||dom)+'</div>' +
+              '<div style="font-size:10px;color:var(--muted)">'+dom+'</div>' +
+              (p.email ? '<div style="font-size:11px;color:var(--teal);margin-top:2px">'+p.email+(verified?' <span style="font-size:9px;padding:1px 5px;background:rgba(16,185,129,0.12);color:var(--green);border-radius:10px">✓</span>':'')+'</div>' : '') +
             '</div>' +
-            '<div style="font-size:9px;color:var(--muted)">Web '+sc+' · ICP '+(audit.icp_score||0)+'</div>' +
+            '<div style="font-size:9px;color:var(--muted);text-align:right">Web '+sc+'<br>ICP '+(audit.icp_score||0)+'</div>' +
           '</div>';
       }
-    } catch(e) {}
-    
-    await new Promise(function(r){ setTimeout(r, 500); });
+    } catch(err) {
+      // Timeout or network error — skip silently and continue
+      var progEl2 = document.getElementById('batch-progress');
+      if (progEl2) progEl2.textContent = 'Skipped ' + dom + ' (timeout) — continuing...';
+    }
+
+    await new Promise(function(r){ setTimeout(r, 800); });
   }
 
   // Done - show export
