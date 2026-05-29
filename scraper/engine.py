@@ -554,104 +554,145 @@ async def detect_size_signals(website: str, company_name: str) -> dict:
 
 def calculate_icp_score(audit: dict, biz: dict) -> dict:
     """
-    Score a business against Eversite's ideal customer profile.
-    Returns icp_score 0-100 and breakdown dict.
-    
-    Ideal prospect:
-    - Website score 45-65 (needs help, has some investment)
-    - SMB size 10-50 employees
-    - Owner-led, no in-house marketing team
-    - Basic tech stack (not Salesforce/enterprise)
-    - Established business (20-200 reviews)
-    - Home services vertical
+    Score a business against the ideal customer profile.
+ 
+    Philosophy:
+    - Established business with budget = high priority (lots of reviews + good rating)
+    - No digital sophistication = high opportunity (no ads, no CRM, basic tech)
+    - Website quality is NOT a disqualifier — a decent site + zero marketing = perfect
+    - Running ads with a weak site = revenue leak = urgent
+    - Size sweet spot: SMB owner-operated, no in-house marketing team
     """
     score = 0
     breakdown = {}
-
-    # 1. Website sweet spot (30 pts)
+ 
+    rv = biz.get("reviews", 0)
+    r  = biz.get("rating",  0)
     ws = audit.get("website_score", 0)
-    if 45 <= ws <= 65:
-        website_pts = 30
-    elif 35 <= ws < 45 or 65 < ws <= 75:
-        website_pts = 20
-    elif 25 <= ws < 35 or 75 < ws <= 85:
-        website_pts = 10
-    else:
-        website_pts = 0
-    score += website_pts
-    breakdown["website_fit"] = website_pts
-
-    # 2. Company size (25 pts)
+    dims = audit.get("dimensions", {}) or {}
     size_tier = audit.get("size_tier", "unknown")
-    if size_tier == "smb":
-        size_pts = 25
-    elif size_tier == "micro":
-        size_pts = 15
-    elif size_tier == "mid":
-        size_pts = 10
-    elif size_tier == "enterprise":
-        size_pts = 0
+    size_signals = audit.get("size_signals", []) or []
+    running_ads = audit.get("running_ads", []) or []
+    intel_signals = audit.get("intel_signals", {}) or {}
+ 
+    # ── 1. Business quality / budget signal (30 pts) ──────────────────────────
+    # More reviews = more established = more budget = higher priority
+    if rv >= 200:
+        review_pts = 30
+    elif rv >= 100:
+        review_pts = 25
+    elif rv >= 50:
+        review_pts = 20
+    elif rv >= 20:
+        review_pts = 15
+    elif rv >= 10:
+        review_pts = 8
+    elif rv > 0:
+        review_pts = 4
     else:
-        # Use reviews as proxy
-        rv = biz.get("reviews", 0)
-        if 20 <= rv <= 200:
-            size_pts = 20
-        elif rv < 20:
+        review_pts = 2  # No reviews data — unknown, not zero
+ 
+    # Rating bonus (up to +5)
+    if r >= 4.5:
+        review_pts = min(30, review_pts + 5)
+    elif r >= 4.0:
+        review_pts = min(30, review_pts + 3)
+    elif r < 3.5 and r > 0:
+        review_pts = max(0, review_pts - 5)  # Bad rating = churn risk
+ 
+    score += review_pts
+    breakdown["business_quality"] = review_pts
+ 
+    # ── 2. Digital gap / opportunity (25 pts) ─────────────────────────────────
+    # No marketing tools = massive opportunity
+    has_crm     = intel_signals.get("hubspot") or intel_signals.get("salesforce")
+    has_ads     = bool(running_ads)
+    has_chat    = intel_signals.get("intercom") or intel_signals.get("drift")
+    has_booking = intel_signals.get("booking_tool")
+    has_tracking = intel_signals.get("ga4") or intel_signals.get("gtm")
+ 
+    gap_pts = 25
+    if has_crm:     gap_pts -= 8   # Already has CRM = less gap
+    if has_chat:    gap_pts -= 5   # Has live chat = more sophisticated
+    if has_booking: gap_pts -= 3   # Has booking = more organised
+    if has_ads and ws >= 65:
+        gap_pts -= 5  # Running ads AND good site = less opportunity
+    if not has_tracking:
+        gap_pts = min(25, gap_pts + 3)  # Flying blind = more opportunity
+ 
+    gap_pts = max(0, gap_pts)
+    score += gap_pts
+    breakdown["digital_gap"] = gap_pts
+ 
+    # ── 3. Size fit (20 pts) ──────────────────────────────────────────────────
+    if size_tier == "smb":
+        size_pts = 20
+    elif size_tier == "micro":
+        size_pts = 12   # Might not have budget
+    elif size_tier == "mid":
+        size_pts = 15   # Borderline — worth pursuing
+    elif size_tier == "enterprise":
+        size_pts = 3    # Too big — own teams
+    else:
+        # No size detected — use reviews as proxy
+        if rv >= 50:
+            size_pts = 18  # Enough reviews = real business
+        elif rv >= 20:
+            size_pts = 14
+        elif rv >= 5:
             size_pts = 10
         else:
-            size_pts = 5
+            size_pts = 8
+ 
+    has_marketing_team = any("marketing" in s.lower() for s in size_signals)
+    if has_marketing_team:
+        size_pts = max(0, size_pts - 8)  # Has marketing team = less opportunity
+ 
     score += size_pts
     breakdown["size_fit"] = size_pts
-
-    # 3. Marketing signals (15 pts)
-    # No marketing team = high opportunity for Eversite
-    size_signals = audit.get("size_signals", [])
-    has_marketing = any("marketing" in s.lower() for s in size_signals)
-    has_hiring = any("hiring" in s.lower() for s in size_signals)
-    
-    if not has_marketing and not has_hiring:
-        marketing_pts = 15  # No marketing team = Eversite can own it
-    elif has_hiring and not has_marketing:
-        marketing_pts = 10  # Growing but no marketing yet
+ 
+    # ── 4. Website opportunity (15 pts) ───────────────────────────────────────
+    # Any website with gaps is an opportunity — we no longer punish decent sites
+    # Worst site = highest opportunity, but even decent sites score well
+    if ws <= 30:
+        web_pts = 15   # Very weak — urgent opportunity
+    elif ws <= 45:
+        web_pts = 13   # Poor — clear gaps to fix
+    elif ws <= 60:
+        web_pts = 11   # Average — room to improve
+    elif ws <= 75:
+        web_pts = 8    # Decent — some gaps
+    elif ws <= 88:
+        web_pts = 5    # Good — limited opportunity
     else:
-        marketing_pts = 5   # Already has marketing function
-    score += marketing_pts
-    breakdown["marketing_opportunity"] = marketing_pts
-
-    # 4. Tech stack signals (15 pts)
-    # Basic tech = no in-house capability = needs Eversite
-    dims = audit.get("dimensions", {})
-    tech_score = dims.get("tech", {}).get("score", 5) if dims else 5
-    has_enterprise_tech = any("salesforce" in s.lower() or "hubspot" in s.lower() 
-                               for s in size_signals)
-    
-    if has_enterprise_tech:
-        tech_pts = 5   # Has tools, maybe has team too
-    elif tech_score <= 3:
-        tech_pts = 15  # Very basic = high opportunity
-    elif tech_score <= 6:
-        tech_pts = 10  # Some tools but not sophisticated
+        web_pts = 2    # Strong — already invested
+ 
+    score += web_pts
+    breakdown["website_opportunity"] = web_pts
+ 
+    # ── 5. Owner-operated / no sophistication bonus (10 pts) ──────────────────
+    owner_signals = [s for s in size_signals if any(
+        x in s.lower() for x in ["owner", "family", "operated"]
+    )]
+    if owner_signals:
+        owner_pts = 10
+    elif size_tier in ("micro", "smb") and not has_marketing_team:
+        owner_pts = 7
     else:
-        tech_pts = 5
-    score += tech_pts
-    breakdown["tech_opportunity"] = tech_pts
-
-    # 5. Business quality (15 pts)
-    # Established enough to have budget
-    rv = biz.get("reviews", 0)
-    r = biz.get("rating", 0)
-    if 20 <= rv <= 300 and r >= 4.0:
-        quality_pts = 15  # Established, good reputation
-    elif rv >= 10 and r >= 3.5:
-        quality_pts = 10
-    elif rv > 0:
-        quality_pts = 5
-    else:
-        quality_pts = 3   # No reviews = unknown
-    score += quality_pts
-    breakdown["business_quality"] = quality_pts
-
-    # ICP tier label
+        owner_pts = 3
+    score += owner_pts
+    breakdown["owner_operated"] = owner_pts
+ 
+    score = min(100, score)
+ 
+    # ── Revenue leak bonus ────────────────────────────────────────────────────
+    # Running ads + weak website = money being wasted = urgent outreach
+    revenue_leak = audit.get("revenue_leak", False)
+    if revenue_leak:
+        score = min(100, score + 10)
+        breakdown["revenue_leak_bonus"] = 10
+ 
+    # ── ICP tier ──────────────────────────────────────────────────────────────
     if score >= 80:
         icp_tier = "A"
         icp_label = "🎯 Perfect ICP"
@@ -664,43 +705,36 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     else:
         icp_tier = "D"
         icp_label = "✗ Poor fit"
-
-    # Ad spend bonus — running ads with bad website = highest priority
-    running_ads = audit.get("running_ads", [])
-    if running_ads and website_pts <= 20:
-        ad_bonus = 15
-        score = min(100, score + ad_bonus)
-        breakdown["ad_spend_bonus"] = ad_bonus
-    elif running_ads:
-        ad_bonus = 8
-        score = min(100, score + ad_bonus)
-        breakdown["ad_spend_bonus"] = ad_bonus
-
-    # Build explanation pills
+ 
+    # ── Opportunity score ──────────────────────────────────────────────────────
+    # Flip the formula: ICP score drives opportunity, website is secondary
+    # High ICP + weak website = highest opportunity
+    # High ICP + decent website = still high opportunity (they have budget)
+    website_drag = ws * 0.2   # website quality only 20% of combined
+    icp_drive    = score * 0.8  # ICP fit is 80% of what matters
+    combined = round(min(100, icp_drive + (100 - website_drag) * 0.2))
+ 
+    # ── Explanation pills ─────────────────────────────────────────────────────
     pills = []
-    if running_ads: pills.append(f"Running {'+'.join(running_ads)}")
-    if audit.get("revenue_leak"): pills.append("💸 Revenue leak")
-    if website_pts >= 20: pills.append("Sweet spot website")
-    elif website_pts == 0: pills.append("Website out of range")
-    if size_pts >= 20: pills.append("SMB size ✓")
-    elif size_pts == 0: pills.append("Too large")
-    if marketing_pts >= 15: pills.append("No in-house marketing")
-    elif marketing_pts == 5: pills.append("Has marketing team")
-    if tech_pts >= 15: pills.append("Basic tech stack")
-    elif tech_pts == 5: pills.append("Enterprise tech")
-    if quality_pts >= 15: pills.append("Established business")
-    elif quality_pts <= 3: pills.append("Low reviews")
-
-    # Combined opportunity score (website 40% + ICP 60%)
-    ws = audit.get("website_score", 0)
-    combined = round(ws * 0.4 + score * 0.6)
-
+    if rv >= 100:   pills.append(f"⭐ {rv}+ reviews")
+    elif rv >= 20:  pills.append(f"⭐ {rv} reviews")
+    if running_ads: pills.append(f"📢 Running {' + '.join(running_ads)}")
+    if revenue_leak: pills.append("💸 Revenue leak")
+    if not has_crm and not has_tracking: pills.append("🔴 No marketing tools")
+    if not has_crm:  pills.append("No CRM")
+    if owner_signals: pills.append("👤 Owner operated")
+    if has_marketing_team: pills.append("Has marketing team")
+    if ws <= 45:    pills.append("⚠ Weak website")
+    elif ws >= 75:  pills.append("✓ Decent website")
+    if size_tier == "smb": pills.append("SMB size ✓")
+    elif size_tier == "enterprise": pills.append("Too large")
+ 
     return {
-        "icp_score": score,
-        "icp_tier": icp_tier,
-        "icp_label": icp_label,
+        "icp_score":     score,
+        "icp_tier":      icp_tier,
+        "icp_label":     icp_label,
         "icp_breakdown": breakdown,
-        "icp_pills": pills,
+        "icp_pills":     pills,
         "combined_score": combined,
     }
 
