@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prospect Engine — Leads</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0c0f;
+    --surface:   #111318;
+    --surface2:  #181b22;
+    --border:    #1e2230;
+    --border2:   #2a2f42;
+    --text:      #e2e6f0;
+    --muted:     #5a6070;
+    --accent:    #00d4aa;
+    --accent2:   #0099ff;
+    --danger:    #ff4455;
+    --warn:      #ffaa00;
+    --tier-a:    #00d4aa;
+    --tier-b:    #0099ff;
+    --tier-c:    #ffaa00;
+    --tier-d:    #5a6070;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; }
+
+  /* ── NAV ── */
+  nav {
+    display: flex; align-items: center; gap: 0;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 20px; height: 52px; position: sticky; top: 0; z-index: 100;
+  }
+  .nav-brand {
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--accent); letter-spacing: .08em; margin-right: 32px;
+    text-decoration: none;
+  }
+  .nav-brand span { color: var(--muted); }
+  nav a {
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    text-decoration: none; padding: 0 14px; height: 52px;
+    display: flex; align-items: center; border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  nav a:hover { color: var(--text); }
+  nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── LAYOUT ── */
+  .page { display: flex; flex-direction: column; height: calc(100vh - 52px); overflow: hidden; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .topbar-title {
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--text); margin-right: 8px;
+  }
+  .pill-count {
+    font-family: var(--mono); font-size: 11px; background: var(--border2);
+    color: var(--muted); padding: 2px 8px; border-radius: 20px;
+  }
+  .spacer { flex: 1; }
+
+  /* ── PIPELINE STRIP ── */
+  .pipeline-strip {
+    display: flex; gap: 0; border-bottom: 1px solid var(--border);
+    background: var(--surface2); overflow-x: auto;
+  }
+  .pipeline-strip::-webkit-scrollbar { height: 3px; }
+  .pipeline-strip::-webkit-scrollbar-thumb { background: var(--border2); }
+  .p-stage {
+    flex: 1; min-width: 110px; padding: 10px 16px;
+    border-right: 1px solid var(--border); cursor: pointer;
+    transition: background .15s; position: relative;
+  }
+  .p-stage:last-child { border-right: none; }
+  .p-stage:hover { background: var(--border); }
+  .p-stage.active { background: var(--border); }
+  .p-stage.active::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent);
+  }
+  .p-stage-label {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px;
+  }
+  .p-stage-count {
+    font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text);
+  }
+  .p-stage-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── FILTER BAR ── */
+  .filterbar {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding: 10px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  input[type="text"], select {
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); font-family: var(--mono); font-size: 12px;
+    padding: 6px 10px; border-radius: 4px; outline: none;
+    transition: border-color .15s;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+  input[type="text"] { width: 220px; }
+  select { cursor: pointer; }
+  select option { background: var(--surface2); }
+
+  /* ── BULK ACTIONS ── */
+  .bulk-bar {
+    display: none; align-items: center; gap: 10px;
+    padding: 8px 20px; background: #0d1a16; border-bottom: 1px solid var(--accent);
+  }
+  .bulk-bar.visible { display: flex; }
+  .bulk-label { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    padding: 6px 12px; border-radius: 4px; border: 1px solid transparent;
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn-primary:hover { background: #00f0c0; border-color: #00f0c0; }
+  .btn-ghost { background: transparent; color: var(--muted); border-color: var(--border2); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+  .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-blue { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+  .btn-blue:hover { background: #33aaff; }
+  .btn-warn { background: transparent; color: var(--warn); border-color: var(--warn); }
+  .btn-warn:hover { background: var(--warn); color: #000; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── TABLE ── */
+  .table-wrap { flex: 1; overflow: auto; }
+  .table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .table-wrap::-webkit-scrollbar-track { background: var(--surface); }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; z-index: 10; }
+  th {
+    background: var(--surface2); color: var(--muted);
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .08em;
+    padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border);
+    white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  th:hover { color: var(--text); }
+  th.sorted { color: var(--accent); }
+  th .sort-arrow { margin-left: 4px; opacity: .5; }
+  th.sorted .sort-arrow { opacity: 1; }
+  th:first-child { width: 40px; }
+
+  td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    vertical-align: middle; white-space: nowrap;
+  }
+  tr:hover td { background: var(--surface2); }
+  tr.selected td { background: #0d1a16; }
+  tr.selected td:first-child { border-left: 2px solid var(--accent); }
+
+  input[type="checkbox"] {
+    width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer;
+  }
+
+  /* ── CELL TYPES ── */
+  .cell-company { font-weight: 500; color: var(--text); }
+  .cell-company a { color: var(--text); text-decoration: none; }
+  .cell-company a:hover { color: var(--accent); }
+  .cell-muted { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+  .cell-score {
+    font-family: var(--mono); font-weight: 600; font-size: 13px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .score-bar {
+    display: inline-block; height: 3px; border-radius: 2px;
+    background: var(--border2); width: 40px; vertical-align: middle;
+    position: relative; overflow: hidden;
+  }
+  .score-bar-fill {
+    position: absolute; top: 0; left: 0; height: 100%; border-radius: 2px;
+  }
+
+  .tier-badge {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    padding: 2px 7px; border-radius: 3px; display: inline-block;
+  }
+  .tier-A { background: rgba(0,212,170,.15); color: var(--tier-a); border: 1px solid rgba(0,212,170,.3); }
+  .tier-B { background: rgba(0,153,255,.15); color: var(--tier-b); border: 1px solid rgba(0,153,255,.3); }
+  .tier-C { background: rgba(255,170,0,.12); color: var(--tier-c); border: 1px solid rgba(255,170,0,.25); }
+  .tier-D { background: rgba(90,96,112,.15); color: var(--tier-d); border: 1px solid rgba(90,96,112,.3); }
+
+  .status-badge {
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 3px; display: inline-block; text-transform: uppercase;
+    letter-spacing: .06em; cursor: pointer;
+  }
+  .s-new        { background: rgba(90,96,112,.2);   color: #8890a0; border: 1px solid #2a2f42; }
+  .s-scored     { background: rgba(0,153,255,.12);  color: var(--accent2); border: 1px solid rgba(0,153,255,.25); }
+  .s-enriched   { background: rgba(0,212,170,.12);  color: var(--accent);  border: 1px solid rgba(0,212,170,.25); }
+  .s-report_sent{ background: rgba(150,80,255,.12); color: #b080ff;        border: 1px solid rgba(150,80,255,.25); }
+  .s-nurture    { background: rgba(255,170,0,.12);  color: var(--warn);    border: 1px solid rgba(255,170,0,.25); }
+  .s-archived   { background: rgba(255,68,85,.08);  color: var(--danger);  border: 1px solid rgba(255,68,85,.2); }
+
+  .leak-dot {
+    display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--danger); box-shadow: 0 0 6px var(--danger);
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 80px 20px; color: var(--muted);
+    gap: 12px;
+  }
+  .empty-state svg { opacity: .2; }
+  .empty-state p { font-family: var(--mono); font-size: 13px; }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+    padding: 10px 20px; border-top: 1px solid var(--border);
+    background: var(--surface); flex-shrink: 0;
+  }
+  .page-info { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-right: auto; }
+  .page-btn {
+    font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--muted); border-radius: 3px; cursor: pointer; transition: all .15s;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .page-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .page-btn.current { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    z-index: 200; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; width: 520px; max-width: 95vw; max-height: 85vh;
+    overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.6);
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+  }
+  .modal-title { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: .06em; }
+  .form-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); font-family: var(--sans); font-size: 13px;
+    padding: 8px 10px; border-radius: 4px; outline: none; transition: border-color .15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── CSV IMPORT MODAL ── */
+  .drop-zone {
+    border: 2px dashed var(--border2); border-radius: 6px;
+    padding: 40px 20px; text-align: center; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent); background: rgba(0,212,170,.05);
+  }
+  .drop-zone p { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .drop-zone input { display: none; }
+  #csv-preview { margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--accent); }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 20px; right: 20px; z-index: 999;
+    font-family: var(--mono); font-size: 12px; padding: 10px 16px;
+    border-radius: 4px; background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); transform: translateY(20px); opacity: 0;
+    transition: all .25s; pointer-events: none; max-width: 320px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--accent); color: var(--accent); }
+  #toast.error { border-color: var(--danger); color: var(--danger); }
+
+  /* ── LOADING ── */
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid var(--border2);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .6s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-row td { text-align: center; padding: 40px; color: var(--muted); }
+
+  /* ── DETAIL PANEL ── */
+  .detail-panel {
+    position: fixed; right: 0; top: 52px; bottom: 0; width: 380px;
+    background: var(--surface); border-left: 1px solid var(--border);
+    z-index: 50; transform: translateX(100%); transition: transform .25s;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .detail-panel.open { transform: translateX(0); }
+  .detail-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .detail-company { font-weight: 600; font-size: 15px; }
+  .detail-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .detail-close { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; flex-shrink: 0; }
+  .detail-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .detail-section { margin-bottom: 20px; }
+  .detail-section-title {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
+  .detail-key { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .detail-val { font-size: 12px; color: var(--text); text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+  .detail-val a { color: var(--accent); text-decoration: none; }
+  .intel-pill {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    background: var(--border); color: var(--muted); padding: 3px 8px;
+    border-radius: 12px; margin: 2px;
+  }
+  .detail-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/">PROSPECT<span>.ENGINE</span></a>
+  <a href="/">Dashboard</a>
+  <a href="/leads" class="active">Leads</a>
+  <a href="/report">Reports</a>
+</nav>
+
+<div class="page">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="topbar-title">LEADS</span>
+    <span class="pill-count" id="total-count">— contacts</span>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" onclick="openImportModal()">↑ Import CSV</button>
+    <button class="btn btn-ghost" onclick="exportCSV()">↓ Export</button>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Lead</button>
+  </div>
+
+  <!-- PIPELINE STRIP -->
+  <div class="pipeline-strip" id="pipeline-strip">
+    <div class="p-stage active" data-status="all" onclick="filterByStatus('all', this)">
+      <div class="p-stage-label">All</div>
+      <div class="p-stage-count" id="count-all">—</div>
+    </div>
+    <div class="p-stage" data-status="new" onclick="filterByStatus('new', this)">
+      <div class="p-stage-label">New</div>
+      <div class="p-stage-count" id="count-new">—</div>
+    </div>
+    <div class="p-stage" data-status="scored" onclick="filterByStatus('scored', this)">
+      <div class="p-stage-label">Scored</div>
+      <div class="p-stage-count" id="count-scored">—</div>
+    </div>
+    <div class="p-stage" data-status="enriched" onclick="filterByStatus('enriched', this)">
+      <div class="p-stage-label">Enriched</div>
+      <div class="p-stage-count" id="count-enriched">—</div>
+    </div>
+    <div class="p-stage" data-status="report_sent" onclick="filterByStatus('report_sent', this)">
+      <div class="p-stage-label">Report Sent</div>
+      <div class="p-stage-count" id="count-report_sent">—</div>
+    </div>
+    <div class="p-stage" data-status="nurture" onclick="filterByStatus('nurture', this)">
+      <div class="p-stage-label">Nurture</div>
+      <div class="p-stage-count" id="count-nurture">—</div>
+    </div>
+    <div class="p-stage" data-status="archived" onclick="filterByStatus('archived', this)">
+      <div class="p-stage-label">Archived</div>
+      <div class="p-stage-count" id="count-archived">—</div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filterbar">
+    <input type="text" id="search-input" placeholder="Search company, email, location…" oninput="onSearch()">
+    <select id="filter-industry" onchange="applyFilters()">
+      <option value="">All Industries</option>
+      <option value="roofing">Roofing</option>
+      <option value="hvac">HVAC</option>
+      <option value="plumbing">Plumbing</option>
+      <option value="electrical">Electrical</option>
+      <option value="landscaping">Landscaping</option>
+      <option value="construction">Construction</option>
+      <option value="other">Other</option>
+    </select>
+    <select id="filter-tier" onchange="applyFilters()">
+      <option value="">All Tiers</option>
+      <option value="A">Tier A</option>
+      <option value="B">Tier B</option>
+      <option value="C">Tier C</option>
+      <option value="D">Tier D</option>
+    </select>
+    <select id="filter-leak" onchange="applyFilters()">
+      <option value="">Revenue Leak: Any</option>
+      <option value="true">Leak Detected</option>
+      <option value="false">No Leak</option>
+    </select>
+    <button class="btn btn-ghost" onclick="clearFilters()" style="margin-left:auto;">Clear</button>
+  </div>
+
+  <!-- BULK ACTION BAR -->
+  <div class="bulk-bar" id="bulk-bar">
+    <span class="bulk-label" id="bulk-label">0 selected</span>
+    <button class="btn btn-blue" onclick="bulkAction('score')"><span class="spinner" id="bulk-spin-score" style="display:none"></span> Score</button>
+    <button class="btn btn-ghost" onclick="bulkAction('enrich')">Enrich</button>
+    <button class="btn btn-primary" onclick="bulkAction('report')">Send Report</button>
+    <button class="btn btn-warn" onclick="bulkAction('nurture')">→ Nurture</button>
+    <button class="btn btn-danger" onclick="bulkAction('archive')">Archive</button>
+    <button class="btn btn-ghost" onclick="exportSelected()">↓ Export Selected</button>
+    <button class="btn btn-ghost" onclick="clearSelection()" style="margin-left:auto;">✕ Clear</button>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+          <th onclick="sortBy('company')">Company <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('industry')">Industry <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('location')">Location <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('opportunity_score')">Opp Score <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('icp_score')">ICP Score <span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('icp_tier')">Tier <span class="sort-arrow">↕</span></th>
+          <th>Leak</th>
+          <th onclick="sortBy('status')">Status <span class="sort-arrow">↕</span></th>
+          <th>Contact</th>
+          <th onclick="sortBy('created_at')">Added <span class="sort-arrow">↕</span></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="leads-tbody">
+        <tr class="loading-row"><td colspan="12"><span class="spinner"></span> Loading leads…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PAGINATION -->
+  <div class="pagination">
+    <span class="page-info" id="page-info">—</span>
+    <button class="page-btn" id="btn-first" onclick="goToPage(1)">«</button>
+    <button class="page-btn" id="btn-prev" onclick="goToPage(currentPage - 1)">‹</button>
+    <span id="page-numbers"></span>
+    <button class="page-btn" id="btn-next" onclick="goToPage(currentPage + 1)">›</button>
+    <button class="page-btn" id="btn-last" onclick="goToPage(totalPages)">»</button>
+    <select id="per-page" onchange="changePerPage()" style="margin-left:8px;">
+      <option value="50">50 / page</option>
+      <option value="100">100 / page</option>
+      <option value="250">250 / page</option>
+    </select>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <div>
+      <div class="detail-company" id="dp-company">—</div>
+      <div class="detail-sub" id="dp-sub">—</div>
+    </div>
+    <button class="detail-close" onclick="closeDetail()">×</button>
+  </div>
+  <div class="detail-body" id="dp-body"></div>
+  <div class="detail-footer">
+    <button class="btn btn-blue" onclick="scoreOne()">Score</button>
+    <button class="btn btn-ghost" onclick="enrichOne()">Enrich</button>
+    <button class="btn btn-primary" onclick="sendReportOne()">Send Report</button>
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Add Lead</span>
+      <button class="modal-close" onclick="closeAddModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Company *</label>
+          <input class="form-input" id="f-company" type="text" placeholder="Acme Roofing Co.">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Website</label>
+          <input class="form-input" id="f-website" type="text" placeholder="acmeroofing.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Industry</label>
+          <select class="form-input" id="f-industry">
+            <option value="">Select…</option>
+            <option value="roofing">Roofing</option>
+            <option value="hvac">HVAC</option>
+            <option value="plumbing">Plumbing</option>
+            <option value="electrical">Electrical</option>
+            <option value="landscaping">Landscaping</option>
+            <option value="construction">Construction</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-input" id="f-location" type="text" placeholder="Dallas, TX">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input class="form-input" id="f-first" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input class="form-input" id="f-last" type="text">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="f-email" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" id="f-phone" type="text">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Job Title</label>
+          <input class="form-input" id="f-title" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Employee Count</label>
+          <input class="form-input" id="f-employees" type="text" placeholder="10-50">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">LinkedIn URL</label>
+        <input class="form-input" id="f-linkedin" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-input" id="f-status">
+          <option value="new">New</option>
+          <option value="scored">Scored</option>
+          <option value="enriched">Enriched</option>
+          <option value="report_sent">Report Sent</option>
+          <option value="nurture">Nurture</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLead()">Save Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV IMPORT MODAL -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Import CSV</span>
+      <button class="modal-close" onclick="closeImportModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file').click()"
+           ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#5a6070" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+        </svg>
+        <p>Drop your CSV here or click to browse</p>
+        <p style="margin-top:4px;font-size:10px;">Accepted columns: company, website, industry, location, email, first_name, last_name, phone, job_title, linkedin_url, employee_count</p>
+        <input type="file" id="csv-file" accept=".csv" onchange="handleFileSelect(event)">
+      </div>
+      <div id="csv-preview"></div>
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label">Auto-tag industry</label>
+        <select class="form-input" id="import-industry">
+          <option value="">— detect from data —</option>
+          <option value="roofing">Roofing</option>
+          <option value="hvac">HVAC</option>
+          <option value="plumbing">Plumbing</option>
+          <option value="electrical">Electrical</option>
+          <option value="landscaping">Landscaping</option>
+          <option value="construction">Construction</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Default status for new imports</label>
+        <select class="form-input" id="import-status">
+          <option value="new">New</option>
+          <option value="scored">Scored</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" id="import-btn" onclick="runImport()" disabled>Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIG — update SUPABASE_URL and SUPABASE_KEY
+// ─────────────────────────────────────────────
+const SUPABASE_URL = window.SUPABASE_URL || 'https://neonmrgszujadgfidlbj.supabase.co';
+const SUPABASE_KEY = window.SUPABASE_ANON_KEY || 'YOUR_ANON_KEY_HERE';
+const API_BASE     = ''; // FastAPI base, e.g. '' for same-origin or 'http://localhost:8000'
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let allLeads     = [];
+let filtered     = [];
+let selected     = new Set();
+let currentPage  = 1;
+let perPage      = 50;
+let totalPages   = 1;
+let sortCol      = 'created_at';
+let sortDir      = 'desc';
+let statusFilter = 'all';
+let searchTerm   = '';
+let editingId    = null;
+let detailLead   = null;
+let csvData      = [];
+let searchTimer  = null;
+
+// ─────────────────────────────────────────────
+// SUPABASE FETCH HELPER
+// ─────────────────────────────────────────────
+async function sbFetch(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || 'return=representation',
+      ...(opts.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  return opts.raw ? res : res.json();
+}
+
+// ─────────────────────────────────────────────
+// LOAD LEADS
+// ─────────────────────────────────────────────
+async function loadLeads() {
+  try {
+    // Fetch all for pipeline counts (Supabase RPC would be better at scale,
+    // but for ≤5K rows this is fine — switch to server-side pagination if needed)
+    const data = await sbFetch(
+      `contacts?select=*&order=created_at.desc&limit=5000`,
+      { prefer: 'count=exact' }
+    );
+    allLeads = data;
+    updatePipelineCounts();
+    document.getElementById('total-count').textContent = `${allLeads.length} contacts`;
+    applyFilters();
+  } catch (e) {
+    showToast('Failed to load leads: ' + e.message, 'error');
+    document.getElementById('leads-tbody').innerHTML =
+      `<tr class="loading-row"><td colspan="12" style="color:var(--danger)">⚠ ${e.message}</td></tr>`;
+  }
+}
+
+function updatePipelineCounts() {
+  const statuses = ['new','scored','enriched','report_sent','nurture','archived'];
+  document.getElementById('count-all').textContent = allLeads.length;
+  statuses.forEach(s => {
+    const el = document.getElementById('count-' + s);
+    if (el) el.textContent = allLeads.filter(l => l.status === s).length;
+  });
+}
+
+// ─────────────────────────────────────────────
+// FILTERS
+// ─────────────────────────────────────────────
+function onSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchTerm = document.getElementById('search-input').value.toLowerCase();
+    currentPage = 1;
+    applyFilters();
+  }, 200);
+}
+
+function filterByStatus(status, el) {
+  statusFilter = status;
+  document.querySelectorAll('.p-stage').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  currentPage = 1;
+  applyFilters();
+}
+
+function applyFilters() {
+  const industry = document.getElementById('filter-industry').value;
+  const tier     = document.getElementById('filter-tier').value;
+  const leak     = document.getElementById('filter-leak').value;
+
+  filtered = allLeads.filter(l => {
+    if (statusFilter !== 'all' && l.status !== statusFilter) return false;
+    if (industry && l.industry !== industry) return false;
+    if (tier && l.icp_tier !== tier) return false;
+    if (leak === 'true'  && !l.revenue_leak) return false;
+    if (leak === 'false' &&  l.revenue_leak) return false;
+    if (searchTerm) {
+      const hay = [l.company, l.email, l.location, l.first_name, l.last_name, l.industry]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(searchTerm)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    let av = a[sortCol] ?? '';
+    let bv = b[sortCol] ?? '';
+    if (typeof av === 'number') return sortDir === 'asc' ? av - bv : bv - av;
+    return sortDir === 'asc'
+      ? String(av).localeCompare(String(bv))
+      : String(bv).localeCompare(String(av));
+  });
+
+  totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  if (currentPage > totalPages) currentPage = totalPages;
+  renderTable();
+  renderPagination();
+}
+
+function clearFilters() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('filter-industry').value = '';
+  document.getElementById('filter-tier').value = '';
+  document.getElementById('filter-leak').value = '';
+  searchTerm = '';
+  statusFilter = 'all';
+  document.querySelectorAll('.p-stage').forEach((e,i) => e.classList.toggle('active', i===0));
+  currentPage = 1;
+  applyFilters();
+}
+
+// ─────────────────────────────────────────────
+// SORT
+// ─────────────────────────────────────────────
+function sortBy(col) {
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = 'desc'; }
+  document.querySelectorAll('th').forEach(th => th.classList.remove('sorted'));
+  const ths = document.querySelectorAll('th');
+  const cols = ['','company','industry','location','opportunity_score','icp_score','icp_tier','','status','','created_at',''];
+  const idx = cols.indexOf(col);
+  if (idx >= 0 && ths[idx]) ths[idx].classList.add('sorted');
+  applyFilters();
+}
+
+// ─────────────────────────────────────────────
+// RENDER TABLE
+// ─────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('leads-tbody');
+  const start = (currentPage - 1) * perPage;
+  const page  = filtered.slice(start, start + perPage);
+
+  if (page.length === 0) {
+    tbody.innerHTML = `
+      <tr><td colspan="12">
+        <div class="empty-state">
+          <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+          </svg>
+          <p>No leads match your filters</p>
+        </div>
+      </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = page.map(l => {
+    const oppScore = l.opportunity_score || 0;
+    const icpScore = l.icp_score || 0;
+    const scoreColor = oppScore >= 70 ? 'var(--tier-a)' : oppScore >= 40 ? 'var(--tier-b)' : 'var(--tier-d)';
+    const contact = [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email || '—';
+    const added   = l.created_at ? new Date(l.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+    const isSelected = selected.has(l.id);
+
+    return `<tr class="${isSelected ? 'selected' : ''}" data-id="${l.id}">
+      <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect(${l.id}, this)"></td>
+      <td class="cell-company">
+        ${l.website
+          ? `<a href="https://${l.website}" target="_blank">${l.company || '—'}</a>`
+          : (l.company || '—')}
+        ${l.employee_count ? `<div class="cell-muted">${l.employee_count} emp</div>` : ''}
+      </td>
+      <td class="cell-muted">${l.industry || '—'}</td>
+      <td class="cell-muted">${l.location || '—'}</td>
+      <td>
+        <span class="cell-score" style="color:${scoreColor}">${oppScore}</span>
+        <div class="score-bar"><div class="score-bar-fill" style="width:${oppScore}%;background:${scoreColor}"></div></div>
+      </td>
+      <td><span class="cell-score" style="color:var(--muted);font-size:12px">${icpScore}</span></td>
+      <td><span class="tier-badge tier-${l.icp_tier || 'D'}">${l.icp_tier || 'D'}</span></td>
+      <td style="text-align:center">${l.revenue_leak ? '<span class="leak-dot" title="Revenue leak detected"></span>' : ''}</td>
+      <td>
+        <span class="status-badge s-${l.status || 'new'}" onclick="cycleStatus(${l.id}, '${l.status || 'new'}', event)">
+          ${(l.status || 'new').replace('_', ' ')}
+        </span>
+      </td>
+      <td class="cell-muted" style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${contact}</td>
+      <td class="cell-muted">${added}</td>
+      <td>
+        <button class="btn btn-ghost" style="padding:4px 8px;font-size:10px" onclick="openDetail(${l.id})">View</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+// PAGINATION
+// ─────────────────────────────────────────────
+function renderPagination() {
+  const start = (currentPage - 1) * perPage + 1;
+  const end   = Math.min(currentPage * perPage, filtered.length);
+  document.getElementById('page-info').textContent =
+    `${filtered.length === 0 ? 0 : start}–${end} of ${filtered.length}`;
+
+  document.getElementById('btn-first').disabled = currentPage === 1;
+  document.getElementById('btn-prev').disabled  = currentPage === 1;
+  document.getElementById('btn-next').disabled  = currentPage === totalPages;
+  document.getElementById('btn-last').disabled  = currentPage === totalPages;
+
+  // Page number buttons (show up to 5)
+  const pn = document.getElementById('page-numbers');
+  const pages = [];
+  let s = Math.max(1, currentPage - 2);
+  let e = Math.min(totalPages, s + 4);
+  if (e - s < 4) s = Math.max(1, e - 4);
+  for (let i = s; i <= e; i++) {
+    pages.push(`<button class="page-btn${i===currentPage?' current':''}" onclick="goToPage(${i})">${i}</button>`);
+  }
+  pn.innerHTML = pages.join('');
+}
+
+function goToPage(p) {
+  currentPage = Math.max(1, Math.min(p, totalPages));
+  renderTable();
+  renderPagination();
+  selected.clear();
+  updateBulkBar();
+}
+
+function changePerPage() {
+  perPage = parseInt(document.getElementById('per-page').value);
+  currentPage = 1;
+  applyFilters();
+}
+
+// ─────────────────────────────────────────────
+// SELECTION
+// ─────────────────────────────────────────────
+function toggleSelect(id, cb) {
+  if (cb.checked) selected.add(id); else selected.delete(id);
+  const row = cb.closest('tr');
+  row.classList.toggle('selected', cb.checked);
+  updateBulkBar();
+  updateSelectAll();
+}
+
+function toggleSelectAll() {
+  const master = document.getElementById('select-all');
+  const start  = (currentPage - 1) * perPage;
+  const page   = filtered.slice(start, start + perPage);
+  page.forEach(l => {
+    if (master.checked) selected.add(l.id); else selected.delete(l.id);
+  });
+  renderTable();
+  updateBulkBar();
+}
+
+function updateSelectAll() {
+  const start  = (currentPage - 1) * perPage;
+  const page   = filtered.slice(start, start + perPage);
+  const sa = document.getElementById('select-all');
+  sa.checked = page.length > 0 && page.every(l => selected.has(l.id));
+  sa.indeterminate = !sa.checked && page.some(l => selected.has(l.id));
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  bar.classList.toggle('visible', selected.size > 0);
+  document.getElementById('bulk-label').textContent = `${selected.size} selected`;
+}
+
+function clearSelection() {
+  selected.clear();
+  renderTable();
+  updateBulkBar();
+  document.getElementById('select-all').checked = false;
+}
+
+// ─────────────────────────────────────────────
+// STATUS CYCLE (click to advance)
+// ─────────────────────────────────────────────
+const STATUS_ORDER = ['new','scored','enriched','report_sent','nurture','archived'];
+async function cycleStatus(id, current, event) {
+  event.stopPropagation();
+  const next = STATUS_ORDER[(STATUS_ORDER.indexOf(current) + 1) % STATUS_ORDER.length];
+  try {
+    await sbFetch(`contacts?id=eq.${id}`, {
+      method: 'PATCH', body: JSON.stringify({ status: next })
+    });
+    const lead = allLeads.find(l => l.id === id);
+    if (lead) lead.status = next;
+    updatePipelineCounts();
+    applyFilters();
+    showToast(`Status → ${next.replace('_',' ')}`, 'success');
+  } catch(e) { showToast('Update failed: ' + e.message, 'error'); }
+}
+
+// ─────────────────────────────────────────────
+// BULK ACTIONS (wired to FastAPI endpoints)
+// ─────────────────────────────────────────────
+async function bulkAction(action) {
+  if (selected.size === 0) return;
+  const ids = [...selected];
+
+  const actionMap = {
+    score:   { endpoint: '/api/bulk/score',   status: 'scored',      label: 'Scoring' },
+    enrich:  { endpoint: '/api/bulk/enrich',  status: 'enriched',    label: 'Enriching' },
+    report:  { endpoint: '/api/bulk/report',  status: 'report_sent', label: 'Sending reports' },
+    nurture: { endpoint: null, status: 'nurture',    label: 'Moving to nurture' },
+    archive: { endpoint: null, status: 'archived',   label: 'Archiving' },
+  };
+
+  const cfg = actionMap[action];
+  if (!cfg) return;
+  showToast(`${cfg.label} ${ids.length} leads…`);
+
+  try {
+    if (cfg.endpoint) {
+      // Call FastAPI endpoint
+      const res = await fetch(API_BASE + cfg.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } else {
+      // Direct Supabase status update
+      await sbFetch(`contacts?id=in.(${ids.join(',')})`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: cfg.status })
+      });
+    }
+    // Update local state
+    ids.forEach(id => {
+      const l = allLeads.find(x => x.id === id);
+      if (l) l.status = cfg.status;
+    });
+    updatePipelineCounts();
+    applyFilters();
+    clearSelection();
+    showToast(`Done — ${ids.length} leads updated`, 'success');
+  } catch(e) { showToast('Action failed: ' + e.message, 'error'); }
+}
+
+// ─────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────
+function exportCSV(leads) {
+  const data = leads || filtered;
+  const cols = ['id','company','website','industry','location','email','first_name','last_name',
+    'phone','job_title','linkedin_url','employee_count','opportunity_score','icp_score',
+    'icp_tier','revenue_leak','status','sequence_name','sent_at','replied_at','created_at'];
+  const header = cols.join(',');
+  const rows = data.map(l =>
+    cols.map(c => {
+      const v = l[c];
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'string' && v.includes(',')) return `"${v.replace(/"/g,'""')}"`;
+      return v;
+    }).join(',')
+  );
+  const csv  = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `prospect-engine-leads-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportSelected() {
+  const data = allLeads.filter(l => selected.has(l.id));
+  exportCSV(data);
+}
+
+// ─────────────────────────────────────────────
+// ADD / EDIT MODAL
+// ─────────────────────────────────────────────
+function openAddModal(lead = null) {
+  editingId = lead ? lead.id : null;
+  document.getElementById('modal-title').textContent = lead ? 'Edit Lead' : 'Add Lead';
+  const fields = ['company','website','industry','location','first_name','last_name',
+    'email','phone','job_title','linkedin_url','employee_count','status'];
+  const ids    = ['f-company','f-website','f-industry','f-location','f-first','f-last',
+    'f-email','f-phone','f-title','f-linkedin','f-employees','f-status'];
+  fields.forEach((f, i) => {
+    const el = document.getElementById(ids[i]);
+    el.value = lead ? (lead[f] || '') : (f === 'status' ? 'new' : '');
+  });
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function closeAddModal() {
+  document.getElementById('add-modal').classList.remove('open');
+  editingId = null;
+}
+
+async function saveLead() {
+  const payload = {
+    company:        document.getElementById('f-company').value.trim(),
+    website:        document.getElementById('f-website').value.trim() || null,
+    industry:       document.getElementById('f-industry').value || null,
+    location:       document.getElementById('f-location').value.trim() || null,
+    first_name:     document.getElementById('f-first').value.trim() || null,
+    last_name:      document.getElementById('f-last').value.trim() || null,
+    email:          document.getElementById('f-email').value.trim() || null,
+    phone:          document.getElementById('f-phone').value.trim() || null,
+    job_title:      document.getElementById('f-title').value.trim() || null,
+    linkedin_url:   document.getElementById('f-linkedin').value.trim() || null,
+    employee_count: document.getElementById('f-employees').value.trim() || null,
+    status:         document.getElementById('f-status').value,
+  };
+  if (!payload.company) { showToast('Company name required', 'error'); return; }
+  try {
+    if (editingId) {
+      await sbFetch(`contacts?id=eq.${editingId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      const idx = allLeads.findIndex(l => l.id === editingId);
+      if (idx >= 0) allLeads[idx] = { ...allLeads[idx], ...payload };
+      showToast('Lead updated', 'success');
+    } else {
+      const res = await sbFetch('contacts', { method: 'POST', body: JSON.stringify(payload) });
+      const created = Array.isArray(res) ? res[0] : res;
+      if (created) allLeads.unshift(created);
+      showToast('Lead added', 'success');
+    }
+    document.getElementById('total-count').textContent = `${allLeads.length} contacts`;
+    updatePipelineCounts();
+    applyFilters();
+    closeAddModal();
+  } catch(e) { showToast('Save failed: ' + e.message, 'error'); }
+}
+
+// ─────────────────────────────────────────────
+// DETAIL PANEL
+// ─────────────────────────────────────────────
+function openDetail(id) {
+  detailLead = allLeads.find(l => l.id === id);
+  if (!detailLead) return;
+  const l = detailLead;
+  document.getElementById('dp-company').textContent = l.company || '—';
+  document.getElementById('dp-sub').textContent =
+    [l.industry, l.location].filter(Boolean).join(' · ') || '—';
+
+  const pills = (l.intel_pills || []).map(p => `<span class="intel-pill">${p}</span>`).join('');
+
+  document.getElementById('dp-body').innerHTML = `
+    <div class="detail-section">
+      <div class="detail-section-title">Scores</div>
+      <div class="detail-row"><span class="detail-key">Opportunity</span><span class="detail-val">${l.opportunity_score ?? '—'} / 100</span></div>
+      <div class="detail-row"><span class="detail-key">ICP Score</span><span class="detail-val">${l.icp_score ?? '—'} / 100</span></div>
+      <div class="detail-row"><span class="detail-key">Website Score</span><span class="detail-val">${l.website_score ?? '—'}</span></div>
+      <div class="detail-row"><span class="detail-key">ICP Tier</span><span class="detail-val"><span class="tier-badge tier-${l.icp_tier||'D'}">${l.icp_tier||'D'}</span></span></div>
+      <div class="detail-row"><span class="detail-key">Revenue Leak</span><span class="detail-val">${l.revenue_leak ? '⚠ Yes' : 'No'}</span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Contact</div>
+      <div class="detail-row"><span class="detail-key">Name</span><span class="detail-val">${[l.first_name,l.last_name].filter(Boolean).join(' ')||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Title</span><span class="detail-val">${l.job_title||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">${l.email ? `<a href="mailto:${l.email}">${l.email}</a>` : '—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Phone</span><span class="detail-val">${l.phone||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">LinkedIn</span><span class="detail-val">${l.linkedin_url ? `<a href="${l.linkedin_url}" target="_blank">View ↗</a>` : '—'}</span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Company</div>
+      <div class="detail-row"><span class="detail-key">Website</span><span class="detail-val">${l.website ? `<a href="https://${l.website}" target="_blank">${l.website}</a>` : '—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Industry</span><span class="detail-val">${l.industry||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Location</span><span class="detail-val">${l.location||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Employees</span><span class="detail-val">${l.employee_count||'—'}</span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Outreach</div>
+      <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="status-badge s-${l.status||'new'}">${(l.status||'new').replace('_',' ')}</span></span></div>
+      <div class="detail-row"><span class="detail-key">Sequence</span><span class="detail-val">${l.sequence_name||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Sent</span><span class="detail-val">${l.sent_at ? new Date(l.sent_at).toLocaleDateString() : '—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Replied</span><span class="detail-val">${l.replied_at ? new Date(l.replied_at).toLocaleDateString() : '—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Report URL</span><span class="detail-val">${l.report_url ? `<a href="${l.report_url}" target="_blank">View ↗</a>` : '—'}</span></div>
+    </div>
+    ${pills ? `<div class="detail-section"><div class="detail-section-title">Intel</div><div style="padding-top:4px">${pills}</div></div>` : ''}
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn btn-ghost" style="flex:1" onclick="openAddModal(detailLead)">Edit</button>
+      <button class="btn btn-danger" style="flex:1" onclick="deleteLead(${l.id})">Delete</button>
+    </div>
+  `;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  detailLead = null;
+}
+
+async function deleteLead(id) {
+  if (!confirm('Delete this lead? This cannot be undone.')) return;
+  try {
+    await sbFetch(`contacts?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
+    allLeads = allLeads.filter(l => l.id !== id);
+    closeDetail();
+    updatePipelineCounts();
+    document.getElementById('total-count').textContent = `${allLeads.length} contacts`;
+    applyFilters();
+    showToast('Lead deleted', 'success');
+  } catch(e) { showToast('Delete failed: ' + e.message, 'error'); }
+}
+
+async function scoreOne() {
+  if (!detailLead) return;
+  showToast('Scoring…');
+  try {
+    const res = await fetch(`${API_BASE}/api/score/${detailLead.id}`, { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const updated = await res.json();
+    Object.assign(detailLead, updated);
+    const idx = allLeads.findIndex(l => l.id === detailLead.id);
+    if (idx >= 0) allLeads[idx] = detailLead;
+    openDetail(detailLead.id);
+    applyFilters();
+    showToast('Scored', 'success');
+  } catch(e) { showToast('Score failed: ' + e.message, 'error'); }
+}
+
+async function enrichOne() {
+  if (!detailLead) return;
+  showToast('Enriching…');
+  try {
+    const res = await fetch(`${API_BASE}/api/enrich/${detailLead.id}`, { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const updated = await res.json();
+    Object.assign(detailLead, updated);
+    const idx = allLeads.findIndex(l => l.id === detailLead.id);
+    if (idx >= 0) allLeads[idx] = detailLead;
+    openDetail(detailLead.id);
+    applyFilters();
+    showToast('Enriched', 'success');
+  } catch(e) { showToast('Enrich failed: ' + e.message, 'error'); }
+}
+
+async function sendReportOne() {
+  if (!detailLead) return;
+  showToast('Sending report…');
+  try {
+    const res = await fetch(`${API_BASE}/api/report/${detailLead.id}`, { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const updated = await res.json();
+    Object.assign(detailLead, updated);
+    const idx = allLeads.findIndex(l => l.id === detailLead.id);
+    if (idx >= 0) Object.assign(allLeads[idx], updated);
+    openDetail(detailLead.id);
+    applyFilters();
+    showToast('Report sent', 'success');
+  } catch(e) { showToast('Send failed: ' + e.message, 'error'); }
+}
+
+// ─────────────────────────────────────────────
+// CSV IMPORT
+// ─────────────────────────────────────────────
+function openImportModal()  { document.getElementById('import-modal').classList.add('open'); }
+function closeImportModal() { document.getElementById('import-modal').classList.remove('open'); csvData = []; document.getElementById('csv-preview').textContent = ''; document.getElementById('import-btn').disabled = true; }
+
+function onDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function onDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function onDrop(e)      { e.preventDefault(); onDragLeave(); const f = e.dataTransfer.files[0]; if (f) parseCSV(f); }
+function handleFileSelect(e) { const f = e.target.files[0]; if (f) parseCSV(f); }
+
+function parseCSV(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const lines = e.target.result.split('\n').filter(l => l.trim());
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
+    csvData = lines.slice(1).map(line => {
+      const vals = parseCSVLine(line);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = vals[i] ? vals[i].replace(/^"|"$/g,'').trim() : null; });
+      return obj;
+    }).filter(r => r.company || r.website);
+
+    document.getElementById('csv-preview').textContent =
+      `✓ ${csvData.length} rows detected — columns: ${headers.join(', ')}`;
+    document.getElementById('import-btn').disabled = csvData.length === 0;
+  };
+  reader.readAsText(file);
+}
+
+function parseCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQ = !inQ; }
+    else if (line[i] === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += line[i]; }
+  }
+  result.push(cur);
+  return result;
+}
+
+async function runImport() {
+  if (csvData.length === 0) return;
+  const industry = document.getElementById('import-industry').value;
+  const status   = document.getElementById('import-status').value;
+
+  const BATCH = 100;
+  let imported = 0, skipped = 0;
+  showToast(`Importing ${csvData.length} rows…`);
+
+  // Map CSV columns to schema
+  const mapped = csvData.map(r => ({
+    company:        r.company || null,
+    website:        r.website || r.domain || null,
+    industry:       industry || r.industry || null,
+    location:       r.location || r.city || null,
+    email:          r.email || null,
+    first_name:     r.first_name || r.firstname || null,
+    last_name:      r.last_name  || r.lastname  || null,
+    phone:          r.phone || null,
+    job_title:      r.job_title || r.title || null,
+    linkedin_url:   r.linkedin_url || r.linkedin || null,
+    employee_count: r.employee_count || r.employees || null,
+    status:         status,
+  })).filter(r => r.company || r.website);
+
+  for (let i = 0; i < mapped.length; i += BATCH) {
+    const batch = mapped.slice(i, i + BATCH);
+    try {
+      await sbFetch('contacts', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+        body: JSON.stringify(batch)
+      });
+      imported += batch.length;
+    } catch(e) { skipped += batch.length; }
+  }
+
+  showToast(`Import complete — ${imported} added, ${skipped} skipped`, 'success');
+  closeImportModal();
+  await loadLeads();
+}
+
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// ─────────────────────────────────────────────
+// KEYBOARD
+// ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeDetail(); closeAddModal(); closeImportModal(); }
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    document.getElementById('search-input').focus();
+  }
+});
+
+// Close detail on outside click
+document.addEventListener('click', e => {
+  const panel = document.getElementById('detail-panel');
+  if (panel.classList.contains('open') && !panel.contains(e.target) && !e.target.closest('[onclick*="openDetail"]')) {
+    closeDetail();
+  }
+});
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+loadLeads();
+</script>
+</body>
+</html>
