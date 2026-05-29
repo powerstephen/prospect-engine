@@ -416,7 +416,10 @@ nav{height:56px;background:var(--surface);border-bottom:1px solid var(--border);
       </div>
       <div class="panel-topbar">
         <div class="panel-title" id="findLabel">Run a hunt to find prospects</div>
-        <button class="btn-csv" id="exportFind" onclick="doExportFind()">⬇ Export CSV</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-csv" id="scoreAllBtn" style="display:none;border-color:rgba(249,115,22,0.4);color:var(--orange)" onclick="scoreAllFromFind()">🔥 Score All →</button>
+          <button class="btn-csv" id="exportFind" onclick="doExportFind()">⬇ Export CSV</button>
+        </div>
       </div>
       <div class="results" id="findResults">
         <div class="empty">
@@ -806,10 +809,123 @@ function renderFind(prospects) {
 
 async function doExportFind() {
   try {
-    if (sessionId) { window.location.href=HARVEST_URL+'/api/sessions/'+sessionId+'/export.csv'; return; }
-    var sessions = await (await fetch(HARVEST_URL+'/api/sessions')).json();
-    if (sessions.length) window.location.href=HARVEST_URL+'/api/sessions/'+sessions[0].id+'/export.csv';
-  } catch(e){}
+    // Always fetch latest session to handle page refresh
+    var resp = await fetch(HARVEST_URL+'/api/sessions');
+    if (!resp.ok) { alert('Could not connect to Find agent'); return; }
+    var sessions = await resp.json();
+    if (!sessions || !sessions.length) { alert('No sessions found - run a search first'); return; }
+    var sid = sessionId || sessions[0].id;
+    window.location.href = HARVEST_URL+'/api/sessions/'+sid+'/export.csv';
+  } catch(e) { alert('Export failed: ' + e.message); }
+}
+
+async function scoreAllFromFind() {
+  if (!harvestProspects.length) { alert('Run a Find search first.'); return; }
+  var withWebsites = harvestProspects.filter(function(p){ return p.website; });
+  if (!withWebsites.length) { alert('No prospects with websites to score.'); return; }
+  
+  // Switch to Scorer tab
+  showTab('scorer');
+  
+  // Show batch scoring UI
+  document.getElementById('scorerResults').innerHTML = 
+    '<div style="padding:20px">' +
+      '<div style="font-size:13px;font-weight:700;margin-bottom:16px">Scoring ' + withWebsites.length + ' prospects from Find...</div>' +
+      '<div id="batch-progress" style="font-size:11px;color:var(--muted);margin-bottom:12px">Starting...</div>' +
+      '<div id="batch-results" style="display:flex;flex-direction:column;gap:8px"></div>' +
+    '</div>';
+  document.getElementById('scorerLog').style.display = 'block';
+  document.getElementById('scorerLog').textContent = 'Batch scoring ' + withWebsites.length + ' prospects...';
+  setAgent('scorer', true);
+
+  var batchResults = [];
+  for (var i = 0; i < withWebsites.length; i++) {
+    var p = withWebsites[i];
+    document.getElementById('batch-progress').textContent = 
+      'Scoring ' + (i+1) + ' of ' + withWebsites.length + ' — ' + (p.website||'').replace(/^https?:\/\//,'').split('/')[0];
+    
+    try {
+      var resp = await fetch('/api/roast/single', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({url: p.website})
+      });
+      if (resp.ok) {
+        var audit = await resp.json();
+        var sc = audit.website_score || 0;
+        var opp = audit.combined_score || sc;
+        
+        // Merge prospect data with audit
+        var merged = Object.assign({}, p, audit, {
+          name: p.company,
+          combined_score: opp,
+          email: p.email,
+          first_name: p.first_name,
+          last_name: p.last_name,
+        });
+        batchResults.push(merged);
+        
+        // Show result card immediately
+        var c = oppColor(opp);
+        var verified = p.signal && p.signal.includes('✅');
+        document.getElementById('batch-results').innerHTML += 
+          '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px">' +
+            '<div style="font-size:22px;font-weight:900;color:'+c+';width:40px;text-align:center">'+opp+'</div>' +
+            '<div style="flex:1">' +
+              '<div style="font-size:12px;font-weight:700">'+(p.company||'')+'</div>' +
+              '<div style="font-size:10px;color:var(--muted)">'+(p.website||'').replace(/^https?:\/\//,'').split('/')[0]+'</div>' +
+              (p.email ? '<div style="font-size:11px;color:var(--teal);margin-top:2px">'+p.email+(verified?'&nbsp;<span style="font-size:9px;padding:1px 5px;background:rgba(16,185,129,0.12);color:var(--green);border-radius:10px">✓</span>':'')+'</div>' : '') +
+            '</div>' +
+            '<div style="font-size:9px;color:var(--muted)">Web '+sc+' · ICP '+(audit.icp_score||0)+'</div>' +
+          '</div>';
+      }
+    } catch(e) {}
+    
+    await new Promise(function(r){ setTimeout(r, 500); });
+  }
+
+  // Done - show export
+  setAgent('scorer', false);
+  document.getElementById('scorerLog').style.display = 'none';
+  document.getElementById('batch-progress').textContent = '✅ Done — ' + batchResults.length + ' scored';
+  
+  // Add export button
+  document.getElementById('batch-progress').innerHTML += 
+    '&nbsp;&nbsp;<button onclick="exportBatchResults()" style="font-size:10px;padding:3px 12px;border:1px solid var(--teal);border-radius:5px;background:none;color:var(--teal);cursor:pointer;font-family:Montserrat,sans-serif">⬇ Export All CSV</button>';
+  
+  window._batchResults = batchResults;
+  document.getElementById('exportScorer').style.display = 'inline-block';
+  document.getElementById('scorerLabel').textContent = batchResults.length + ' prospects scored from Find';
+}
+
+function exportBatchResults() {
+  var results = window._batchResults || [];
+  if (!results.length) return;
+  var rows = [['company','website','email','email_verified','first_name','last_name','phone','industry','opportunity_score','website_score','icp_score','icp_tier','revenue_leak'].join(',')];
+  results.forEach(function(r) {
+    var verified = r.signal && r.signal.includes('✅') ? 'yes' : 'no';
+    rows.push([
+      '"'+(r.company||r.name||'').replace(/"/g,'')+ '"',
+      '"'+(r.website||'')+'"',
+      '"'+(r.email||'')+'"',
+      verified,
+      '"'+(r.first_name||'')+'"',
+      '"'+(r.last_name||'')+'"',
+      '"'+(r.phone||'')+'"',
+      '"'+(r.industry||'')+'"',
+      r.combined_score||r.website_score||0,
+      r.website_score||0,
+      r.icp_score||0,
+      r.icp_tier||'',
+      r.revenue_leak ? 'yes' : 'no',
+    ].join(','));
+  });
+  var blob = new Blob([rows.join('
+')], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'scored-prospects.csv';
+  a.click();
 }
 
 // ── INSIGHTS ──────────────────────────────────────────────────────────────────
