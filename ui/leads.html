@@ -668,8 +668,8 @@ async function sbFetch(path, opts = {}) {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
-      'Prefer': opts.prefer || 'return=representation',
-      ...(opts.headers || {})
+     'Prefer': opts.prefer || 'return=representation',
+...(opts.headers || {})
     }
   });
   if (!res.ok) {
