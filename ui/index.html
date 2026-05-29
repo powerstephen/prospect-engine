@@ -826,8 +826,7 @@ function handleCSV(event) {
     document.getElementById('upload-status').textContent = contactsData.length + ' contacts loaded — analysing...';
     analyseContacts();
     
-    // Push to Supabase in background
-    uploadToSupabase(contactsData);
+    // Supabase integration coming soon
   };
   reader.readAsText(file);
 }
@@ -843,7 +842,29 @@ async function uploadToSupabase(contacts) {
       var result = await resp.json();
       document.getElementById('upload-status').textContent = 
         result.inserted + ' contacts saved to database ✓';
-      loadPipelineStats();
+      function scoreFromContacts() {
+  if (!contactsData.length) { alert('Upload contacts first.'); return; }
+  // Take top 10 with websites and pre-fill scorer
+  var withWebsites = contactsData.filter(function(c){ return c.website; }).slice(0,10);
+  if (!withWebsites.length) { alert('No contacts with websites found.'); return; }
+  showTab('scorer');
+  // Auto-fill industry from first contact
+  var industry = contactsData[0].industry || '';
+  var location = contactsData[0].location || contactsData[0].city || '';
+  if (industry) document.getElementById('industry').value = industry;
+  if (location) document.getElementById('location').value = location;
+  // Store for batch
+  window._batchContacts = withWebsites;
+  alert(withWebsites.length + ' contacts ready in Scorer. Hit Ignite Search or use single URL audit for individual contacts.');
+}
+
+function scoreOne(website, company) {
+  if (!website) { alert('No website for this contact.'); return; }
+  showTab('scorer');
+  document.getElementById('singleUrl').value = website;
+  // Trigger single audit
+  singleAudit();
+}
 
 async function runBatchScore() {
   var btn = document.getElementById('batchScoreBtn');
@@ -859,7 +880,29 @@ async function runBatchScore() {
       es.addEventListener('done', function() {
         es.close();
         btn.textContent = '✅ Batch Complete'; 
-        setTimeout(function(){ btn.textContent='⚡ Batch Score All New →'; btn.disabled=false; loadPipelineStats(); }, 2000);
+        setTimeout(function(){ btn.textContent='⚡ Batch Score All New →'; btn.disabled=false; function scoreFromContacts() {
+  if (!contactsData.length) { alert('Upload contacts first.'); return; }
+  // Take top 10 with websites and pre-fill scorer
+  var withWebsites = contactsData.filter(function(c){ return c.website; }).slice(0,10);
+  if (!withWebsites.length) { alert('No contacts with websites found.'); return; }
+  showTab('scorer');
+  // Auto-fill industry from first contact
+  var industry = contactsData[0].industry || '';
+  var location = contactsData[0].location || contactsData[0].city || '';
+  if (industry) document.getElementById('industry').value = industry;
+  if (location) document.getElementById('location').value = location;
+  // Store for batch
+  window._batchContacts = withWebsites;
+  alert(withWebsites.length + ' contacts ready in Scorer. Hit Ignite Search or use single URL audit for individual contacts.');
+}
+
+function scoreOne(website, company) {
+  if (!website) { alert('No website for this contact.'); return; }
+  showTab('scorer');
+  document.getElementById('singleUrl').value = website;
+  // Trigger single audit
+  singleAudit();
+} }, 2000);
       });
     } else {
       btn.textContent = '❌ Failed'; setTimeout(function(){ btn.disabled=false; btn.textContent='⚡ Batch Score All New →'; }, 2000);
@@ -898,7 +941,29 @@ function pipelineStat(label, count, color) {
   '</div>';
 }
 
-loadPipelineStats();
+function scoreFromContacts() {
+  if (!contactsData.length) { alert('Upload contacts first.'); return; }
+  // Take top 10 with websites and pre-fill scorer
+  var withWebsites = contactsData.filter(function(c){ return c.website; }).slice(0,10);
+  if (!withWebsites.length) { alert('No contacts with websites found.'); return; }
+  showTab('scorer');
+  // Auto-fill industry from first contact
+  var industry = contactsData[0].industry || '';
+  var location = contactsData[0].location || contactsData[0].city || '';
+  if (industry) document.getElementById('industry').value = industry;
+  if (location) document.getElementById('location').value = location;
+  // Store for batch
+  window._batchContacts = withWebsites;
+  alert(withWebsites.length + ' contacts ready in Scorer. Hit Ignite Search or use single URL audit for individual contacts.');
+}
+
+function scoreOne(website, company) {
+  if (!website) { alert('No website for this contact.'); return; }
+  showTab('scorer');
+  document.getElementById('singleUrl').value = website;
+  // Trigger single audit
+  singleAudit();
+}
 
 async function runBatchScore() {
   var btn = document.getElementById('batchScoreBtn');
@@ -914,7 +979,29 @@ async function runBatchScore() {
       es.addEventListener('done', function() {
         es.close();
         btn.textContent = '✅ Batch Complete'; 
-        setTimeout(function(){ btn.textContent='⚡ Batch Score All New →'; btn.disabled=false; loadPipelineStats(); }, 2000);
+        setTimeout(function(){ btn.textContent='⚡ Batch Score All New →'; btn.disabled=false; function scoreFromContacts() {
+  if (!contactsData.length) { alert('Upload contacts first.'); return; }
+  // Take top 10 with websites and pre-fill scorer
+  var withWebsites = contactsData.filter(function(c){ return c.website; }).slice(0,10);
+  if (!withWebsites.length) { alert('No contacts with websites found.'); return; }
+  showTab('scorer');
+  // Auto-fill industry from first contact
+  var industry = contactsData[0].industry || '';
+  var location = contactsData[0].location || contactsData[0].city || '';
+  if (industry) document.getElementById('industry').value = industry;
+  if (location) document.getElementById('location').value = location;
+  // Store for batch
+  window._batchContacts = withWebsites;
+  alert(withWebsites.length + ' contacts ready in Scorer. Hit Ignite Search or use single URL audit for individual contacts.');
+}
+
+function scoreOne(website, company) {
+  if (!website) { alert('No website for this contact.'); return; }
+  showTab('scorer');
+  document.getElementById('singleUrl').value = website;
+  // Trigger single audit
+  singleAudit();
+} }, 2000);
       });
     } else {
       btn.textContent = '❌ Failed'; setTimeout(function(){ btn.disabled=false; btn.textContent='⚡ Batch Score All New →'; }, 2000);
@@ -925,6 +1012,7 @@ async function runBatchScore() {
 function analyseContacts() {
   if (!contactsData.length) { alert('Upload a CSV first.'); return; }
   var total = contactsData.length;
+  document.getElementById('upload-status').textContent = total + ' contacts loaded ✓';
   var industries = {};
   contactsData.forEach(function(c){ var ind=c.industry||'Unknown'; industries[ind]=(industries[ind]||0)+1; });
   var top = Object.entries(industries).sort(function(a,b){return b[1]-a[1];}).slice(0,6);
