@@ -710,9 +710,10 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     # Flip the formula: ICP score drives opportunity, website is secondary
     # High ICP + weak website = highest opportunity
     # High ICP + decent website = still high opportunity (they have budget)
-    website_drag = ws * 0.2   # website quality only 20% of combined
-    icp_drive    = score * 0.8  # ICP fit is 80% of what matters
-    combined = round(min(100, icp_drive + (100 - website_drag) * 0.2))
+    # Opportunity = ICP fit + website weakness bonus
+# 96 ICP + 54 website = ~94 opportunity
+website_weakness = (100 - ws) * 0.2  # weak site adds up to 20pts
+combined = round(min(100, score * 0.8 + website_weakness))
  
     # ── Explanation pills ─────────────────────────────────────────────────────
     pills = []
