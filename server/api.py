@@ -53,6 +53,10 @@ class SingleParams(BaseModel):
     name: str = ""
  
  
+class BulkScoreParams(BaseModel):
+    ids: list[int]
+ 
+ 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def index():
@@ -90,7 +94,6 @@ async def start_roast(params: RoastParams):
                 SERPAPI_KEY, log_cb
             )
             _results = results
-            # Save to SQLite by session and by company name
             save_results(_current_session, results)
             for r in results:
                 save_result_by_name(r)
@@ -101,7 +104,6 @@ async def start_roast(params: RoastParams):
             status = "error"
             await _broadcast({"type": "log", "msg": f"ERROR: {e}"})
  
-        # Add slug to each result for named URLs
         for r in results:
             r["slug"] = make_slug(r.get("name", "business"))
         await _broadcast({
@@ -160,7 +162,6 @@ async def get_results():
 async def export_csv():
     results = _results
     if not results:
-        # Try latest session from DB
         session = get_latest_session()
         if session:
             results = get_session_results(session)
@@ -226,7 +227,6 @@ async def report_by_session(session_id: str, idx: int):
  
 @app.post("/api/roast/single/save")
 async def save_single_roast(request: Request):
-    """Save a single URL audit result so it can be viewed as a full report."""
     data = await request.json()
     url = data.get("url", "")
     name = data.get("name", url)
@@ -297,7 +297,6 @@ class ContactsUpload(BaseModel):
  
 @app.post("/api/contacts/upload")
 async def upload_contacts(payload: ContactsUpload):
-    """Bulk upsert contacts from CSV upload."""
     try:
         from db.supabase_client import upsert_contacts
         count = upsert_contacts(payload.contacts)
@@ -313,7 +312,6 @@ async def list_contacts(
     limit: int = 200,
     offset: int = 0,
 ):
-    """List contacts with optional filters."""
     try:
         from db.supabase_client import get_contacts
         contacts = get_contacts(status=status, industry=industry, limit=limit, offset=offset)
@@ -324,7 +322,6 @@ async def list_contacts(
  
 @app.get("/api/contacts/stats")
 async def contact_stats():
-    """Pipeline stats by status."""
     try:
         from db.supabase_client import get_contact_stats
         return get_contact_stats()
@@ -334,7 +331,6 @@ async def contact_stats():
  
 @app.patch("/api/contacts/{contact_id}")
 async def update_contact(contact_id: int, payload: dict):
-    """Update a single contact's fields."""
     try:
         from db.supabase_client import update_contact_status
         update_contact_status(contact_id, payload.get("status"), **{k: v for k, v in payload.items() if k != "status"})
@@ -345,7 +341,6 @@ async def update_contact(contact_id: int, payload: dict):
  
 @app.get("/api/contacts/export.csv")
 async def export_contacts(status: str = None, industry: str = None):
-    """Export contacts as cadence-ready CSV."""
     from db.supabase_client import get_contacts
     contacts = get_contacts(status=status, industry=industry, limit=5000)
     buf = _io.StringIO()
@@ -371,7 +366,7 @@ _batch_log = []
  
 @app.post("/api/batch/score")
 async def start_batch_score(background_tasks: BackgroundTasks, limit: int = 50):
-    """Kick off batch scoring of new contacts."""
+    """Kick off batch scoring of next N new contacts."""
     global _batch_running, _batch_log
     if _batch_running:
         raise HTTPException(409, "Batch already running")
@@ -388,6 +383,73 @@ async def _run_batch_score(limit: int):
         async def log(msg):
             _batch_log.append(msg)
         await run_batch_score(limit=limit, log_cb=log)
+    finally:
+        _batch_running = False
+ 
+ 
+@app.post("/api/bulk/score")
+async def bulk_score_selected(params: BulkScoreParams, background_tasks: BackgroundTasks):
+    """Score specific contacts by ID."""
+    global _batch_running, _batch_log
+    if _batch_running:
+        raise HTTPException(409, "Scorer already running — wait for current batch to finish")
+    if not params.ids:
+        raise HTTPException(400, "No IDs provided")
+    _batch_running = True
+    _batch_log = []
+    background_tasks.add_task(_run_bulk_score, params.ids)
+    return {"started": True, "count": len(params.ids)}
+ 
+ 
+async def _run_bulk_score(ids: list[int]):
+    global _batch_running, _batch_log
+ 
+    async def log(msg):
+        _batch_log.append(msg)
+ 
+    try:
+        from db.supabase_client import get_contacts, update_contact_score
+        from db.batch_scorer import score_contact
+ 
+        await log(f"Fetching selected contacts...")
+ 
+        all_contacts = get_contacts(limit=5000)
+        id_set = set(ids)
+        contacts = [c for c in all_contacts if c["id"] in id_set]
+ 
+        await log(f"Scoring {len(contacts)} contacts...")
+ 
+        scored = 0
+        errors = 0
+ 
+        for contact in contacts:
+            try:
+                result = await score_contact(contact, log_cb=log)
+ 
+                if result.get("error") and result.get("status") == "new":
+                    errors += 1
+                    continue
+ 
+                update_contact_score(
+                    contact_id=contact["id"],
+                    opportunity_score=result.get("opportunity_score", 0),
+                    icp_score=result.get("icp_score", 0),
+                    website_score=result.get("website_score", 0),
+                    icp_tier=result.get("icp_tier", "D"),
+                    intel_pills=result.get("intel_pills", []),
+                    size_signals=result.get("size_signals", []),
+                    revenue_leak=result.get("revenue_leak", False),
+                    status=result.get("status", "new"),
+                )
+                scored += 1
+                await asyncio.sleep(0.5)
+ 
+            except Exception as e:
+                await log(f"  ✗ Error on {contact.get('company', '?')}: {e}")
+                errors += 1
+ 
+        await log(f"\n✓ Done — {scored} scored, {errors} errors")
+ 
     finally:
         _batch_running = False
  
