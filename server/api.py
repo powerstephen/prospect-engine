@@ -18,6 +18,8 @@ from server.db import init_db, save_results, get_result, get_latest_session, get
 import json as _json2
  
 UI_DIR = Path(__file__).resolve().parent.parent / "ui"
+SUPABASE_URL = "https://neonmrgszujadgfidlbj.supabase.co"
+SUPABASE_KEY = ""  # loaded from env at runtime
  
 app = FastAPI(title="Roaster Bot")
  
@@ -29,6 +31,11 @@ _results: list[dict] = []
 _buffer: list[dict] = []
 _subscribers: list[asyncio.Queue] = []
 _current_session: str = ""
+ 
+ 
+def get_supabase_key():
+    import os
+    return os.environ.get("SUPABASE_SERVICE_KEY", "")
  
  
 async def _broadcast(ev: dict):
@@ -258,6 +265,43 @@ _batch_running = False
 _batch_log = []
  
  
+async def _write_ai_fields(contact_id: int, result: dict, log):
+    """Write AI vision fields back to Supabase contacts table."""
+    import httpx
+    import os
+    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    ai_fields = {}
+    for k in ["mobile_screenshot_url", "mobile_mockup_url", "ai_mobile_score",
+              "ai_visual_summary", "hero_broken", "cta_above_fold",
+              "phone_above_fold", "ai_scored_at"]:
+        if result.get(k) is not None:
+            ai_fields[k] = result[k]
+ 
+    if not ai_fields:
+        return
+ 
+    try:
+        await log(f"  💾 Saving AI fields: {list(ai_fields.keys())}")
+        h = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.patch(
+                f"{SUPABASE_URL}/rest/v1/contacts?id=eq.{contact_id}",
+                json=ai_fields,
+                headers=h,
+            )
+            if r.status_code not in (200, 201, 204):
+                await log(f"  ✗ AI PATCH failed: {r.status_code} — {r.text[:200]}")
+            else:
+                await log(f"  ✓ AI fields saved")
+    except Exception as e:
+        await log(f"  ✗ AI fields error: {e}")
+ 
+ 
 @app.post("/api/batch/score")
 async def start_batch_score(background_tasks: BackgroundTasks, limit: int = 50):
     global _batch_running, _batch_log
@@ -293,7 +337,7 @@ async def _run_bulk_score(ids: list[int]):
     try:
         from db.supabase_client import get_contacts, update_contact_score
         from db.batch_scorer import score_contact
-        await log(f"Fetching selected contacts...")
+        await log(f"Fetching {len(ids)} selected contacts...")
         all_contacts = get_contacts(limit=5000)
         contacts = [c for c in all_contacts if c["id"] in set(ids)]
         await log(f"Scoring {len(contacts)} contacts...")
@@ -303,12 +347,26 @@ async def _run_bulk_score(ids: list[int]):
             try:
                 result = await score_contact(contact, log_cb=log)
                 if result.get("error") and result.get("status") == "new":
-                    errors += 1; continue
-                update_contact_score(contact_id=contact["id"], opportunity_score=result.get("opportunity_score",0), icp_score=result.get("icp_score",0), website_score=result.get("website_score",0), icp_tier=result.get("icp_tier","D"), intel_pills=result.get("intel_pills",[]), size_signals=result.get("size_signals",[]), revenue_leak=result.get("revenue_leak",False), status=result.get("status","new"))
+                    errors += 1
+                    continue
+                update_contact_score(
+                    contact_id=contact["id"],
+                    opportunity_score=result.get("opportunity_score", 0),
+                    icp_score=result.get("icp_score", 0),
+                    website_score=result.get("website_score", 0),
+                    icp_tier=result.get("icp_tier", "D"),
+                    intel_pills=result.get("intel_pills", []),
+                    size_signals=result.get("size_signals", []),
+                    revenue_leak=result.get("revenue_leak", False),
+                    status=result.get("status", "new"),
+                )
+                # Write AI vision fields
+                await _write_ai_fields(contact["id"], result, log)
                 scored += 1
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1)
             except Exception as e:
-                await log(f"  ✗ Error: {e}"); errors += 1
+                await log(f"  ✗ Error: {e}")
+                errors += 1
         await log(f"\n✓ Done — {scored} scored, {errors} errors")
     finally:
         _batch_running = False
@@ -337,17 +395,31 @@ async def _run_find_and_score(ids: list[int]):
         await log("\nStep 2: Scoring contacts with websites...")
         all_contacts = get_contacts(limit=5000)
         contacts = [c for c in all_contacts if c["id"] in set(ids) and c.get("website")]
-        scored = 0; errors = 0
+        scored = 0
+        errors = 0
         for contact in contacts:
             try:
                 result = await score_contact(contact, log_cb=log)
                 if result.get("error") and result.get("status") == "new":
-                    errors += 1; continue
-                update_contact_score(contact_id=contact["id"], opportunity_score=result.get("opportunity_score",0), icp_score=result.get("icp_score",0), website_score=result.get("website_score",0), icp_tier=result.get("icp_tier","D"), intel_pills=result.get("intel_pills",[]), size_signals=result.get("size_signals",[]), revenue_leak=result.get("revenue_leak",False), status=result.get("status","new"))
+                    errors += 1
+                    continue
+                update_contact_score(
+                    contact_id=contact["id"],
+                    opportunity_score=result.get("opportunity_score", 0),
+                    icp_score=result.get("icp_score", 0),
+                    website_score=result.get("website_score", 0),
+                    icp_tier=result.get("icp_tier", "D"),
+                    intel_pills=result.get("intel_pills", []),
+                    size_signals=result.get("size_signals", []),
+                    revenue_leak=result.get("revenue_leak", False),
+                    status=result.get("status", "new"),
+                )
+                await _write_ai_fields(contact["id"], result, log)
                 scored += 1
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1)
             except Exception as e:
-                await log(f"  ✗ Score error: {e}"); errors += 1
+                await log(f"  ✗ Score error: {e}")
+                errors += 1
         await log(f"\n✓ All done — {scored} scored, {errors} errors")
     finally:
         _batch_running = False
