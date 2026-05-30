@@ -1,7 +1,7 @@
 """
-Batch scorer v2 — scores contacts with full pipeline:
+Batch scorer v2 — full pipeline:
 1. Website audit (HTML, mobile, tech stack)
-2. Size + intelligence signals
+2. Size + intelligence signals  
 3. ICP scoring
 4. AI Vision — Playwright screenshot + GPT-4o analysis
 5. Phone mockup composite + upload to Supabase Storage
@@ -17,17 +17,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
  
-from db.supabase_client import (
-    get_contacts_for_batch_score,
-    update_contact_score,
-)
+from db.supabase_client import get_contacts_for_batch_score, update_contact_score
  
 SCORE_THRESHOLD_HOT  = int(os.environ.get("SCORE_THRESHOLD_HOT",  "50"))
 SCORE_THRESHOLD_WARM = int(os.environ.get("SCORE_THRESHOLD_WARM", "30"))
- 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-BUCKET       = "roast-screenshots"
+BUCKET = "roast-screenshots"
  
  
 async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "mobile") -> str | None:
@@ -35,7 +31,7 @@ async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "
     try:
         import httpx
         filename = f"{contact_id}_{suffix}.jpg"
-        url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET}/{filename}"
+        upload_url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET}/{filename}"
         headers = {
             "apikey": SUPABASE_KEY,
             "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -43,7 +39,7 @@ async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "
             "x-upsert": "true",
         }
         async with httpx.AsyncClient(timeout=30) as c:
-            r = await c.post(url, content=image_bytes, headers=headers)
+            r = await c.put(upload_url, content=image_bytes, headers=headers)
             r.raise_for_status()
         public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{filename}"
         return public_url
@@ -53,32 +49,25 @@ async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "
  
  
 async def create_phone_mockup(screenshot_bytes: bytes) -> bytes | None:
-    """
-    Composite the screenshot into a phone frame.
-    Uses PIL to create a mockup — phone frame is drawn programmatically.
-    """
+    """Composite screenshot into a phone frame using PIL."""
     try:
-        from PIL import Image, ImageDraw, ImageFont
+        from PIL import Image, ImageDraw
         import io
  
-        # Load screenshot
         screen = Image.open(io.BytesIO(screenshot_bytes)).convert("RGBA")
         sw, sh = screen.size
  
-        # Phone frame dimensions
-        pad_top    = 80
+        pad_top = 80
         pad_bottom = 80
-        pad_side   = 30
-        corner_r   = 40
+        pad_side = 30
+        corner_r = 40
  
         frame_w = sw + pad_side * 2
         frame_h = sh + pad_top + pad_bottom
  
-        # Create phone body
         phone = Image.new("RGBA", (frame_w, frame_h), (0, 0, 0, 0))
-        draw  = ImageDraw.Draw(phone)
+        draw = ImageDraw.Draw(phone)
  
-        # Phone body — dark rounded rectangle
         draw.rounded_rectangle(
             [(0, 0), (frame_w - 1, frame_h - 1)],
             radius=corner_r,
@@ -86,35 +75,24 @@ async def create_phone_mockup(screenshot_bytes: bytes) -> bytes | None:
             outline=(60, 60, 65, 255),
             width=2,
         )
- 
-        # Screen area — slightly inset
         draw.rectangle(
             [(pad_side, pad_top), (pad_side + sw - 1, pad_top + sh - 1)],
             fill=(0, 0, 0, 255),
         )
- 
-        # Speaker grille at top
         grille_w = 60
         grille_x = (frame_w - grille_w) // 2
         draw.rounded_rectangle(
             [(grille_x, 28), (grille_x + grille_w, 36)],
-            radius=4,
-            fill=(60, 60, 65, 255),
+            radius=4, fill=(60, 60, 65, 255),
         )
- 
-        # Home indicator at bottom
         ind_w = 100
         ind_x = (frame_w - ind_w) // 2
         draw.rounded_rectangle(
             [(ind_x, frame_h - 28), (ind_x + ind_w, frame_h - 22)],
-            radius=3,
-            fill=(80, 80, 85, 255),
+            radius=3, fill=(80, 80, 85, 255),
         )
- 
-        # Paste screenshot into frame
         phone.paste(screen.convert("RGBA"), (pad_side, pad_top))
  
-        # Convert to JPEG
         out = Image.new("RGB", (frame_w, frame_h), (245, 245, 247))
         out.paste(phone, mask=phone.split()[3])
  
@@ -123,7 +101,6 @@ async def create_phone_mockup(screenshot_bytes: bytes) -> bytes | None:
         return buf.getvalue()
  
     except ImportError:
-        # PIL not available — return raw screenshot
         return screenshot_bytes
     except Exception as e:
         print(f"Mockup error: {e}")
@@ -131,14 +108,8 @@ async def create_phone_mockup(screenshot_bytes: bytes) -> bytes | None:
  
  
 async def run_ai_vision(contact: dict, log_cb=None) -> dict:
-    """
-    Run AI vision pipeline:
-    1. Playwright screenshot at 375px
-    2. GPT-4o Vision analysis
-    3. Phone mockup composite
-    4. Upload both to Supabase Storage
-    Returns dict with ai scores + URLs.
-    """
+    """Screenshot + GPT-4o Vision + mockup + upload to Storage."""
+ 
     async def log(msg):
         if log_cb:
             try: await log_cb(msg)
@@ -147,7 +118,6 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
     website = (contact.get("website") or "").strip()
     if not website:
         return {}
- 
     if not website.startswith("http"):
         website = "https://" + website
  
@@ -157,7 +127,7 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
         return {}
  
     # ── Screenshot ──
-    await log(f"  📸 Screenshotting at 375px...")
+    await log(f"  📸 Screenshotting at 375px mobile...")
     screenshot = None
     try:
         from playwright.async_api import async_playwright
@@ -182,7 +152,6 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                 except Exception:
                     await browser.close()
                     return {}
- 
             screenshot = await page.screenshot(full_page=False, type="jpeg", quality=75)
             await browser.close()
     except Exception as e:
@@ -192,7 +161,7 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
     if not screenshot:
         return {}
  
-    # ── GPT-4o Vision analysis ──
+    # ── GPT-4o Vision ──
     await log(f"  🤖 Analysing with GPT-4o Vision...")
     vision_result = {}
     try:
@@ -203,17 +172,16 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
         image_b64 = base64.b64encode(screenshot).decode("utf-8")
  
         prompt = """You are a web design expert analysing a mobile screenshot of a roofing company website.
-Be brutally honest. Return ONLY a JSON object:
- 
+Be brutally honest. Return ONLY valid JSON with these exact fields:
 {
-  "ai_mobile_score": <1-10, 10=perfect>,
-  "hero_broken": <true if hero image missing/broken>,
+  "ai_mobile_score": <1-10, 10=perfect mobile experience>,
+  "hero_broken": <true if hero image missing or broken>,
   "cta_above_fold": <true if clear CTA button visible without scrolling>,
   "phone_above_fold": <true if phone number visible without scrolling>,
   "design_quality": <1-10>,
   "images_rendering": <true if images display correctly>,
-  "biggest_problem": <one sentence, worst visible issue>,
-  "ai_visual_summary": <2-3 sentences: what customer sees + main opportunities>,
+  "biggest_problem": <one sentence worst visible issue>,
+  "ai_visual_summary": <2-3 sentences: what customer sees + main improvements needed>,
   "urgency": <"critical", "high", "medium", or "low">
 }"""
  
@@ -238,34 +206,35 @@ Be brutally honest. Return ONLY a JSON object:
  
         vision_result = json.loads(raw)
         await log(
-            f"  ✓ AI Vision — Mobile: {vision_result.get('ai_mobile_score')}/10 | "
+            f"  ✓ AI — Mobile: {vision_result.get('ai_mobile_score')}/10 | "
             f"Design: {vision_result.get('design_quality')}/10 | "
             f"Urgency: {vision_result.get('urgency')} | "
             f"{vision_result.get('biggest_problem','')}"
         )
- 
     except Exception as e:
-        await log(f"  ✗ GPT-4o Vision failed: {e}")
+        await log(f"  ✗ GPT-4o failed: {e}")
  
-    # ── Phone mockup ──
+    # ── Mockup ──
     await log(f"  📱 Creating phone mockup...")
     mockup = await create_phone_mockup(screenshot)
  
     # ── Upload to Supabase Storage ──
     contact_id = contact.get("id")
     screenshot_url = None
-    mockup_url     = None
+    mockup_url = None
  
     if contact_id:
         await log(f"  ☁ Uploading to Supabase Storage...")
         screenshot_url = await upload_screenshot(contact_id, screenshot, "mobile")
         if mockup:
             mockup_url = await upload_screenshot(contact_id, mockup, "mockup")
+        await log(f"  ✓ Screenshot: {screenshot_url}")
+        await log(f"  ✓ Mockup: {mockup_url}")
  
     return {
         **vision_result,
         "mobile_screenshot_url": screenshot_url,
-        "mobile_mockup_url":     mockup_url,
+        "mobile_mockup_url": mockup_url,
     }
  
  
@@ -309,26 +278,24 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
  
         intel = await detect_intelligence_signals(html, audit.get("website_score", 0))
         audit.update(intel)
- 
-        # Pass mobile issues from audit dims
         audit["mobile_issues"] = audit.get("dimensions", {}).get("mobile", {}).get("mobile_issues", [])
  
-        # 4. ICP score — uses combined_score from engine
+        # 4. ICP score
         icp = calculate_icp_score(audit, contact)
         combined = icp.get("combined_score", icp["icp_score"])
  
-        # 5. AI Vision (screenshot + GPT-4o + mockup)
+        # 5. AI Vision
         vision = await run_ai_vision(contact, log_cb=log)
  
-        # 6. Boost opportunity score based on AI findings
+        # 6. Boost from AI findings
         ai_boost = 0
         if vision.get("ai_mobile_score"):
             ai_ms = vision["ai_mobile_score"]
-            if ai_ms <= 3:   ai_boost += 10  # GPT-4o says mobile is broken
+            if ai_ms <= 3:   ai_boost += 10
             elif ai_ms <= 5: ai_boost += 6
             elif ai_ms <= 7: ai_boost += 3
-        if vision.get("hero_broken"):      ai_boost += 5
-        if not vision.get("cta_above_fold"): ai_boost += 4
+        if vision.get("hero_broken"):          ai_boost += 5
+        if not vision.get("cta_above_fold"):   ai_boost += 4
         if not vision.get("phone_above_fold"): ai_boost += 3
  
         combined = min(99, combined + ai_boost)
@@ -350,23 +317,22 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         )
  
         return {
-            "opportunity_score":      combined,
-            "icp_score":              icp["icp_score"],
-            "website_score":          audit.get("website_score", 0),
-            "icp_tier":               icp["icp_tier"],
-            "intel_pills":            icp.get("icp_pills", []),
-            "size_signals":           audit.get("size_signals", []),
-            "revenue_leak":           audit.get("revenue_leak", False),
-            "status":                 status,
-            # AI Vision fields
-            "mobile_screenshot_url":  vision.get("mobile_screenshot_url"),
-            "mobile_mockup_url":      vision.get("mobile_mockup_url"),
-            "ai_mobile_score":        vision.get("ai_mobile_score"),
-            "ai_visual_summary":      vision.get("ai_visual_summary"),
-            "hero_broken":            vision.get("hero_broken", False),
-            "cta_above_fold":         vision.get("cta_above_fold", False),
-            "phone_above_fold":       vision.get("phone_above_fold", False),
-            "ai_scored_at":           datetime.now(timezone.utc).isoformat(),
+            "opportunity_score":     combined,
+            "icp_score":             icp["icp_score"],
+            "website_score":         audit.get("website_score", 0),
+            "icp_tier":              icp["icp_tier"],
+            "intel_pills":           icp.get("icp_pills", []),
+            "size_signals":          audit.get("size_signals", []),
+            "revenue_leak":          audit.get("revenue_leak", False),
+            "status":                status,
+            "mobile_screenshot_url": vision.get("mobile_screenshot_url"),
+            "mobile_mockup_url":     vision.get("mobile_mockup_url"),
+            "ai_mobile_score":       vision.get("ai_mobile_score"),
+            "ai_visual_summary":     vision.get("ai_visual_summary"),
+            "hero_broken":           vision.get("hero_broken", False),
+            "cta_above_fold":        vision.get("cta_above_fold", False),
+            "phone_above_fold":      vision.get("phone_above_fold", False),
+            "ai_scored_at":          datetime.now(timezone.utc).isoformat(),
         }
  
     except Exception as e:
@@ -399,6 +365,7 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                 results["errors"] += 1
                 continue
  
+            # Write core scores
             update_contact_score(
                 contact_id=contact["id"],
                 opportunity_score=result.get("opportunity_score", 0),
@@ -411,38 +378,42 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                 status=result.get("status", "new"),
             )
  
-            # Write AI vision fields separately
-            ai_fields = {k: result[k] for k in [
-                "mobile_screenshot_url", "mobile_mockup_url",
-                "ai_mobile_score", "ai_visual_summary",
-                "hero_broken", "cta_above_fold", "phone_above_fold", "ai_scored_at"
-            ] if result.get(k) is not None}
+            # Write AI vision fields
+            ai_fields = {}
+            for k in ["mobile_screenshot_url", "mobile_mockup_url", "ai_mobile_score",
+                      "ai_visual_summary", "hero_broken", "cta_above_fold",
+                      "phone_above_fold", "ai_scored_at"]:
+                if result.get(k) is not None:
+                    ai_fields[k] = result[k]
  
             if ai_fields:
                 try:
+                    await log(f"  💾 Saving AI fields: {list(ai_fields.keys())}")
                     import httpx
-                    headers = {
+                    h = {
                         "apikey": SUPABASE_KEY,
                         "Authorization": f"Bearer {SUPABASE_KEY}",
                         "Content-Type": "application/json",
                         "Prefer": "return=minimal",
                     }
                     async with httpx.AsyncClient(timeout=10) as c:
-                        await c.patch(
+                        r = await c.patch(
                             f"{SUPABASE_URL}/rest/v1/contacts?id=eq.{contact['id']}",
                             json=ai_fields,
-                            headers=headers,
+                            headers=h,
                         )
+                        r.raise_for_status()
+                    await log(f"  ✓ AI fields saved")
                 except Exception as e:
                     await log(f"  ✗ AI fields save error: {e}")
  
             status = result.get("status", "new")
             results["scored"] += 1
-            if status == "scored":    results["hot"] += 1
-            elif status == "nurture": results["warm"] += 1
+            if status == "scored":     results["hot"] += 1
+            elif status == "nurture":  results["warm"] += 1
             elif status == "archived": results["archived"] += 1
  
-            await asyncio.sleep(1)  # Slightly longer — AI vision adds time
+            await asyncio.sleep(1)
  
         except Exception as e:
             await log(f"  ✗ Unexpected error: {e}")
