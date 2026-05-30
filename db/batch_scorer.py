@@ -1,5 +1,5 @@
 """
-Batch scorer v2 — full pipeline:
+Batch scorer v3 — full pipeline:
 1. Website audit (HTML, mobile, tech stack)
 2. Size + intelligence signals  
 3. ICP scoring
@@ -21,7 +21,7 @@ from db.supabase_client import get_contacts_for_batch_score, update_contact_scor
  
 SCORE_THRESHOLD_HOT  = int(os.environ.get("SCORE_THRESHOLD_HOT",  "50"))
 SCORE_THRESHOLD_WARM = int(os.environ.get("SCORE_THRESHOLD_WARM", "30"))
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_URL = "https://neonmrgszujadgfidlbj.supabase.co"
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 BUCKET = "roast-screenshots"
  
@@ -39,12 +39,15 @@ async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "
             "x-upsert": "true",
         }
         async with httpx.AsyncClient(timeout=30) as c:
-            r = await c.put(upload_url, content=image_bytes, headers=headers)
-            r.raise_for_status()
+            r = await c.post(upload_url, content=image_bytes, headers=headers)
+            if r.status_code not in (200, 201):
+                print(f"Upload failed {suffix}: {r.status_code} — {r.text[:200]}")
+                return None
         public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{filename}"
+        print(f"Upload success {suffix}: {public_url}")
         return public_url
     except Exception as e:
-        print(f"Upload error: {e}")
+        print(f"Upload error {suffix}: {e}")
         return None
  
  
@@ -127,7 +130,7 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
         return {}
  
     # ── Screenshot ──
-    await log(f"  📸 Screenshotting at 375px mobile...")
+    await log(f"  📸 Screenshotting {contact.get('company','?')} at 375px mobile...")
     screenshot = None
     try:
         from playwright.async_api import async_playwright
@@ -144,16 +147,18 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
             page = await ctx.new_page()
             try:
                 await page.goto(website, wait_until="domcontentloaded", timeout=15000)
-                await page.wait_for_timeout(2500)
+                await page.wait_for_timeout(3000)
             except Exception:
                 try:
                     await page.goto(website, wait_until="commit", timeout=10000)
-                    await page.wait_for_timeout(1500)
-                except Exception:
+                    await page.wait_for_timeout(2000)
+                except Exception as e:
+                    await log(f"  ✗ Page load failed: {e}")
                     await browser.close()
                     return {}
             screenshot = await page.screenshot(full_page=False, type="jpeg", quality=75)
             await browser.close()
+            await log(f"  ✓ Screenshot taken ({len(screenshot)} bytes)")
     except Exception as e:
         await log(f"  ✗ Screenshot failed: {e}")
         return {}
@@ -175,7 +180,7 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
 Be brutally honest. Return ONLY valid JSON with these exact fields:
 {
   "ai_mobile_score": <1-10, 10=perfect mobile experience>,
-  "hero_broken": <true if hero image missing or broken>,
+  "hero_broken": <true if hero image missing or broken or white screen>,
   "cta_above_fold": <true if clear CTA button visible without scrolling>,
   "phone_above_fold": <true if phone number visible without scrolling>,
   "design_quality": <1-10>,
@@ -206,7 +211,7 @@ Be brutally honest. Return ONLY valid JSON with these exact fields:
  
         vision_result = json.loads(raw)
         await log(
-            f"  ✓ AI — Mobile: {vision_result.get('ai_mobile_score')}/10 | "
+            f"  ✓ AI Vision — Mobile: {vision_result.get('ai_mobile_score')}/10 | "
             f"Design: {vision_result.get('design_quality')}/10 | "
             f"Urgency: {vision_result.get('urgency')} | "
             f"{vision_result.get('biggest_problem','')}"
@@ -217,6 +222,7 @@ Be brutally honest. Return ONLY valid JSON with these exact fields:
     # ── Mockup ──
     await log(f"  📱 Creating phone mockup...")
     mockup = await create_phone_mockup(screenshot)
+    await log(f"  ✓ Mockup created ({len(mockup) if mockup else 0} bytes)")
  
     # ── Upload to Supabase Storage ──
     contact_id = contact.get("id")
@@ -224,12 +230,12 @@ Be brutally honest. Return ONLY valid JSON with these exact fields:
     mockup_url = None
  
     if contact_id:
-        await log(f"  ☁ Uploading to Supabase Storage...")
+        await log(f"  ☁ Uploading screenshots to Supabase Storage...")
         screenshot_url = await upload_screenshot(contact_id, screenshot, "mobile")
         if mockup:
             mockup_url = await upload_screenshot(contact_id, mockup, "mockup")
-        await log(f"  ✓ Screenshot: {screenshot_url}")
-        await log(f"  ✓ Mockup: {mockup_url}")
+        await log(f"  Screenshot URL: {screenshot_url}")
+        await log(f"  Mockup URL: {mockup_url}")
  
     return {
         **vision_result,
@@ -388,7 +394,7 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
  
             if ai_fields:
                 try:
-                    await log(f"  💾 Saving AI fields: {list(ai_fields.keys())}")
+                    await log(f"  💾 Saving AI fields to Supabase: {list(ai_fields.keys())}")
                     import httpx
                     h = {
                         "apikey": SUPABASE_KEY,
@@ -402,8 +408,10 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                             json=ai_fields,
                             headers=h,
                         )
-                        r.raise_for_status()
-                    await log(f"  ✓ AI fields saved")
+                        if r.status_code not in (200, 201, 204):
+                            await log(f"  ✗ Supabase PATCH failed: {r.status_code} — {r.text[:200]}")
+                        else:
+                            await log(f"  ✓ AI fields saved successfully")
                 except Exception as e:
                     await log(f"  ✗ AI fields save error: {e}")
  
