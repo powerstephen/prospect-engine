@@ -3,24 +3,25 @@ Roaster Bot — Core Engine v4
 10 dimensions x 10 points = 100 total score.
 Low score = high opportunity.
 Mobile scoring overhauled — page builders, image overflow, real mobile signals.
+Combined score weighted toward website/mobile quality — ICP is a modifier not a gate.
 """
- 
+
 import asyncio
 import re
 import time
 import httpx
- 
+
 SERPAPI_URL = "https://serpapi.com/search"
- 
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.5",
 }
- 
+
 MOBILE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
- 
- 
+
+
 async def find_businesses(industry: str, location: str, limit: int, api_key: str) -> list[dict]:
     params = {
         "api_key": api_key,
@@ -35,7 +36,7 @@ async def find_businesses(industry: str, location: str, limit: int, api_key: str
         r = await c.get(SERPAPI_URL, params=params)
         r.raise_for_status()
         data = r.json()
- 
+
     out = []
     for p in data.get("local_results", [])[:limit]:
         out.append({
@@ -50,18 +51,18 @@ async def find_businesses(industry: str, location: str, limit: int, api_key: str
             "thumbnail": p.get("thumbnail", ""),
         })
     return out
- 
- 
+
+
 async def fetch_page(url: str, mobile: bool = False) -> tuple[str, str, float, bool]:
     if not url.startswith("http"):
         url = "https://" + url
     start = time.time()
     html, text, is_ssl = "", "", url.startswith("https://")
- 
+
     headers = {**HEADERS}
     if mobile:
         headers["User-Agent"] = MOBILE_UA
- 
+
     for attempt_url in [url, url.replace("https://", "http://") if url.startswith("https://") else None]:
         if not attempt_url:
             continue
@@ -78,95 +79,78 @@ async def fetch_page(url: str, mobile: bool = False) -> tuple[str, str, float, b
                 break
         except Exception:
             continue
- 
+
     return html, text, round(time.time() - start, 2), is_ssl
- 
- 
+
+
 def score_mobile(html: str, load_time: float) -> dict:
-    """
-    Deeply score mobile experience — goes beyond just viewport tag.
-    Detects broken page builders, image overflow, real mobile signals.
-    """
+    """Deep mobile scoring — detects broken page builders, image overflow, real mobile signals."""
     h = html.lower()
     issues = []
     positives = []
-    score = 10  # Start at max, deduct for problems
- 
-    # ── Broken page builder detection (major deductions) ──
-    # These are notorious for terrible mobile experiences
+    score = 10
+
+    # Broken page builder detection
     if "revslider" in h or "slider-revolution" in h or "rev_slider" in h:
         score -= 4
         issues.append("Slider Revolution 🚩 — notorious mobile killer")
- 
     if "wpbakery" in h or "vc_row" in h or "vc_column" in h:
         score -= 3
         issues.append("WPBakery page builder — poor mobile rendering")
- 
-    if "et_pb_" in h or "divi" in h and "divi-builder" in h:
+    if "et_pb_" in h or ("divi" in h and "divi-builder" in h):
         score -= 2
         issues.append("Divi builder — heavy mobile load")
- 
     if "elementor" in h:
-        # Elementor is better but still check
         if load_time > 3:
             score -= 2
             issues.append("Elementor + slow load — mobile users leaving")
         else:
             positives.append("Elementor (ok)")
- 
-    # ── Image overflow checks ──
-    # Images without max-width constraints break mobile layouts
+
+    # Image overflow checks
     img_tags = re.findall(r'<img[^>]+>', html, re.IGNORECASE)
     overflow_imgs = 0
     for img in img_tags:
         img_l = img.lower()
-        # Check for fixed pixel widths without responsive handling
         has_fixed_width = re.search(r'width=["\']?\d{3,}["\']?', img_l)
-        has_max_width   = 'max-width' in img_l or 'img-fluid' in img_l or 'w-100' in img_l
-        has_class_resp  = any(x in img_l for x in ['responsive', 'wp-post-image', 'attachment-', 'size-'])
+        has_max_width = 'max-width' in img_l or 'img-fluid' in img_l or 'w-100' in img_l
+        has_class_resp = any(x in img_l for x in ['responsive', 'wp-post-image', 'attachment-', 'size-'])
         if has_fixed_width and not has_max_width and not has_class_resp:
             overflow_imgs += 1
- 
     if overflow_imgs >= 3:
         score -= 3
         issues.append(f"{overflow_imgs} images likely overflowing on mobile 🚩")
     elif overflow_imgs >= 1:
         score -= 1
         issues.append(f"{overflow_imgs} image(s) may overflow on mobile")
- 
-    # ── Responsive framework checks ──
+
+    # Responsive framework checks
     has_viewport = 'name="viewport"' in h or "name='viewport'" in h
     has_bootstrap = "bootstrap" in h
-    has_tailwind  = "tailwind" in h
-    has_media     = "@media" in h
-    has_flex      = "display:flex" in h.replace(" ", "") or "display: flex" in h
- 
+    has_tailwind = "tailwind" in h
+    has_media = "@media" in h
+    has_flex = "display:flex" in h.replace(" ", "") or "display: flex" in h
+
     if not has_viewport:
         score -= 4
-        issues.append("No viewport meta tag — will not scale on mobile 🚩")
+        issues.append("No viewport meta tag 🚩")
     else:
-        # Check viewport content
         viewport_match = re.search(r'name=["\']viewport["\'][^>]*content=["\']([^"\']+)["\']', h)
-        if viewport_match:
-            vp = viewport_match.group(1)
-            if "user-scalable=no" in vp:
-                score -= 1
-                issues.append("Viewport blocks zoom — accessibility issue")
- 
+        if viewport_match and "user-scalable=no" in viewport_match.group(1):
+            score -= 1
+            issues.append("Viewport blocks zoom")
+
     if has_bootstrap or has_tailwind:
         score = min(score + 1, 10)
-        positives.append("Responsive framework detected")
+        positives.append("Responsive framework")
     elif has_media and has_flex:
         positives.append("Custom responsive CSS")
-    elif has_media:
-        pass  # Basic, not great
- 
-    # ── Load time on mobile (much slower than desktop) ──
-    # Mobile connections are slower — desktop load time * ~2.5 estimate
+
+    # Load time (mobile ~2.5x slower than desktop)
     mobile_est = load_time * 2.5
     if mobile_est > 8:
         score -= 3
-        issues.append(f"Est. mobile load ~{mobile_est:.0f}s — 80%+ bounce rate 🚩")
+        issues.append(f"Est. mobile load ~{mobile_est:.0f}s — 80%+ bounce 🚩")
     elif mobile_est > 5:
         score -= 2
         issues.append(f"Est. mobile load ~{mobile_est:.0f}s — slow")
@@ -174,36 +158,26 @@ def score_mobile(html: str, load_time: float) -> dict:
         score -= 1
         issues.append(f"Est. mobile load ~{mobile_est:.0f}s — borderline")
     else:
-        positives.append(f"Est. mobile load ~{mobile_est:.0f}s — acceptable")
- 
-    # ── Touch-friendly checks ──
-    has_touch_icons = "apple-touch-icon" in h
-    has_tel_links   = 'href="tel:' in h or "href='tel:" in h
-    if has_tel_links:
-        positives.append("Clickable phone numbers")
+        positives.append(f"Est. mobile load ~{mobile_est:.0f}s")
+
+    # Tap-to-call
+    has_tel_links = 'href="tel:' in h or "href='tel:" in h
     if not has_tel_links:
         score -= 1
         issues.append("No tap-to-call links")
- 
-    # ── Fixed positioning abuse ──
+    else:
+        positives.append("Clickable phone numbers")
+
+    # Fixed positioning abuse
     fixed_count = h.count("position:fixed") + h.count("position: fixed")
     if fixed_count >= 3:
         score -= 1
-        issues.append("Heavy use of fixed positioning — layout issues on mobile")
- 
+        issues.append("Heavy fixed positioning")
+
     score = max(0, min(10, score))
- 
-    if score >= 8:    flag = "Good"
-    elif score >= 5:  flag = "Needs Work"
-    else:             flag = "Critical"
- 
-    if issues:
-        status = f"Issues: {', '.join(issues[:2])}"
-    elif positives:
-        status = f"Mobile: {', '.join(positives[:2])}"
-    else:
-        status = "Basic mobile support"
- 
+    flag = "Good" if score >= 8 else ("Needs Work" if score >= 5 else "Critical")
+    status = f"Issues: {', '.join(issues[:2])}" if issues else f"Mobile: {', '.join(positives[:2])}"
+
     return {
         "score": score, "max": 10,
         "label": "Mobile", "icon": "📱",
@@ -212,33 +186,32 @@ def score_mobile(html: str, load_time: float) -> dict:
         "mobile_positives": positives,
         "overflow_images": overflow_imgs,
     }
- 
- 
+
+
 def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     h = html.lower()
     t = text
     dims = {}
- 
-    # ── 1. Speed ──
+
+    # 1. Speed
     if load_time < 2:     sv, st, sf = 10, f"Fast ({load_time}s)", "Good"
     elif load_time < 3:   sv, st, sf = 7,  f"Moderate ({load_time}s)", "Needs Work"
-    elif load_time < 4:   sv, st, sf = 4,  f"Slow ({load_time}s) — losing visitors", "Needs Work"
-    else:                 sv, st, sf = 0,  f"Very slow ({load_time}s) — 40%+ bounce rate", "Critical"
+    elif load_time < 4:   sv, st, sf = 4,  f"Slow ({load_time}s)", "Needs Work"
+    else:                 sv, st, sf = 0,  f"Very slow ({load_time}s) — 40%+ bounce", "Critical"
     dims["speed"] = {"score": sv, "max": 10, "label": "Speed", "icon": "⚡", "status": st, "flag": sf}
- 
-    # ── 2. Mobile (NEW deep scoring) ──
-    mobile_result = score_mobile(html, load_time)
-    dims["mobile"] = mobile_result
- 
-    # ── 3. SSL ──
+
+    # 2. Mobile (deep scoring)
+    dims["mobile"] = score_mobile(html, load_time)
+
+    # 3. SSL
     dims["ssl"] = {
         "score": 10 if is_ssl else 0, "max": 10,
         "label": "SSL", "icon": "🔒",
         "status": "Secure HTTPS" if is_ssl else "No SSL — browsers flag as unsafe",
         "flag": "Good" if is_ssl else "Critical"
     }
- 
-    # ── 4. CTA ──
+
+    # 4. CTA
     cta_strong = [
         "schedule now", "book now", "book appointment", "book online",
         "schedule appointment", "schedule online", "request appointment",
@@ -248,21 +221,21 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     ]
     cta_weak = ["schedule", "appointment", "book", "contact", "quote", "estimate", "call us", "get started", "request", "reserve"]
     strong_hits = sum(1 for c in cta_strong if c in t)
-    weak_hits   = sum(1 for c in cta_weak if c in t)
+    weak_hits = sum(1 for c in cta_weak if c in t)
     if strong_hits >= 3:   cv, ct, cf = 10, f"Multiple strong CTAs ({strong_hits})", "Good"
     elif strong_hits == 2: cv, ct, cf = 8,  "Good CTAs present", "Good"
-    elif strong_hits == 1: cv, ct, cf = 5,  "One strong CTA — needs more", "Needs Work"
+    elif strong_hits == 1: cv, ct, cf = 5,  "One strong CTA", "Needs Work"
     elif weak_hits >= 3:   cv, ct, cf = 3,  "Only weak CTAs", "Needs Work"
     elif weak_hits >= 1:   cv, ct, cf = 1,  "Very weak CTAs", "Critical"
     else:                  cv, ct, cf = 0,  "No calls to action", "Critical"
     dims["cta"] = {"score": cv, "max": 10, "label": "CTA", "icon": "🎯", "status": ct, "flag": cf}
- 
-    # ── 5. Trust ──
+
+    # 5. Trust
     trust = 0
     trust_found = []
-    if any(x in t for x in ["testimonial", "what our clients say", "customer review", "what people say", "reviews"]):
+    if any(x in t for x in ["testimonial", "what our clients say", "customer review", "reviews"]):
         trust += 3; trust_found.append("testimonials")
-    if any(x in t for x in ["meet the team", "meet our team", "our team", "meet the owner", "about us"]):
+    if any(x in t for x in ["meet the team", "meet our team", "our team", "meet the owner"]):
         trust += 2; trust_found.append("team profiles")
     if any(x in t for x in ["certified", "accredited", "licensed", "insured", "bonded", "bbb", "award"]):
         trust += 2; trust_found.append("credentials")
@@ -274,21 +247,21 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     tf = "Good" if trust >= 7 else ("Needs Work" if trust >= 4 else "Critical")
     tt = f"Trust: {', '.join(trust_found)}" if trust_found else "No trust signals"
     dims["trust"] = {"score": trust, "max": 10, "label": "Trust", "icon": "🛡️", "status": tt, "flag": tf}
- 
-    # ── 6. Booking ──
-    booking_strong   = ["book online", "book appointment", "schedule online", "online scheduling", "request appointment online", "online booking", "instant quote"]
+
+    # 6. Booking
+    booking_strong = ["book online", "book appointment", "schedule online", "online scheduling", "request appointment online", "online booking", "instant quote"]
     booking_platforms = ["calendly", "acuity", "zocdoc", "booksy", "vagaro", "mindbody"]
-    booking_basic    = ["contact form", "send us a message", "fill out", "<form"]
-    strong_b   = sum(1 for b in booking_strong if b in t)
+    booking_basic = ["contact form", "send us a message", "fill out", "<form"]
+    strong_b = sum(1 for b in booking_strong if b in t)
     platform_b = sum(1 for b in booking_platforms if b in h)
-    basic_b    = sum(1 for b in booking_basic if b in t or b in h)
+    basic_b = sum(1 for b in booking_basic if b in t or b in h)
     if strong_b >= 2 or platform_b >= 1:  bv, bst, bf = 10, "Strong online booking", "Good"
     elif strong_b == 1:                   bv, bst, bf = 7,  "Basic online booking", "Needs Work"
     elif basic_b >= 1:                    bv, bst, bf = 3,  "Contact form only", "Needs Work"
     else:                                 bv, bst, bf = 0,  "No booking — phone only", "Critical"
     dims["booking"] = {"score": bv, "max": 10, "label": "Booking", "icon": "📅", "status": bst, "flag": bf}
- 
-    # ── 7. Social Proof ──
+
+    # 7. Social Proof
     sp = 0
     sp_found = []
     if re.search(r'\d[\d,]*\s*(google\s*)?reviews?|google\s*rating|\d+\s*\+?\s*5[\-\s]?star', t):
@@ -303,8 +276,8 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     spf = "Good" if sp >= 7 else ("Needs Work" if sp >= 3 else "Critical")
     spt = f"Social: {', '.join(sp_found)}" if sp_found else "No social proof"
     dims["social"] = {"score": sp, "max": 10, "label": "Social Proof", "icon": "⭐", "status": spt, "flag": spf}
- 
-    # ── 8. SEO ──
+
+    # 8. SEO
     seo = 0
     seo_found = []
     if re.search(r'<title[^>]*>[^<]{10,}</title>', html, re.IGNORECASE):
@@ -319,8 +292,8 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     sf2 = "Good" if seo >= 7 else ("Needs Work" if seo >= 4 else "Critical")
     st2 = f"SEO: {', '.join(seo_found)}" if seo_found else "Missing SEO elements"
     dims["seo"] = {"score": seo, "max": 10, "label": "SEO", "icon": "🔍", "status": st2, "flag": sf2}
- 
-    # ── 9. Visual Layout ──
+
+    # 9. Visual Layout
     visual = 0
     visual_found = []
     visual_issues = []
@@ -331,7 +304,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     h2_count = len(re.findall(r'<h2[\s>]', html, re.IGNORECASE))
     if h2_count >= 3:     visual += 2; visual_found.append("good headings")
     elif h2_count >= 1:   visual += 1; visual_issues.append("minimal headings")
-    else:                 visual_issues.append("no content structure")
+    else:                 visual_issues.append("no structure")
     paragraphs = re.findall(r'<p[^>]*>(.*?)</p>', html, re.DOTALL | re.IGNORECASE)
     if paragraphs:
         avg_len = sum(len(re.sub(r'<[^>]+>', '', p)) for p in paragraphs) / len(paragraphs)
@@ -351,8 +324,8 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     vf = "Good" if visual >= 7 else ("Needs Work" if visual >= 4 else "Critical")
     vt = f"Issues: {', '.join(visual_issues)}" if visual_issues else f"Layout: {', '.join(visual_found)}"
     dims["visual"] = {"score": visual, "max": 10, "label": "Visual Layout", "icon": "🎨", "status": vt, "flag": vf}
- 
-    # ── 10. Tech & Conversion ──
+
+    # 10. Tech & Conversion
     tech = 0
     tech_found = []
     staleness = []
@@ -378,7 +351,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     if staleness:
         tt3 += " | " + " | ".join(staleness)
     dims["tech"] = {"score": tech, "max": 10, "label": "Tech & Conversion", "icon": "📊", "status": tt3, "flag": tf3}
- 
+
     total = sum(v["score"] for v in dims.values())
     if total <= 30:   grade, grade_color = "F — Urgent", "#dc2626"
     elif total <= 45: grade, grade_color = "D — Poor", "#ef4444"
@@ -386,7 +359,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     elif total <= 75: grade, grade_color = "B — Decent", "#f59e0b"
     elif total <= 88: grade, grade_color = "A — Good", "#84cc16"
     else:             grade, grade_color = "A+ — Strong", "#10b981"
- 
+
     return {
         "website_score": total,
         "opportunity_score": 100 - total,
@@ -401,8 +374,8 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
         "signal_count": 62,
         "mobile_issues": dims["mobile"].get("mobile_issues", []),
     }
- 
- 
+
+
 async def audit_url(url: str) -> dict:
     if not url:
         return {
@@ -431,19 +404,19 @@ async def audit_url(url: str) -> dict:
             "critical_count": 6, "needs_work_count": 0,
             "staleness_flags": [], "signal_count": 62,
         }
- 
- 
+
+
 async def detect_intelligence_signals(html: str, website_score: int) -> dict:
     if not html:
         return {"intel_pills": [], "intel_signals": {}, "revenue_leak": False, "revenue_leak_reason": ""}
- 
+
     h = html.lower()
     signals = {}
     pills = []
     revenue_leak = False
     revenue_leak_reasons = []
     running_ads = []
- 
+
     if any(x in h for x in ["googleadservices.com", "google_conversion", "gtag('event'", "aw-", "adwords"]):
         running_ads.append("Google Ads"); signals["google_ads"] = True
         pills.append({"label": "Google Ads", "color": "blue", "icon": "📢"})
@@ -456,12 +429,12 @@ async def detect_intelligence_signals(html: str, website_score: int) -> dict:
     if "tiktok" in h and ("ttq" in h or "analytics.tiktok" in h):
         running_ads.append("TikTok Ads"); signals["tiktok_ads"] = True
         pills.append({"label": "TikTok Ads", "color": "blue", "icon": "📢"})
- 
+
     if running_ads and website_score < 70:
         revenue_leak = True
         revenue_leak_reasons.append(f"Running {' + '.join(running_ads)} with weak website")
         pills.append({"label": "💸 Revenue Leak", "color": "red", "icon": "💸"})
- 
+
     if any(x in h for x in ["gtag('config', 'g-", "ga4", "googletagmanager.com/gtm"]):
         signals["ga4"] = True; pills.append({"label": "GA4", "color": "green", "icon": "📊"})
     elif any(x in h for x in ["google-analytics.com/analytics.js", "ua-"]):
@@ -486,7 +459,7 @@ async def detect_intelligence_signals(html: str, website_score: int) -> dict:
         signals["call_tracking"] = True; pills.append({"label": "Call Tracking", "color": "green", "icon": "📞"})
     if any(x in h for x in ["trustpilot.com/widget", "reviews.io", "birdeye"]):
         signals["review_widget"] = True; pills.append({"label": "Review Widget", "color": "green", "icon": "⭐"})
- 
+
     # CMS detection
     if "wp-content" in h or "wp-includes" in h:
         signals["cms_wordpress"] = True; pills.append({"label": "WordPress", "color": "blue", "icon": "🌐"})
@@ -500,13 +473,13 @@ async def detect_intelligence_signals(html: str, website_score: int) -> dict:
         signals["cms_squarespace"] = True; pills.append({"label": "Squarespace", "color": "amber", "icon": "⚠"})
     if "vc_row" in h or "wpbakery" in h:
         signals["cms_wpbakery"] = True; pills.append({"label": "WPBakery ⚠", "color": "red", "icon": "📵"})
- 
+
     has_any_tracking = signals.get("ga4") or signals.get("ga_ua") or signals.get("gtm") or running_ads
     if not has_any_tracking:
         signals["no_tracking"] = True
         pills.append({"label": "No Analytics", "color": "red", "icon": "🔴"})
         revenue_leak_reasons.append("No tracking — flying blind")
- 
+
     return {
         "intel_pills": pills,
         "intel_signals": signals,
@@ -514,23 +487,23 @@ async def detect_intelligence_signals(html: str, website_score: int) -> dict:
         "revenue_leak": revenue_leak,
         "revenue_leak_reason": " · ".join(revenue_leak_reasons),
     }
- 
- 
+
+
 async def detect_size_signals(website: str, company_name: str) -> dict:
     if not website:
         return {"size_tier": "unknown", "size_signals": [], "employee_estimate": ""}
- 
+
     signals = []
     tier = "unknown"
     employee_estimate = ""
- 
+
     try:
         import httpx, re as _re
         headers = {"User-Agent": MOBILE_UA}
         async with httpx.AsyncClient(timeout=8, follow_redirects=True, verify=False) as c:
             r = await c.get(website, headers=headers)
             text = r.text.lower()
- 
+
         emp_match = _re.search(r'(\d+)\+?\s*(?:employees|staff|team members|people)', text)
         if emp_match:
             count = int(emp_match.group(1))
@@ -539,18 +512,18 @@ async def detect_size_signals(website: str, company_name: str) -> dict:
             elif count >= 50:  tier = "mid";        signals.append(f"{count}+ employees")
             elif count >= 10:  tier = "smb";        signals.append(f"{count}+ employees")
             else:              tier = "micro";       signals.append(f"{count} employees")
- 
+
         if any(x in text for x in ["/careers", "/jobs", "/join-us", "we are hiring", "open positions"]):
             signals.append("Active hiring")
             if tier == "unknown": tier = "smb"
- 
+
         loc_count = len(_re.findall(r'(?:office|location|branch)\s+in\s+[a-z]', text))
         if loc_count >= 3:
             signals.append(f"{loc_count}+ locations")
             if tier in ("unknown", "smb"): tier = "mid"
         elif loc_count >= 1:
             signals.append("Multiple locations")
- 
+
         enterprise_tech = []
         if "salesforce" in text: enterprise_tech.append("Salesforce")
         if "hubspot" in text: enterprise_tech.append("HubSpot")
@@ -558,43 +531,40 @@ async def detect_size_signals(website: str, company_name: str) -> dict:
         if enterprise_tech:
             signals.append(f"Uses {', '.join(enterprise_tech[:2])}")
             if tier in ("unknown", "smb") and "salesforce" in text: tier = "mid"
- 
+
         if any(x in text for x in ["marketing manager", "marketing director", "head of marketing", "cmo"]):
             signals.append("Has marketing team")
             if tier == "unknown": tier = "smb"
- 
+
         if any(x in text for x in ["bbb accredited", "inc 500", "award winning"]):
             signals.append("Industry recognition")
- 
+
         if any(x in text for x in ["family owned", "family-owned", "owner operated", "owner-operated"]):
             signals.append("Owner operated")
             if tier == "unknown": tier = "micro"
- 
+
     except Exception:
         pass
- 
+
     if tier == "unknown":
         tier = "smb"
- 
+
     return {
         "size_tier": tier,
         "size_signals": signals,
         "employee_estimate": employee_estimate,
     }
- 
- 
+
+
 def calculate_icp_score(audit: dict, biz: dict) -> dict:
     """
     Score against ideal customer profile.
-    Key changes v4:
-    - Mobile issues massively boost opportunity
-    - Reviews weighted heavily (budget signal)
-    - Score ceiling raised — 90+ is achievable for right targets
-    - No reviews defaults to neutral not zero
+    Website + mobile are primary signals — ICP is a modifier not a gate.
+    Any business with a bad website and/or bad mobile is an opportunity.
     """
     score = 0
     breakdown = {}
- 
+
     rv = biz.get("reviews", 0)
     r  = biz.get("rating",  0)
     ws = audit.get("website_score", 0)
@@ -605,52 +575,45 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     intel_signals = audit.get("intel_signals", {}) or {}
     mobile_issues = audit.get("mobile_issues", []) or dims.get("mobile", {}).get("mobile_issues", []) or []
     mobile_score  = dims.get("mobile", {}).get("score", 5)
- 
-    # ── 1. Business quality / budget (30 pts) ──
-    if rv >= 200:    review_pts = 30
-    elif rv >= 100:  review_pts = 26
-    elif rv >= 50:   review_pts = 22
-    elif rv >= 20:   review_pts = 17
-    elif rv >= 10:   review_pts = 12
-    elif rv > 0:     review_pts = 7
-    else:            review_pts = 10  # Unknown — assume established (from gov list etc)
- 
-    if r >= 4.5:     review_pts = min(30, review_pts + 5)
-    elif r >= 4.0:   review_pts = min(30, review_pts + 3)
-    elif r < 3.5 and r > 0: review_pts = max(0, review_pts - 5)
- 
+
+    # 1. Business quality (25 pts)
+    if rv >= 200:    review_pts = 25
+    elif rv >= 100:  review_pts = 22
+    elif rv >= 50:   review_pts = 18
+    elif rv >= 20:   review_pts = 14
+    elif rv >= 10:   review_pts = 10
+    elif rv > 0:     review_pts = 6
+    else:            review_pts = 10  # Unknown — assume established
+
+    if r >= 4.5:     review_pts = min(25, review_pts + 4)
+    elif r >= 4.0:   review_pts = min(25, review_pts + 2)
+    elif r < 3.5 and r > 0: review_pts = max(0, review_pts - 4)
+
     score += review_pts
     breakdown["business_quality"] = review_pts
- 
-    # ── 2. Mobile opportunity (25 pts) — NEW major factor ──
-    # Bad mobile = massive opportunity. This is the biggest gap most businesses have.
-    if mobile_score <= 2:
-        mobile_pts = 25  # Broken mobile = urgent
-    elif mobile_score <= 4:
-        mobile_pts = 22  # Very poor mobile
-    elif mobile_score <= 6:
-        mobile_pts = 16  # Poor mobile
-    elif mobile_score <= 8:
-        mobile_pts = 8   # Mediocre mobile
-    else:
-        mobile_pts = 3   # Good mobile — less opportunity
- 
-    # Bonus if specific killer issues detected
+
+    # 2. Mobile opportunity (25 pts) — major factor
+    if mobile_score <= 2:    mobile_pts = 25
+    elif mobile_score <= 4:  mobile_pts = 22
+    elif mobile_score <= 6:  mobile_pts = 16
+    elif mobile_score <= 8:  mobile_pts = 8
+    else:                    mobile_pts = 3
+
     if any("slider revolution" in i.lower() for i in mobile_issues):
         mobile_pts = min(25, mobile_pts + 3)
     if any("overflow" in i.lower() for i in mobile_issues):
         mobile_pts = min(25, mobile_pts + 2)
- 
+
     score += mobile_pts
     breakdown["mobile_opportunity"] = mobile_pts
- 
-    # ── 3. Digital gap (20 pts) ──
+
+    # 3. Digital gap (20 pts)
     has_crm      = intel_signals.get("hubspot") or intel_signals.get("salesforce")
     has_ads      = bool(running_ads)
     has_tracking = intel_signals.get("ga4") or intel_signals.get("gtm")
     has_booking  = intel_signals.get("booking_tool")
     has_chat     = intel_signals.get("intercom") or intel_signals.get("drift")
- 
+
     gap_pts = 20
     if has_crm:              gap_pts -= 8
     if has_chat:             gap_pts -= 4
@@ -660,66 +623,71 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     gap_pts = max(0, gap_pts)
     score += gap_pts
     breakdown["digital_gap"] = gap_pts
- 
-    # ── 4. Size fit (15 pts) ──
+
+    # 4. Size fit (15 pts) — size no longer penalises heavily
     if size_tier == "smb":          size_pts = 15
     elif size_tier == "micro":      size_pts = 10
-    elif size_tier == "mid":        size_pts = 12
-    elif size_tier == "enterprise": size_pts = 2
+    elif size_tier == "mid":        size_pts = 13  # Mid-market still good
+    elif size_tier == "enterprise": size_pts = 8   # Even enterprise can be worth it
     else:
         if rv >= 50:   size_pts = 13
         elif rv >= 20: size_pts = 11
         elif rv >= 5:  size_pts = 9
-        else:          size_pts = 10  # Unknown — assume SMB
- 
+        else:          size_pts = 10
+
     has_marketing_team = any("marketing" in s.lower() for s in size_signals)
     if has_marketing_team:
-        size_pts = max(0, size_pts - 6)
+        size_pts = max(0, size_pts - 4)  # Reduced penalty — still worth trying
     score += size_pts
     breakdown["size_fit"] = size_pts
- 
-    # ── 5. Owner operated bonus (10 pts) ──
+
+    # 5. Owner operated bonus (10 pts)
     owner_signals = [s for s in size_signals if any(x in s.lower() for x in ["owner", "family", "operated"])]
     if owner_signals:
         owner_pts = 10
     elif size_tier in ("micro", "smb") and not has_marketing_team:
         owner_pts = 7
     else:
-        owner_pts = 3
+        owner_pts = 5  # Still gets some points
     score += owner_pts
     breakdown["owner_operated"] = owner_pts
- 
+
     score = min(100, score)
- 
-    # ── Revenue leak bonus ──
+
+    # Revenue leak bonus
     revenue_leak = audit.get("revenue_leak", False)
     if revenue_leak:
         score = min(100, score + 8)
         breakdown["revenue_leak_bonus"] = 8
- 
-    # ── ICP tier ──
+
+    # ICP tier
     if score >= 80:    icp_tier, icp_label = "A", "🎯 Perfect ICP"
     elif score >= 65:  icp_tier, icp_label = "B", "✅ Good ICP"
     elif score >= 45:  icp_tier, icp_label = "C", "⚡ Possible"
     else:              icp_tier, icp_label = "D", "✗ Poor fit"
- 
+
     # ── Combined opportunity score ──
-    # ICP score IS the opportunity. Website/mobile problems add urgency bonus on top.
-    # Any issue = more opportunity. Broken mobile = massive opportunity (60%+ leads lost).
+    # Website + mobile are primary. ICP is a modifier.
+    # Bad website = high opportunity regardless of ICP
     website_bonus = 0
-    if ws < 80:           website_bonus += 5   # Not a perfect website
-    if ws < 60:           website_bonus += 8   # Average website — clear gaps
-    if ws < 40:           website_bonus += 12  # Poor website — urgent
-    if mobile_score <= 4: website_bonus += 15  # Broken mobile — losing 60%+ of leads
-    elif mobile_score <= 6: website_bonus += 8 # Poor mobile
-    combined = round(min(99, score + website_bonus))
- 
-    # ── Pills ──
+    if ws < 80:             website_bonus += 10
+    if ws < 60:             website_bonus += 15
+    if ws < 40:             website_bonus += 20
+    if mobile_score <= 4:   website_bonus += 20  # Broken mobile = losing 60%+ leads
+    elif mobile_score <= 6: website_bonus += 12
+    elif mobile_score <= 8: website_bonus += 6
+
+    # Website weakness drives 50%, ICP score drives 50%
+    website_opportunity = min(50, website_bonus)
+    icp_contribution = round(score * 0.5)
+    combined = min(99, website_opportunity + icp_contribution)
+
+    # Pills
     pills = []
     if rv >= 100:           pills.append(f"⭐ {rv}+ reviews")
     elif rv >= 20:          pills.append(f"⭐ {rv} reviews")
-    if mobile_score <= 4:   pills.append(f"📵 Broken mobile (score {mobile_score}/10)")
-    elif mobile_score <= 6: pills.append(f"📱 Poor mobile (score {mobile_score}/10)")
+    if mobile_score <= 4:   pills.append(f"📵 Broken mobile ({mobile_score}/10)")
+    elif mobile_score <= 6: pills.append(f"📱 Poor mobile ({mobile_score}/10)")
     if running_ads:         pills.append(f"📢 Running {' + '.join(running_ads)}")
     if revenue_leak:        pills.append("💸 Revenue leak")
     if not has_crm and not has_tracking: pills.append("🔴 No marketing tools")
@@ -729,7 +697,8 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     if ws <= 45:            pills.append("⚠ Weak website")
     elif ws >= 75:          pills.append("✓ Decent website")
     if size_tier == "smb":  pills.append("SMB size ✓")
- 
+    elif size_tier == "mid": pills.append("Mid-market")
+
     return {
         "icp_score":      score,
         "icp_tier":       icp_tier,
@@ -738,35 +707,35 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
         "icp_pills":      pills,
         "combined_score": combined,
     }
- 
- 
+
+
 async def run_roaster(industry: str, location: str, limit: int, api_key: str, log_cb=None) -> list[dict]:
     async def log(msg):
         if log_cb:
             await log_cb(msg)
- 
+
     await log(f"Searching: {industry} in {location}")
- 
+
     try:
         businesses = await find_businesses(industry, location, limit, api_key)
     except Exception as e:
         await log(f"Search error: {e}")
         return []
- 
+
     if not businesses:
         await log("No businesses found")
         return []
- 
+
     await log(f"Found {len(businesses)} businesses — running audit...")
     results = []
- 
+
     for i, biz in enumerate(businesses, 1):
         await log(f"  [{i}/{len(businesses)}] {biz['name']}")
         audit = await audit_url(biz.get("website", ""))
- 
+
         size_signals = await detect_size_signals(biz.get("website", ""), biz.get("name", ""))
         audit.update(size_signals)
- 
+
         try:
             import httpx as _httpx
             _h = {"User-Agent": MOBILE_UA}
@@ -777,10 +746,8 @@ async def run_roaster(industry: str, location: str, limit: int, api_key: str, lo
             _html = ""
         intel = await detect_intelligence_signals(_html, audit.get("website_score", 0))
         audit.update(intel)
- 
-        # Also pass mobile issues from the audit
         audit["mobile_issues"] = audit.get("dimensions", {}).get("mobile", {}).get("mobile_issues", [])
- 
+
         bq = 0
         r, rv = biz.get("rating", 0), biz.get("reviews", 0)
         if rv >= 200: bq += 25
@@ -790,9 +757,9 @@ async def run_roaster(industry: str, location: str, limit: int, api_key: str, lo
         if r >= 4.7: bq += 20
         elif r >= 4.3: bq += 12
         elif r >= 4.0: bq += 6
- 
+
         icp = calculate_icp_score(audit, biz)
- 
+
         results.append({
             **biz, **audit,
             "biz_quality": bq,
@@ -800,8 +767,7 @@ async def run_roaster(industry: str, location: str, limit: int, api_key: str, lo
             **icp,
         })
         await asyncio.sleep(0.3)
- 
+
     results.sort(key=lambda x: x.get("combined_score", 0), reverse=True)
     await log(f"Done — {len(results)} businesses scored")
     return results
- 
