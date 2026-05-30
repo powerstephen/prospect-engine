@@ -703,7 +703,8 @@ async function bulkAction(action) {
   const ids = [...selected];
   const actionMap = {
     score:   { endpoint: '/api/bulk/score',  label: 'Scoring' },
-    enrich:  { endpoint: '/api/bulk/enrich', label: 'Enriching' },
+    enrich:  { endpoint: '/api/bulk/find-website', label: 'Finding websites & scoring' },
+vision:  { endpoint: '/api/bulk/ai-vision',    label: 'Running AI vision analysis' },
     report:  { endpoint: '/api/bulk/report', label: 'Sending reports' },
     nurture: { endpoint: null, status: 'nurture',   label: 'Moving to nurture' },
     archive: { endpoint: null, status: 'archived',  label: 'Archiving' },
