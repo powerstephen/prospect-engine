@@ -271,11 +271,11 @@ async def _write_ai_fields(contact_id: int, result: dict, log):
     import os
     supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
     ai_fields = {}
-  for k in ["mobile_screenshot_url", "mobile_mockup_url",
-          "desktop_screenshot_url", "desktop_mockup_url",
-          "ai_mobile_score", "ai_visual_summary",
-          "hero_broken", "cta_above_fold",
-          "phone_above_fold", "ai_scored_at"]:
+    for k in ["mobile_screenshot_url", "mobile_mockup_url",
+              "desktop_screenshot_url", "desktop_mockup_url",
+              "ai_mobile_score", "ai_visual_summary",
+              "hero_broken", "cta_above_fold",
+              "phone_above_fold", "ai_scored_at"]:
         if result.get(k) is not None:
             ai_fields[k] = result[k]
  
