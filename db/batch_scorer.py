@@ -338,7 +338,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
             "hero_broken":           vision.get("hero_broken", False),
             "cta_above_fold":        vision.get("cta_above_fold", False),
             "phone_above_fold":      vision.get("phone_above_fold", False),
-            "ai_scored_at":          datetime.now(timezone.utc).isoformat(),
+            "ai_scored_at": "now()",
         }
  
     except Exception as e:
