@@ -1,9 +1,9 @@
 """
-Batch scorer v3 — full pipeline:
+Batch scorer v4 — full pipeline:
 1. Website audit (HTML, mobile, tech stack)
 2. Size + intelligence signals  
 3. ICP scoring
-4. AI Vision — Playwright screenshot + GPT-4o analysis
+4. AI Vision — Playwright mobile + desktop screenshots + GPT-4o analysis
 5. Phone mockup composite + upload to Supabase Storage
 6. All results written back to Supabase in one shot
 """
@@ -52,7 +52,7 @@ async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "
  
  
 async def create_phone_mockup(screenshot_bytes: bytes) -> bytes | None:
-    """Composite screenshot into a phone frame using PIL."""
+    """Composite mobile screenshot into a phone frame using PIL."""
     try:
         from PIL import Image, ImageDraw
         import io
@@ -110,9 +110,78 @@ async def create_phone_mockup(screenshot_bytes: bytes) -> bytes | None:
         return screenshot_bytes
  
  
-async def run_ai_vision(contact: dict, log_cb=None) -> dict:
-    """Screenshot + GPT-4o Vision + mockup + upload to Storage."""
+async def create_desktop_mockup(screenshot_bytes: bytes) -> bytes | None:
+    """Composite desktop screenshot into a browser/monitor frame using PIL."""
+    try:
+        from PIL import Image, ImageDraw
+        import io
  
+        screen = Image.open(io.BytesIO(screenshot_bytes)).convert("RGBA")
+        sw, sh = screen.size
+ 
+        # Browser chrome dimensions
+        bar_h = 36
+        pad_side = 4
+        pad_bottom = 4
+ 
+        frame_w = sw + pad_side * 2
+        frame_h = sh + bar_h + pad_bottom
+ 
+        frame = Image.new("RGBA", (frame_w, frame_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(frame)
+ 
+        # Browser window
+        draw.rounded_rectangle(
+            [(0, 0), (frame_w - 1, frame_h - 1)],
+            radius=8,
+            fill=(40, 42, 48, 255),
+            outline=(60, 63, 72, 255),
+            width=1,
+        )
+ 
+        # Browser bar
+        draw.rounded_rectangle(
+            [(0, 0), (frame_w - 1, bar_h)],
+            radius=8,
+            fill=(50, 52, 58, 255),
+        )
+        draw.rectangle([(0, bar_h // 2), (frame_w, bar_h)], fill=(50, 52, 58, 255))
+ 
+        # Traffic lights
+        for i, color in enumerate([(255, 95, 87), (255, 189, 46), (39, 201, 63)]):
+            x = 12 + i * 20
+            draw.ellipse([(x, 12), (x + 12, 24)], fill=color)
+ 
+        # URL bar
+        url_x = frame_w // 2 - 120
+        draw.rounded_rectangle(
+            [(url_x, 8), (url_x + 240, 28)],
+            radius=4,
+            fill=(30, 32, 38, 255),
+        )
+ 
+        # Paste screenshot
+        frame.paste(screen.convert("RGBA"), (pad_side, bar_h))
+ 
+        out = Image.new("RGB", (frame_w, frame_h), (245, 245, 247))
+        out.paste(frame, mask=frame.split()[3])
+ 
+        buf = io.BytesIO()
+        out.save(buf, format="JPEG", quality=85)
+        return buf.getvalue()
+ 
+    except ImportError:
+        return screenshot_bytes
+    except Exception as e:
+        print(f"Desktop mockup error: {e}")
+        return screenshot_bytes
+ 
+ 
+async def run_ai_vision(contact: dict, log_cb=None) -> dict:
+    """
+    Mobile + desktop screenshots + GPT-4o Vision + mockups + upload to Storage.
+    Opens browser once, takes both screenshots efficiently.
+    """
     async def log(msg):
         if log_cb:
             try: await log_cb(msg)
@@ -129,9 +198,11 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
         await log("  ↳ No OpenAI key — skipping AI vision")
         return {}
  
-    # ── Screenshot ──
-    await log(f"  📸 Screenshotting {contact.get('company','?')} at 375px mobile...")
-    screenshot = None
+    # ── Screenshots (mobile + desktop in one browser session) ──
+    await log(f"  📸 Screenshotting {contact.get('company','?')} — mobile + desktop...")
+    mobile_screenshot = None
+    desktop_screenshot = None
+ 
     try:
         from playwright.async_api import async_playwright
         async with async_playwright() as p:
@@ -139,45 +210,69 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                 headless=True,
                 args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
             )
-            ctx = await browser.new_context(
+ 
+            # ── Mobile screenshot ──
+            mobile_ctx = await browser.new_context(
                 viewport={"width": 375, "height": 812},
                 user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
                 device_scale_factor=2,
             )
-            page = await ctx.new_page()
+            mobile_page = await mobile_ctx.new_page()
             try:
-                await page.goto(website, wait_until="domcontentloaded", timeout=15000)
-                await page.wait_for_timeout(3000)
+                await mobile_page.goto(website, wait_until="domcontentloaded", timeout=15000)
+                await mobile_page.wait_for_timeout(3000)
             except Exception:
                 try:
-                    await page.goto(website, wait_until="commit", timeout=10000)
-                    await page.wait_for_timeout(2000)
+                    await mobile_page.goto(website, wait_until="commit", timeout=10000)
+                    await mobile_page.wait_for_timeout(2000)
                 except Exception as e:
-                    await log(f"  ✗ Page load failed: {e}")
-                    await browser.close()
-                    return {}
-            screenshot = await page.screenshot(full_page=False, type="jpeg", quality=75)
+                    await log(f"  ✗ Mobile page load failed: {e}")
+            
+            if mobile_page:
+                mobile_screenshot = await mobile_page.screenshot(full_page=False, type="jpeg", quality=75)
+                await log(f"  ✓ Mobile screenshot ({len(mobile_screenshot)} bytes)")
+            await mobile_ctx.close()
+ 
+            # ── Desktop screenshot ──
+            desktop_ctx = await browser.new_context(
+                viewport={"width": 1440, "height": 900},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+            )
+            desktop_page = await desktop_ctx.new_page()
+            try:
+                await desktop_page.goto(website, wait_until="domcontentloaded", timeout=15000)
+                await desktop_page.wait_for_timeout(2500)
+            except Exception:
+                try:
+                    await desktop_page.goto(website, wait_until="commit", timeout=10000)
+                    await desktop_page.wait_for_timeout(1500)
+                except Exception as e:
+                    await log(f"  ✗ Desktop page load failed: {e}")
+ 
+            if desktop_page:
+                desktop_screenshot = await desktop_page.screenshot(full_page=False, type="jpeg", quality=75)
+                await log(f"  ✓ Desktop screenshot ({len(desktop_screenshot)} bytes)")
+            await desktop_ctx.close()
+ 
             await browser.close()
-            await log(f"  ✓ Screenshot taken ({len(screenshot)} bytes)")
+ 
     except Exception as e:
         await log(f"  ✗ Screenshot failed: {e}")
         return {}
  
-    if not screenshot:
-        return {}
- 
-    # ── GPT-4o Vision ──
-    await log(f"  🤖 Analysing with GPT-4o Vision...")
+    # ── GPT-4o Vision analysis (using mobile screenshot) ──
     vision_result = {}
-    try:
-        from openai import AsyncOpenAI
-        import json
+    if mobile_screenshot:
+        await log(f"  🤖 Analysing with GPT-4o Vision...")
+        try:
+            from openai import AsyncOpenAI
+            import json
  
-        client = AsyncOpenAI(api_key=openai_key)
-        image_b64 = base64.b64encode(screenshot).decode("utf-8")
+            client = AsyncOpenAI(api_key=openai_key)
+            image_b64 = base64.b64encode(mobile_screenshot).decode("utf-8")
  
-        prompt = """You are a web design expert analysing a mobile screenshot of a roofing company website.
-Be brutally honest. Return ONLY valid JSON with these exact fields:
+            prompt = """You are a web design expert analysing a mobile screenshot of a roofing company website.
+Be brutally honest. Return ONLY valid JSON:
 {
   "ai_mobile_score": <1-10, 10=perfect mobile experience>,
   "hero_broken": <true if hero image missing or broken or white screen>,
@@ -190,62 +285,71 @@ Be brutally honest. Return ONLY valid JSON with these exact fields:
   "urgency": <"critical", "high", "medium", or "low">
 }"""
  
-        response = await client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}", "detail": "high"}},
-                    {"type": "text", "text": f"Company: {contact.get('company','')}\nURL: {website}\n\n{prompt}"}
-                ]
-            }],
-            max_tokens=500,
-            temperature=0.1,
-        )
+            response = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}", "detail": "high"}},
+                        {"type": "text", "text": f"Company: {contact.get('company','')}\nURL: {website}\n\n{prompt}"}
+                    ]
+                }],
+                max_tokens=500,
+                temperature=0.1,
+            )
  
-        raw = response.choices[0].message.content.strip()
-        if "```json" in raw:
-            raw = raw.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw:
-            raw = raw.split("```")[1].split("```")[0].strip()
+            raw = response.choices[0].message.content.strip()
+            if "```json" in raw:
+                raw = raw.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw:
+                raw = raw.split("```")[1].split("```")[0].strip()
  
-        vision_result = json.loads(raw)
-        await log(
-            f"  ✓ AI Vision — Mobile: {vision_result.get('ai_mobile_score')}/10 | "
-            f"Design: {vision_result.get('design_quality')}/10 | "
-            f"Urgency: {vision_result.get('urgency')} | "
-            f"{vision_result.get('biggest_problem','')}"
-        )
-    except Exception as e:
-        await log(f"  ✗ GPT-4o failed: {e}")
+            vision_result = json.loads(raw)
+            await log(
+                f"  ✓ AI — Mobile: {vision_result.get('ai_mobile_score')}/10 | "
+                f"Design: {vision_result.get('design_quality')}/10 | "
+                f"Urgency: {vision_result.get('urgency')} | "
+                f"{vision_result.get('biggest_problem','')}"
+            )
+        except Exception as e:
+            await log(f"  ✗ GPT-4o failed: {e}")
  
-    # ── Mockup ──
-    await log(f"  📱 Creating phone mockup...")
-    mockup = await create_phone_mockup(screenshot)
-    await log(f"  ✓ Mockup created ({len(mockup) if mockup else 0} bytes)")
+    # ── Mockups ──
+    await log(f"  📱 Creating mockups...")
+    mobile_mockup = await create_phone_mockup(mobile_screenshot) if mobile_screenshot else None
+    desktop_mockup = await create_desktop_mockup(desktop_screenshot) if desktop_screenshot else None
  
-    # ── Upload to Supabase Storage ──
+    # ── Upload all to Supabase Storage ──
     contact_id = contact.get("id")
     screenshot_url = None
     mockup_url = None
+    desktop_screenshot_url = None
+    desktop_mockup_url = None
  
     if contact_id:
-        await log(f"  ☁ Uploading screenshots to Supabase Storage...")
-        screenshot_url = await upload_screenshot(contact_id, screenshot, "mobile")
-        if mockup:
-            mockup_url = await upload_screenshot(contact_id, mockup, "mockup")
-        await log(f"  Screenshot URL: {screenshot_url}")
-        await log(f"  Mockup URL: {mockup_url}")
+        await log(f"  ☁ Uploading to Supabase Storage...")
+        if mobile_screenshot:
+            screenshot_url = await upload_screenshot(contact_id, mobile_screenshot, "mobile")
+        if mobile_mockup:
+            mockup_url = await upload_screenshot(contact_id, mobile_mockup, "mockup")
+        if desktop_screenshot:
+            desktop_screenshot_url = await upload_screenshot(contact_id, desktop_screenshot, "desktop")
+        if desktop_mockup:
+            desktop_mockup_url = await upload_screenshot(contact_id, desktop_mockup, "desktop_mockup")
+        await log(f"  ✓ Mobile: {mockup_url}")
+        await log(f"  ✓ Desktop: {desktop_mockup_url}")
  
     return {
         **vision_result,
-        "mobile_screenshot_url": screenshot_url,
-        "mobile_mockup_url": mockup_url,
+        "mobile_screenshot_url":  screenshot_url,
+        "mobile_mockup_url":      mockup_url,
+        "desktop_screenshot_url": desktop_screenshot_url,
+        "desktop_mockup_url":     desktop_mockup_url,
     }
  
  
 async def score_contact(contact: dict, log_cb=None) -> dict:
-    """Full scoring pipeline — website audit + AI vision."""
+    """Full scoring pipeline — website audit + AI vision (mobile + desktop)."""
  
     async def log(msg):
         if log_cb:
@@ -290,7 +394,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         icp = calculate_icp_score(audit, contact)
         combined = icp.get("combined_score", icp["icp_score"])
  
-        # 5. AI Vision
+        # 5. AI Vision (mobile + desktop)
         vision = await run_ai_vision(contact, log_cb=log)
  
         # 6. Boost from AI findings
@@ -323,22 +427,24 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         )
  
         return {
-            "opportunity_score":     combined,
-            "icp_score":             icp["icp_score"],
-            "website_score":         audit.get("website_score", 0),
-            "icp_tier":              icp["icp_tier"],
-            "intel_pills":           icp.get("icp_pills", []),
-            "size_signals":          audit.get("size_signals", []),
-            "revenue_leak":          audit.get("revenue_leak", False),
-            "status":                status,
-            "mobile_screenshot_url": vision.get("mobile_screenshot_url"),
-            "mobile_mockup_url":     vision.get("mobile_mockup_url"),
-            "ai_mobile_score":       vision.get("ai_mobile_score"),
-            "ai_visual_summary":     vision.get("ai_visual_summary"),
-            "hero_broken":           vision.get("hero_broken", False),
-            "cta_above_fold":        vision.get("cta_above_fold", False),
-            "phone_above_fold":      vision.get("phone_above_fold", False),
-            "ai_scored_at": "now()",
+            "opportunity_score":      combined,
+            "icp_score":              icp["icp_score"],
+            "website_score":          audit.get("website_score", 0),
+            "icp_tier":               icp["icp_tier"],
+            "intel_pills":            icp.get("icp_pills", []),
+            "size_signals":           audit.get("size_signals", []),
+            "revenue_leak":           audit.get("revenue_leak", False),
+            "status":                 status,
+            "mobile_screenshot_url":  vision.get("mobile_screenshot_url"),
+            "mobile_mockup_url":      vision.get("mobile_mockup_url"),
+            "desktop_screenshot_url": vision.get("desktop_screenshot_url"),
+            "desktop_mockup_url":     vision.get("desktop_mockup_url"),
+            "ai_mobile_score":        vision.get("ai_mobile_score"),
+            "ai_visual_summary":      vision.get("ai_visual_summary"),
+            "hero_broken":            vision.get("hero_broken", False),
+            "cta_above_fold":         vision.get("cta_above_fold", False),
+            "phone_above_fold":       vision.get("phone_above_fold", False),
+            "ai_scored_at":           "now()",
         }
  
     except Exception as e:
@@ -371,7 +477,6 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                 results["errors"] += 1
                 continue
  
-            # Write core scores
             update_contact_score(
                 contact_id=contact["id"],
                 opportunity_score=result.get("opportunity_score", 0),
@@ -386,15 +491,15 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
  
             # Write AI vision fields
             ai_fields = {}
-            for k in ["mobile_screenshot_url", "mobile_mockup_url", "ai_mobile_score",
-                      "ai_visual_summary", "hero_broken", "cta_above_fold",
-                      "phone_above_fold", "ai_scored_at"]:
+            for k in ["mobile_screenshot_url", "mobile_mockup_url",
+                      "desktop_screenshot_url", "desktop_mockup_url",
+                      "ai_mobile_score", "ai_visual_summary",
+                      "hero_broken", "cta_above_fold", "phone_above_fold", "ai_scored_at"]:
                 if result.get(k) is not None:
                     ai_fields[k] = result[k]
  
             if ai_fields:
                 try:
-                    await log(f"  💾 Saving AI fields to Supabase: {list(ai_fields.keys())}")
                     import httpx
                     h = {
                         "apikey": SUPABASE_KEY,
@@ -409,11 +514,9 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                             headers=h,
                         )
                         if r.status_code not in (200, 201, 204):
-                            await log(f"  ✗ Supabase PATCH failed: {r.status_code} — {r.text[:200]}")
-                        else:
-                            await log(f"  ✓ AI fields saved successfully")
+                            print(f"AI PATCH failed: {r.status_code} — {r.text[:200]}")
                 except Exception as e:
-                    await log(f"  ✗ AI fields save error: {e}")
+                    print(f"AI fields save error: {e}")
  
             status = result.get("status", "new")
             results["scored"] += 1
