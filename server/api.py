@@ -185,7 +185,7 @@ async def report_by_name(slug: str):
     return _render_report(biz)
 
 
-@app.get("/report/idx/{idx}", response_class=HTMLResponse)
+@app.get("/report/{idx}", response_class=HTMLResponse)
 async def report(idx: int):
     if idx < len(_results):
         biz = _results[idx]
@@ -586,3 +586,78 @@ async def generate_report_url(contact_id: int):
             headers={**headers, "Prefer": "return=minimal"},
         )
     return {"slug": slug, "report_url": report_url}
+
+
+@app.get("/api/contacts/{contact_id}/generate-recommendations")
+async def generate_recommendations(contact_id: int):
+    """Generate and cache 3 GPT-4o recommendations for a contact."""
+    import os as _os, httpx as _httpx, json as _json
+    supabase_key = _os.environ.get("SUPABASE_SERVICE_KEY", "")
+    openai_key   = _os.environ.get("OPENAI_API_KEY", "")
+    supabase_url = "https://neonmrgszujadgfidlbj.supabase.co"
+    sb_headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}", "Content-Type": "application/json"}
+
+    # Fetch contact
+    async with _httpx.AsyncClient(timeout=10) as c:
+        r = await c.get(f"{supabase_url}/rest/v1/contacts?id=eq.{contact_id}&select=*", headers=sb_headers)
+        data = r.json()
+    if not data: raise HTTPException(404, "Contact not found")
+    contact = data[0]
+
+    # Return cached if exists
+    if contact.get("report_recommendations"):
+        return {"recommendations": contact["report_recommendations"]}
+
+    if not openai_key:
+        raise HTTPException(400, "No OpenAI key")
+
+    # Generate with GPT-4o
+    prompt = f"""You are a web performance expert writing a website audit report for a roofing contractor.
+
+Company: {contact.get('company')}
+Location: {contact.get('location', 'Florida')}
+Website Score: {contact.get('website_score', 50)}/100
+AI Mobile Score: {contact.get('ai_mobile_score', 5)}/10
+CTA Above Fold: {contact.get('cta_above_fold')}
+Phone Above Fold: {contact.get('phone_above_fold')}
+Hero Broken: {contact.get('hero_broken')}
+Revenue Leak: {contact.get('revenue_leak')}
+AI Visual Summary: {contact.get('ai_visual_summary', 'Not available')}
+
+Write exactly 3 specific, actionable recommendations. Each should be specific to their site — not generic advice.
+Write in plain English a roofing business owner understands.
+Focus on the direct impact on leads, calls, and revenue.
+
+Return ONLY valid JSON array:
+[
+  {{"title": "...", "description": "...", "impact": "..."}},
+  {{"title": "...", "description": "...", "impact": "..."}},
+  {{"title": "...", "description": "...", "impact": "..."}}
+]
+
+Keep descriptions under 2 sentences. Impact = one short phrase like "More calls from mobile"."""
+
+    try:
+        async with _httpx.AsyncClient(timeout=30) as c:
+            r = await c.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"},
+                json={"model": "gpt-4o", "max_tokens": 600, "temperature": 0.3,
+                      "messages": [{"role": "user", "content": prompt}]}
+            )
+            result = r.json()
+        raw = result["choices"][0]["message"]["content"].strip()
+        if "```json" in raw: raw = raw.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw: raw = raw.split("```")[1].split("```")[0].strip()
+        recs = _json.loads(raw)
+
+        # Cache in Supabase
+        async with _httpx.AsyncClient(timeout=10) as c:
+            await c.patch(
+                f"{supabase_url}/rest/v1/contacts?id=eq.{contact_id}",
+                json={"report_recommendations": recs},
+                headers={**sb_headers, "Prefer": "return=minimal"}
+            )
+        return {"recommendations": recs}
+    except Exception as e:
+        raise HTTPException(500, f"Generation failed: {e}")
