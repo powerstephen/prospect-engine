@@ -186,15 +186,20 @@ async def report_by_name(slug: str):
 
 
 @app.get("/report/{idx}", response_class=HTMLResponse)
-async def report(idx: int):
-    if idx < len(_results):
-        biz = _results[idx]
-    else:
-        session = get_latest_session()
-        if not session: raise HTTPException(404, "No results found.")
-        biz = get_result(session, idx)
-        if not biz: raise HTTPException(404, f"Result {idx} not found.")
-    return _render_report(biz)
+async def report(idx: str):
+    # Integer = old session-based roaster report
+    if idx.isdigit():
+        i = int(idx)
+        if i < len(_results):
+            biz = _results[i]
+        else:
+            session = get_latest_session()
+            if not session: raise HTTPException(404, "No results found.")
+            biz = get_result(session, i)
+            if not biz: raise HTTPException(404, f"Result {i} not found.")
+        return _render_report(biz)
+    # Slug = contact audit report
+    return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
 
 
 def _render_report(biz: dict) -> HTMLResponse:
