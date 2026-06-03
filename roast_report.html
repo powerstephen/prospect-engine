@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Website Audit — Eversite</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: #fff;
+  color: #1a1a1a;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* ── HEADER ── */
+.header {
+  background: #0f0f0f;
+  padding: 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-brand {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  color: #fff;
+  letter-spacing: -.02em;
+}
+.header-brand span { color: #4ade80; }
+.header-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+}
+
+/* ── HERO ── */
+.hero {
+  padding: 72px 40px 64px;
+  max-width: 780px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 1px; height: 48px;
+  background: linear-gradient(to bottom, transparent, #e5e7eb);
+}
+.hero-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  margin-bottom: 20px;
+}
+.hero-company {
+  font-family: 'DM Serif Display', serif;
+  font-size: 48px;
+  letter-spacing: -.03em;
+  color: #0f0f0f;
+  margin-bottom: 10px;
+  line-height: 1.1;
+}
+.hero-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 40px;
+}
+.grade-ring {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px 40px;
+  margin-bottom: 40px;
+}
+.grade-letter {
+  font-family: 'DM Serif Display', serif;
+  font-size: 64px;
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+.grade-F { color: #ef4444; }
+.grade-D { color: #f97316; }
+.grade-C { color: #eab308; }
+.grade-B { color: #84cc16; }
+.grade-A { color: #22c55e; }
+.grade-desc {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.stat-trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: #e5e7eb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.stat-cell {
+  background: #fff;
+  padding: 20px 16px;
+  text-align: center;
+}
+.stat-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 500;
+  color: #0f0f0f;
+  display: block;
+}
+.stat-lbl {
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: 4px;
+}
+
+/* ── DIVIDER ── */
+.section-divider {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+.section-divider::before, .section-divider::after {
+  content: ''; flex: 1; height: 1px; background: #e5e7eb;
+}
+.section-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  white-space: nowrap;
+}
+
+/* ── MOBILE SECTION ── */
+.mobile-section {
+  background: #0f0f0f;
+  padding: 64px 40px;
+}
+.mobile-inner { max-width: 780px; margin: 0 auto; }
+.mobile-headline {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px;
+  color: #fff;
+  letter-spacing: -.02em;
+  margin-bottom: 8px;
+}
+.mobile-sub {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 36px;
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+.search-stat {
+  background: rgba(239,68,68,.1);
+  border: 1px solid rgba(239,68,68,.25);
+  border-radius: 10px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 36px;
+}
+.search-stat-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 40px;
+  font-weight: 500;
+  color: #f87171;
+  white-space: nowrap;
+}
+.search-stat-text {
+  font-size: 14px;
+  color: #d1d5db;
+  line-height: 1.5;
+}
+.search-stat-text strong { color: #fff; }
+
+.mobile-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 40px;
+  align-items: start;
+}
+.phone-frame {
+  position: relative;
+}
+.phone-frame img {
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.6);
+}
+.phone-placeholder {
+  background: rgba(255,255,255,.06);
+  border: 1px dashed rgba(255,255,255,.15);
+  border-radius: 10px;
+  aspect-ratio: 9/18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 12px;
+  text-align: center;
+  padding: 20px;
+}
+
+.findings { display: flex; flex-direction: column; gap: 16px; }
+.finding {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  background: rgba(255,255,255,.04);
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+}
+.finding.bad  { border-left-color: #ef4444; }
+.finding.warn { border-left-color: #f59e0b; }
+.finding.good { border-left-color: #22c55e; }
+.finding-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.finding-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #f9fafb;
+  margin-bottom: 3px;
+}
+.finding-bad  .finding-title { color: #fca5a5; }
+.finding-warn .finding-title { color: #fcd34d; }
+.finding-good .finding-title { color: #86efac; }
+.finding-desc { font-size: 12px; color: #9ca3af; line-height: 1.5; }
+
+.ai-summary {
+  margin-top: 24px;
+  background: rgba(255,255,255,.05);
+  border-radius: 10px;
+  padding: 20px 24px;
+  border-left: 3px solid #4ade80;
+}
+.ai-summary p { font-size: 13px; color: #d1d5db; line-height: 1.7; font-style: italic; }
+
+/* ── RECOMMENDATIONS ── */
+.recs-section {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 64px 40px;
+}
+.recs-headline {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: #0f0f0f;
+  letter-spacing: -.02em;
+  margin-bottom: 6px;
+}
+.recs-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 36px;
+}
+.rec-cards { display: flex; flex-direction: column; gap: 16px; }
+.rec-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 20px;
+  align-items: start;
+  transition: border-color .2s, box-shadow .2s;
+}
+.rec-card:hover {
+  border-color: #0f0f0f;
+  box-shadow: 0 4px 20px rgba(0,0,0,.08);
+}
+.rec-num {
+  width: 48px; height: 48px;
+  background: #0f0f0f;
+  color: #fff;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+}
+.rec-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #0f0f0f;
+  margin-bottom: 6px;
+  letter-spacing: -.01em;
+}
+.rec-desc {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.rec-impact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* ── DESKTOP ── */
+.desktop-section {
+  background: #f9fafb;
+  padding: 64px 40px;
+}
+.desktop-inner { max-width: 780px; margin: 0 auto; }
+.desktop-headline {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: #0f0f0f;
+  letter-spacing: -.02em;
+  margin-bottom: 6px;
+}
+.desktop-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 32px;
+}
+.laptop-wrap {
+  position: relative;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.laptop-frame {
+  width: 100%;
+  position: relative;
+}
+.laptop-img {
+  width: 100%;
+  display: block;
+}
+.laptop-screen {
+  position: absolute;
+  top: 6.5%;
+  left: 12.2%;
+  width: 75.6%;
+  border-radius: 2px;
+  overflow: hidden;
+  background: #000;
+}
+.laptop-screen img {
+  width: 100%;
+  display: block;
+}
+.laptop-placeholder {
+  width: 100%;
+  aspect-ratio: 16/10;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+/* ── SCORE BREAKDOWN ── */
+.scores-section {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 40px 64px;
+}
+.scores-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.score-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px;
+}
+.score-card-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 10px;
+}
+.score-card-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.val-good { color: #16a34a; }
+.val-warn { color: #d97706; }
+.val-bad  { color: #dc2626; }
+.score-track {
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.score-fill { height: 100%; border-radius: 2px; }
+
+/* ── CTA ── */
+.cta-section {
+  background: #0f0f0f;
+  padding: 80px 40px;
+  text-align: center;
+}
+.cta-inner { max-width: 560px; margin: 0 auto; }
+.cta-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  margin-bottom: 20px;
+}
+.cta-headline {
+  font-family: 'DM Serif Display', serif;
+  font-size: 36px;
+  color: #fff;
+  letter-spacing: -.02em;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+.cta-body {
+  font-size: 15px;
+  color: #9ca3af;
+  margin-bottom: 36px;
+  line-height: 1.7;
+}
+.cta-btn {
+  display: inline-block;
+  background: #fff;
+  color: #0f0f0f;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 16px 36px;
+  border-radius: 8px;
+  text-decoration: none;
+  letter-spacing: -.01em;
+  transition: background .15s, transform .15s;
+}
+.cta-btn:hover { background: #f0fdf4; transform: translateY(-1px); }
+.cta-divider {
+  margin: 28px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cta-divider::before, .cta-divider::after {
+  content: ''; flex: 1; height: 1px; background: #1f2937;
+}
+.cta-divider span { font-size: 12px; color: #6b7280; }
+.cta-phone {
+  font-size: 14px;
+  color: #9ca3af;
+}
+.cta-phone a {
+  color: #4ade80;
+  text-decoration: none;
+  font-weight: 600;
+}
+.cta-phone a:hover { text-decoration: underline; }
+
+/* ── FOOTER ── */
+.footer {
+  background: #060606;
+  padding: 24px 40px;
+  text-align: center;
+}
+.footer p {
+  font-size: 12px;
+  color: #374151;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── STATES ── */
+.loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: #fff;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #0f0f0f;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading p { font-size: 13px; color: #9ca3af; font-family: 'JetBrains Mono', monospace; }
+
+.error {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 12px; padding: 40px;
+  text-align: center;
+}
+.error h2 { font-family: 'DM Serif Display', serif; font-size: 28px; }
+.error p { font-size: 14px; color: #6b7280; }
+
+/* ── LOADING RECS ── */
+.recs-loading {
+  display: flex; align-items: center; gap: 12px;
+  padding: 24px; color: #9ca3af;
+  font-size: 13px;
+}
+.recs-loading .spinner { width: 20px; height: 20px; border-width: 2px; }
+
+@media (max-width: 600px) {
+  .hero { padding: 48px 24px 40px; }
+  .hero-company { font-size: 32px; }
+  .mobile-section, .recs-section, .desktop-section, .scores-section, .cta-section { padding-left: 24px; padding-right: 24px; }
+  .mobile-layout { grid-template-columns: 1fr; }
+  .phone-frame { max-width: 220px; margin: 0 auto; }
+  .stat-trio { max-width: 100%; }
+  .scores-grid { grid-template-columns: 1fr; }
+  .header { padding: 14px 24px; }
+  .search-stat { flex-direction: column; gap: 10px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <p>Preparing your report...</p>
+</div>
+
+<div id="report" style="display:none">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-brand">ever<span>site</span></div>
+    <div class="header-label">Website Audit Report</div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eyebrow">Digital Health Check</div>
+    <div class="hero-company" id="r-company">—</div>
+    <div class="hero-url" id="r-url">—</div>
+    <div class="grade-ring">
+      <div class="grade-letter" id="r-grade">—</div>
+      <div class="grade-desc" id="r-grade-desc">—</div>
+    </div>
+    <div class="stat-trio">
+      <div class="stat-cell">
+        <span class="stat-num" id="r-opp">—</span>
+        <div class="stat-lbl">Opportunity</div>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-num" id="r-mobile">—</span>
+        <div class="stat-lbl">Mobile Score</div>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-num" id="r-web">—</span>
+        <div class="stat-lbl">Website Score</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Section -->
+  <div class="mobile-section">
+    <div class="mobile-inner">
+      <div class="mobile-headline">What customers see on their phone</div>
+      <div class="mobile-sub" id="r-mobile-context">Millions of people search for roofing contractors on mobile every month. This is what they see when they find you.</div>
+
+      <div class="search-stat">
+        <div class="search-stat-num" id="r-pct">70–80%</div>
+        <div class="search-stat-text" id="r-stat-text">of roofing searches in your area <strong>happen on mobile</strong>. Every visitor with a bad experience is a lost lead.</div>
+      </div>
+
+      <div class="mobile-layout">
+        <div class="phone-frame" id="r-phone-wrap">
+          <div class="phone-placeholder">Screenshot<br>not available</div>
+        </div>
+        <div class="findings" id="r-findings"></div>
+      </div>
+
+      <div class="ai-summary" id="r-ai-wrap" style="display:none">
+        <p id="r-ai-text"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="recs-section">
+    <div class="recs-headline">3 Things We'd Fix First</div>
+    <div class="recs-sub">Based on what we found on your site — not a generic checklist.</div>
+    <div class="rec-cards" id="r-recs">
+      <div class="recs-loading">
+        <div class="spinner"></div>
+        Generating personalised recommendations...
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop -->
+  <div class="desktop-section">
+    <div class="desktop-inner">
+      <div class="desktop-headline">Desktop view</div>
+      <div class="desktop-sub">How your site looks on a laptop or desktop computer.</div>
+      <div class="laptop-wrap">
+        <div class="laptop-frame">
+          <img class="laptop-img" src="/static/laptop-frame.png" alt="Laptop frame" id="laptop-outer" onerror="this.style.display='none'; document.getElementById('laptop-fallback').style.display='block'">
+          <div class="laptop-screen" id="laptop-screen">
+            <div class="laptop-placeholder" id="laptop-placeholder">Desktop screenshot not yet available</div>
+          </div>
+        </div>
+        <div id="laptop-fallback" style="display:none">
+          <img id="r-desktop-img-fallback" style="width:100%;border-radius:8px;border:1px solid #e5e7eb" alt="Desktop view">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Score Breakdown -->
+  <div class="scores-section">
+    <div class="section-divider" style="padding:0;margin-bottom:32px;max-width:100%">
+      <div class="section-tag">Score Breakdown</div>
+    </div>
+    <div class="scores-grid" id="r-scores"></div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <div class="cta-inner">
+      <div class="cta-eyebrow">Next Step</div>
+      <div class="cta-headline">Get your full<br><em>live audit</em></div>
+      <div class="cta-body">This snapshot covers the highlights. Our full audit runs 62 checks across speed, conversions, local SEO, trust signals and more — and shows you exactly what to fix to get more calls.</div>
+      <a href="#" class="cta-btn" id="r-cta">Get My Full Audit →</a>
+      <div class="cta-divider"><span>or</span></div>
+      <div class="cta-phone">
+        Call our Dallas office — <a href="tel:+19857181900">(985) 718-1900</a><br>
+        <span style="color:#4b5563;font-size:13px">Ask for Rob or Joe</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>Prepared by Eversite Digital · Dallas, TX · (985) 718-1900 · © 2026</p>
+  </div>
+
+</div>
+
+<div id="error" class="error" style="display:none">
+  <h2>Report not found</h2>
+  <p>This link may have expired or is incorrect.</p>
+</div>
+
+<script>
+const SB_URL = 'https://neonmrgszujadgfidlbj.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lb25tcmdzenVqYWRnZmlkbGJqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDAwMTEzNywiZXhwIjoyMDk1NTc3MTM3fQ.cXi5YNKg-CNbN95pvrBM7zNyhY_ZXDnBzgt8vhc3qY0';
+
+const CITY_STATS = {
+  jacksonville: { searches: '5,000–8,000', monthly: true },
+  miami:        { searches: '8,000–12,000', monthly: true },
+  tampa:        { searches: '4,000–6,000', monthly: true },
+  orlando:      { searches: '3,500–5,500', monthly: true },
+  tallahassee:  { searches: '1,000–2,000', monthly: true },
+};
+
+function slug() {
+  const p = window.location.pathname.split('/');
+  return p[p.length - 1] || p[p.length - 2];
+}
+
+function grade(ws) {
+  if (ws <= 30) return { l: 'F', d: 'Urgent attention needed', cls: 'grade-F' };
+  if (ws <= 45) return { l: 'D', d: 'Poor — losing leads daily', cls: 'grade-D' };
+  if (ws <= 60) return { l: 'C', d: 'Average — room to improve', cls: 'grade-C' };
+  if (ws <= 75) return { l: 'B', d: 'Decent — some gaps', cls: 'grade-B' };
+  return { l: 'A', d: 'Good — minor tweaks needed', cls: 'grade-A' };
+}
+
+function scoreColor(pct) {
+  return pct >= 70 ? 'val-good' : pct >= 40 ? 'val-warn' : 'val-bad';
+}
+function barColor(pct) {
+  return pct >= 70 ? '#16a34a' : pct >= 40 ? '#d97706' : '#dc2626';
+}
+
+function renderFindings(c) {
+  const f = [];
+  if (c.hero_broken) f.push({ type: 'bad', icon: '✗', title: 'Hero image not loading', desc: "The main image on your homepage fails to load on mobile. First impression is broken before visitors read a word." });
+  if (c.cta_above_fold === false) f.push({ type: 'bad', icon: '✗', title: 'No call-to-action above the fold', desc: "Visitors have to scroll before seeing how to contact you. Most won't — they'll hit back and call your competitor." });
+  if (c.phone_above_fold === false) f.push({ type: 'warn', icon: '⚠', title: 'Phone number not visible', desc: "Your phone isn't visible without scrolling on mobile. Roofing customers want to call — make it easy." });
+  if (c.ai_mobile_score && c.ai_mobile_score <= 4) f.push({ type: 'bad', icon: '✗', title: `Mobile score ${c.ai_mobile_score}/10 — critical issues`, desc: "Significant layout problems detected on mobile. Broken images, overflow issues or broken page builder elements found." });
+  else if (c.ai_mobile_score && c.ai_mobile_score <= 6) f.push({ type: 'warn', icon: '⚠', title: `Mobile score ${c.ai_mobile_score}/10 — needs work`, desc: "Mobile experience has issues that are likely costing you leads — layout problems or slow rendering detected." });
+  if (c.revenue_leak) f.push({ type: 'bad', icon: '💸', title: 'Revenue leak detected', desc: "You're running paid ads to a site that isn't converting on mobile. Every click you pay for is likely being lost." });
+  if (!f.length) f.push({ type: 'warn', icon: '⚠', title: 'Improvements identified', desc: c.ai_visual_summary || 'Our audit found several areas for improvement. See the recommendations below.' });
+  return f.map(item => `
+    <div class="finding ${item.type}">
+      <div class="finding-icon">${item.icon}</div>
+      <div>
+        <div class="finding-title">${item.title}</div>
+        <div class="finding-desc">${item.desc}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderScores(c) {
+  const items = [
+    { label: 'Opportunity Score', val: c.opportunity_score || 0, max: 99 },
+    { label: 'Mobile Score', val: (c.ai_mobile_score || 0) * 10, max: 100, display: `${c.ai_mobile_score || '—'}/10` },
+    { label: 'Website Score', val: c.website_score || 0, max: 100 },
+    { label: 'Revenue Leak', val: c.revenue_leak ? 100 : 0, max: 100, display: c.revenue_leak ? '⚠ Yes' : '✓ No' },
+  ];
+  return items.map(item => {
+    const pct = Math.round((item.val / item.max) * 100);
+    return `
+      <div class="score-card">
+        <div class="score-card-label">${item.label}</div>
+        <div class="score-card-val ${scoreColor(pct)}">${item.display || item.val}</div>
+        <div class="score-track"><div class="score-fill" style="width:${pct}%;background:${barColor(pct)}"></div></div>
+      </div>`;
+  }).join('');
+}
+
+async function generateRecs(c) {
+  // First check if stored recs exist
+  if (c.report_recommendations && Array.isArray(c.report_recommendations) && c.report_recommendations.length) {
+    return c.report_recommendations;
+  }
+  // Generate via server endpoint
+  try {
+    const res = await fetch(`/api/contacts/${c.id}/generate-recommendations`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.recommendations || fallbackRecs(c);
+    }
+  } catch(e) {}
+  return fallbackRecs(c);
+}
+
+function fallbackRecs(c) {
+  const recs = [];
+  if (c.hero_broken || (c.ai_mobile_score && c.ai_mobile_score <= 4)) {
+    recs.push({ title: "Fix the mobile experience", description: "Your site has critical issues on mobile devices — where most of your customers are searching. A mobile-first rebuild would immediately stop the lead loss.", impact: "Stop losing 60% of visitors" });
+  } else {
+    recs.push({ title: "Optimise for mobile users", description: "Your mobile experience needs improvement. Faster loading, clearer layout and better CTAs on mobile will capture significantly more leads from phone searches.", impact: "More calls from mobile" });
+  }
+  if (!c.cta_above_fold) {
+    recs.push({ title: "Move your call-to-action above the fold", description: "Your quote request or contact button isn't visible when someone first lands on your site on a phone. Moving it to the top can double your conversion rate.", impact: "2x more quote requests" });
+  } else {
+    recs.push({ title: "Add a tap-to-call button", description: "Roofing customers want to call — especially after a storm. A sticky tap-to-call button on mobile means one tap from search to your phone ringing.", impact: "More inbound calls" });
+  }
+  if (c.revenue_leak) {
+    recs.push({ title: "Fix the disconnect between ads and website", description: "You're paying for traffic that's landing on a site that isn't converting. Every dollar of ad spend is underperforming until the mobile experience is fixed.", impact: "Better ROI on ad spend" });
+  } else {
+    recs.push({ title: "Add local trust signals", description: "Roofing customers choose contractors they trust. Adding Google reviews, BBB accreditation badges and before/after project photos builds confidence and increases conversions.", impact: "Higher close rate" });
+  }
+  return recs;
+}
+
+function renderRecs(recs) {
+  return recs.map((r, i) => `
+    <div class="rec-card">
+      <div class="rec-num">${i + 1}</div>
+      <div>
+        <div class="rec-title">${r.title}</div>
+        <div class="rec-desc">${r.description}</div>
+        <span class="rec-impact">📈 ${r.impact}</span>
+      </div>
+    </div>`).join('');
+}
+
+async function init() {
+  const s = slug();
+  if (!s || s === 'report') { show('error'); return; }
+
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/contacts?report_slug=eq.${encodeURIComponent(s)}&select=*&limit=1`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    const data = await res.json();
+    if (!data || !data.length) { show('error'); return; }
+    const c = data[0];
+
+    // ── Hero ──
+    document.getElementById('r-company').textContent = c.company || 'Your Business';
+    document.getElementById('r-url').textContent = c.website || '';
+    const g = grade(c.website_score || 50);
+    const gl = document.getElementById('r-grade');
+    gl.textContent = g.l; gl.className = `grade-letter ${g.cls}`;
+    document.getElementById('r-grade-desc').textContent = g.d;
+    document.getElementById('r-opp').textContent = c.opportunity_score || '—';
+    document.getElementById('r-mobile').textContent = c.ai_mobile_score ? `${c.ai_mobile_score}/10` : '—';
+    document.getElementById('r-web').textContent = c.website_score || '—';
+
+    // ── Mobile context ──
+    const loc = (c.location || '').toLowerCase();
+    let cityMatch = null;
+    for (const [city, data] of Object.entries(CITY_STATS)) {
+      if (loc.includes(city)) { cityMatch = { city: city.charAt(0).toUpperCase() + city.slice(1), ...data }; break; }
+    }
+    if (cityMatch) {
+      document.getElementById('r-pct').textContent = '70–80%';
+      document.getElementById('r-stat-text').innerHTML = `of the <strong>${cityMatch.searches} monthly roofing searches</strong> in ${cityMatch.city} happen on mobile. Every visitor with a bad experience is a lost lead.`;
+      document.getElementById('r-mobile-context').textContent = `There are ${cityMatch.searches} people searching for roofing contractors in ${cityMatch.city} every month. Most are on their phone. This is what they see when they find ${c.company}.`;
+    }
+
+    // ── Mobile mockup ──
+    const phoneWrap = document.getElementById('r-phone-wrap');
+    if (c.mobile_mockup_url || c.mobile_screenshot_url) {
+      phoneWrap.innerHTML = `<img src="${c.mobile_mockup_url || c.mobile_screenshot_url}" alt="Mobile view" style="width:100%;border-radius:10px;box-shadow:0 32px 80px rgba(0,0,0,.6)">`;
+    }
+
+    // ── Findings ──
+    document.getElementById('r-findings').innerHTML = renderFindings(c);
+
+    // ── AI summary ──
+    if (c.ai_visual_summary) {
+      document.getElementById('r-ai-text').textContent = c.ai_visual_summary;
+      document.getElementById('r-ai-wrap').style.display = 'block';
+    }
+
+    // ── Desktop mockup ──
+    if (c.desktop_mockup_url || c.desktop_screenshot_url) {
+      const imgUrl = c.desktop_mockup_url || c.desktop_screenshot_url;
+      document.getElementById('laptop-placeholder').innerHTML = `<img src="${imgUrl}" style="width:100%;display:block" alt="Desktop view">`;
+      document.getElementById('r-desktop-img-fallback').src = imgUrl;
+    }
+
+    // ── Scores ──
+    document.getElementById('r-scores').innerHTML = renderScores(c);
+
+    // ── CTA ──
+    if (c.website) document.getElementById('r-cta').href = `https://${c.website}`;
+
+    // ── Show report ──
+    show('report');
+
+    // ── Recommendations async ──
+    const recs = await generateRecs(c);
+    document.getElementById('r-recs').innerHTML = renderRecs(recs);
+
+  } catch(e) {
+    console.error(e);
+    show('error');
+  }
+}
+
+function show(id) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('report').style.display = id === 'report' ? 'block' : 'none';
+  document.getElementById('error').style.display = id === 'error' ? 'flex' : 'none';
+}
+
+init();
+</script>
+</body>
+</html>
