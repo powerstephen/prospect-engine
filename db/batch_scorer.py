@@ -415,12 +415,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         combined = min(99, combined + ai_boost)
 
         # 7. Auto-route
-        if combined >= SCORE_THRESHOLD_HOT:
             status = "scored"
-        elif combined >= SCORE_THRESHOLD_WARM:
-            status = "nurture"
-        else:
-            status = "archived"
 
         await log(
             f"  ✓ {contact.get('company','?')} — "
