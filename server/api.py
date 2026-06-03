@@ -4,70 +4,70 @@ import io
 import json
 import uuid
 from pathlib import Path
-
+ 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
-
+ 
 from config import SERPAPI_KEY
 from scraper.engine import run_roaster, audit_url
 from server.db import init_db, save_results, get_result, get_latest_session, get_session_results, save_result_by_name, get_result_by_slug, make_slug, cleanup_old_results
-
+ 
 import json as _json2
-
+ 
 UI_DIR = Path(__file__).resolve().parent.parent / "ui"
 SUPABASE_URL = "https://neonmrgszujadgfidlbj.supabase.co"
 SUPABASE_KEY = ""  # loaded from env at runtime
-
+ 
 app = FastAPI(title="Roaster Bot")
-
+ 
 init_db()
-
+ 
 _running = False
 _task = None
 _results: list[dict] = []
 _buffer: list[dict] = []
 _subscribers: list[asyncio.Queue] = []
 _current_session: str = ""
-
-
+ 
+ 
 def get_supabase_key():
     import os
     return os.environ.get("SUPABASE_SERVICE_KEY", "")
-
-
+ 
+ 
 async def _broadcast(ev: dict):
     _buffer.append(ev)
     if len(_buffer) > 500: _buffer[:] = _buffer[-400:]
     for q in list(_subscribers):
         try: q.put_nowait(ev)
         except asyncio.QueueFull: pass
-
-
+ 
+ 
 class RoastParams(BaseModel):
     industry: str = Field(min_length=2, max_length=100)
     location: str = Field(min_length=2, max_length=100)
     limit: int = Field(default=20, ge=1, le=50)
-
+ 
 class SingleParams(BaseModel):
     url: str
     name: str = ""
-
+ 
 class BulkScoreParams(BaseModel):
     ids: list[int]
-
-
+ 
+ 
 @app.get("/", response_class=HTMLResponse)
 async def index():
     return HTMLResponse((UI_DIR / "index.html").read_text(encoding="utf-8"))
-
+ 
 @app.get("/leads", response_class=HTMLResponse)
 async def leads():
     return HTMLResponse((UI_DIR / "leads.html").read_text(encoding="utf-8"))
-
-
+ 
+ 
 @app.post("/api/roast")
 async def start_roast(params: RoastParams):
     global _running, _task, _results, _buffer, _current_session
@@ -79,7 +79,7 @@ async def start_roast(params: RoastParams):
     _results = []
     _buffer = []
     _current_session = str(uuid.uuid4())
-
+ 
     async def _job():
         global _running, _results
         async def log_cb(msg):
@@ -100,17 +100,17 @@ async def start_roast(params: RoastParams):
             r["slug"] = make_slug(r.get("name", "business"))
         await _broadcast({"type": "done", "status": status, "count": len(results), "results": results, "session_id": _current_session})
         _running = False
-
+ 
     _task = asyncio.create_task(_job())
     return {"ok": True, "session_id": _current_session}
-
-
+ 
+ 
 @app.post("/api/roast/single")
 async def single_roast(params: SingleParams):
     result = await audit_url(params.url)
     return {**result, "name": params.name, "url": params.url}
-
-
+ 
+ 
 @app.get("/api/stream")
 async def stream(request: Request):
     q: asyncio.Queue = asyncio.Queue(maxsize=500)
@@ -130,17 +130,17 @@ async def stream(request: Request):
         finally:
             if q in _subscribers: _subscribers.remove(q)
     return EventSourceResponse(gen())
-
-
+ 
+ 
 @app.get("/api/status")
 async def status():
     return {"running": _running, "count": len(_results)}
-
+ 
 @app.get("/api/results")
 async def get_results():
     return _results
-
-
+ 
+ 
 @app.get("/api/export.csv")
 async def export_csv():
     results = _results
@@ -157,15 +157,15 @@ async def export_csv():
         dims = r.get("dimensions", {})
         writer.writerow({"priority_score":r.get("priority_score",0),"name":r.get("name",""),"category":r.get("category",""),"address":r.get("address",""),"phone":r.get("phone",""),"website":r.get("website",""),"rating":r.get("rating",""),"reviews":r.get("reviews",""),"biz_quality":r.get("biz_quality",0),"opportunity_score":r.get("opportunity_score",0),"health_score":r.get("health_score",0),"grade":r.get("grade",""),"load_time":r.get("load_time",""),"is_ssl":r.get("is_ssl",""),"critical_count":r.get("critical_count",0),"needs_work_count":r.get("needs_work_count",0),"speed":dims.get("speed",{}).get("score",""),"mobile":dims.get("mobile",{}).get("score",""),"cta":dims.get("cta",{}).get("score",""),"trust":dims.get("trust",{}).get("score",""),"booking":dims.get("booking",{}).get("score",""),"social":dims.get("social",{}).get("score",""),"seo":dims.get("seo",{}).get("score",""),"ssl_score":dims.get("ssl",{}).get("score",""),"google_url":r.get("google_url","")})
     return StreamingResponse(io.BytesIO(buf.getvalue().encode()), media_type="text/csv", headers={"Content-Disposition":'attachment; filename="roaster_bot_results.csv"'})
-
-
+ 
+ 
 @app.get("/report/{session_id}/{idx}", response_class=HTMLResponse)
 async def report_by_session(session_id: str, idx: int):
     biz = get_result(session_id, idx)
     if not biz: raise HTTPException(404, "Result not found")
     return _render_report(biz)
-
-
+ 
+ 
 @app.post("/api/roast/single/save")
 async def save_single_roast(request: Request):
     data = await request.json()
@@ -176,15 +176,15 @@ async def save_single_roast(request: Request):
     biz = {"name":name,"website":url,"address":"","phone":"","website_score":data.get("website_score",data.get("health_score",0)),"grade":data.get("grade",""),"critical_count":data.get("critical_count",0),"needs_work_count":data.get("needs_work_count",0),"load_time":data.get("load_time",""),"is_ssl":data.get("is_ssl",False),"dimensions":data.get("dimensions",{})}
     save_result_by_name(biz)
     return {"slug": slug, "report_url": f"/r/{slug}"}
-
-
+ 
+ 
 @app.get("/r/{slug}", response_class=HTMLResponse)
 async def report_by_name(slug: str):
     biz = get_result_by_slug(slug)
     if not biz: raise HTTPException(404, f"Report for '{slug}' not found or expired.")
     return _render_report(biz)
-
-
+ 
+ 
 @app.get("/report/{idx}", response_class=HTMLResponse)
 async def report(idx: int):
     if idx < len(_results):
@@ -195,23 +195,23 @@ async def report(idx: int):
         biz = get_result(session, idx)
         if not biz: raise HTTPException(404, f"Result {idx} not found.")
     return _render_report(biz)
-
-
+ 
+ 
 def _render_report(biz: dict) -> HTMLResponse:
     report_html = (UI_DIR / "report.html").read_text(encoding="utf-8")
     data_js = f"window.REPORT_DATA = {_json2.dumps(biz)};"
     report_html = report_html.replace("const reportData=(typeof window.REPORT_DATA", f"{data_js}\nconst reportData=(typeof window.REPORT_DATA")
     return HTMLResponse(report_html)
-
-
+ 
+ 
 # ── Contacts & Pipeline ───────────────────────────────────────────────────────
-
+ 
 import csv as _csv
 import io as _io
-
+ 
 class ContactsUpload(BaseModel):
     contacts: list[dict]
-
+ 
 @app.post("/api/contacts/upload")
 async def upload_contacts(payload: ContactsUpload):
     try:
@@ -220,7 +220,7 @@ async def upload_contacts(payload: ContactsUpload):
         return {"inserted": count, "total": len(payload.contacts)}
     except Exception as e:
         raise HTTPException(500, f"Database error: {e}")
-
+ 
 @app.get("/api/contacts")
 async def list_contacts(status: str = None, industry: str = None, limit: int = 200, offset: int = 0):
     try:
@@ -228,7 +228,7 @@ async def list_contacts(status: str = None, industry: str = None, limit: int = 2
         return get_contacts(status=status, industry=industry, limit=limit, offset=offset)
     except Exception as e:
         raise HTTPException(500, f"Database error: {e}")
-
+ 
 @app.get("/api/contacts/stats")
 async def contact_stats():
     try:
@@ -236,7 +236,7 @@ async def contact_stats():
         return get_contact_stats()
     except Exception as e:
         raise HTTPException(500, f"Database error: {e}")
-
+ 
 @app.patch("/api/contacts/{contact_id}")
 async def update_contact(contact_id: int, payload: dict):
     try:
@@ -245,7 +245,7 @@ async def update_contact(contact_id: int, payload: dict):
         return {"ok": True}
     except Exception as e:
         raise HTTPException(500, str(e))
-
+ 
 @app.get("/api/contacts/export.csv")
 async def export_contacts(status: str = None, industry: str = None):
     from db.supabase_client import get_contacts
@@ -257,14 +257,14 @@ async def export_contacts(status: str = None, industry: str = None):
     for c in contacts:
         writer.writerow(c)
     return StreamingResponse(_io.BytesIO(buf.getvalue().encode("utf-8")), media_type="text/csv", headers={"Content-Disposition":f'attachment; filename="contacts_{status or "all"}.csv"'})
-
-
+ 
+ 
 # ── Batch & Bulk Scoring ──────────────────────────────────────────────────────
-
+ 
 _batch_running = False
 _batch_log = []
-
-
+ 
+ 
 async def _write_ai_fields(contact_id: int, result: dict, log):
     """Write AI vision fields back to Supabase contacts table."""
     import httpx
@@ -278,10 +278,10 @@ async def _write_ai_fields(contact_id: int, result: dict, log):
               "phone_above_fold", "ai_scored_at"]:
         if result.get(k) is not None:
             ai_fields[k] = result[k]
-
+ 
     if not ai_fields:
         return
-
+ 
     try:
         await log(f"  💾 Saving AI fields: {list(ai_fields.keys())}")
         h = {
@@ -302,8 +302,8 @@ async def _write_ai_fields(contact_id: int, result: dict, log):
                 await log(f"  ✓ AI fields saved")
     except Exception as e:
         await log(f"  ✗ AI fields error: {e}")
-
-
+ 
+ 
 @app.post("/api/batch/score")
 async def start_batch_score(background_tasks: BackgroundTasks, limit: int = 50):
     global _batch_running, _batch_log
@@ -312,7 +312,7 @@ async def start_batch_score(background_tasks: BackgroundTasks, limit: int = 50):
     _batch_log = []
     background_tasks.add_task(_run_batch_score, limit)
     return {"started": True, "limit": limit}
-
+ 
 async def _run_batch_score(limit: int):
     global _batch_running, _batch_log
     try:
@@ -321,8 +321,8 @@ async def _run_batch_score(limit: int):
         await run_batch_score(limit=limit, log_cb=log)
     finally:
         _batch_running = False
-
-
+ 
+ 
 @app.post("/api/bulk/score")
 async def bulk_score_selected(params: BulkScoreParams, background_tasks: BackgroundTasks):
     global _batch_running, _batch_log
@@ -332,7 +332,7 @@ async def bulk_score_selected(params: BulkScoreParams, background_tasks: Backgro
     _batch_log = []
     background_tasks.add_task(_run_bulk_score, params.ids)
     return {"started": True, "count": len(params.ids)}
-
+ 
 async def _run_bulk_score(ids: list[int]):
     global _batch_running, _batch_log
     async def log(msg): _batch_log.append(msg)
@@ -372,8 +372,8 @@ async def _run_bulk_score(ids: list[int]):
         await log(f"\n✓ Done — {scored} scored, {errors} errors")
     finally:
         _batch_running = False
-
-
+ 
+ 
 @app.post("/api/bulk/find-website")
 async def bulk_find_website(params: BulkScoreParams, background_tasks: BackgroundTasks):
     global _batch_running, _batch_log
@@ -384,7 +384,7 @@ async def bulk_find_website(params: BulkScoreParams, background_tasks: Backgroun
     _batch_log = []
     background_tasks.add_task(_run_find_and_score, params.ids)
     return {"started": True, "count": len(params.ids)}
-
+ 
 async def _run_find_and_score(ids: list[int]):
     global _batch_running, _batch_log
     async def log(msg): _batch_log.append(msg)
@@ -425,8 +425,8 @@ async def _run_find_and_score(ids: list[int]):
         await log(f"\n✓ All done — {scored} scored, {errors} errors")
     finally:
         _batch_running = False
-
-
+ 
+ 
 @app.post("/api/bulk/ai-vision")
 async def bulk_ai_vision(params: BulkScoreParams, background_tasks: BackgroundTasks):
     global _batch_running, _batch_log
@@ -436,7 +436,7 @@ async def bulk_ai_vision(params: BulkScoreParams, background_tasks: BackgroundTa
     _batch_log = []
     background_tasks.add_task(_run_ai_vision, params.ids)
     return {"started": True, "count": len(params.ids)}
-
+ 
 async def _run_ai_vision(ids: list[int]):
     global _batch_running, _batch_log
     async def log(msg): _batch_log.append(msg)
@@ -445,12 +445,12 @@ async def _run_ai_vision(ids: list[int]):
         await run_bulk_ai_vision(ids, log_cb=log)
     finally:
         _batch_running = False
-
-
+ 
+ 
 @app.get("/api/batch/status")
 async def batch_status():
     return {"running": _batch_running, "log": _batch_log[-20:]}
-
+ 
 @app.get("/api/batch/stream")
 async def batch_stream(request: Request):
     async def gen():
@@ -465,10 +465,10 @@ async def batch_stream(request: Request):
                 break
             await asyncio.sleep(0.5)
     return EventSourceResponse(gen())
-
-
-
-
+ 
+ 
+ 
+ 
 @app.post("/api/bulk/enrich")
 async def bulk_enrich(params: BulkScoreParams, background_tasks: BackgroundTasks):
     """Enrich selected contacts via QuickEnrich."""
@@ -479,7 +479,7 @@ async def bulk_enrich(params: BulkScoreParams, background_tasks: BackgroundTasks
     _batch_log = []
     background_tasks.add_task(_run_enrich, params.ids)
     return {"started": True, "count": len(params.ids)}
-
+ 
 async def _run_enrich(ids: list[int]):
     global _batch_running, _batch_log
     async def log(msg): _batch_log.append(msg)
@@ -488,7 +488,71 @@ async def _run_enrich(ids: list[int]):
         await run_bulk_enrich(ids, log_cb=log)
     finally:
         _batch_running = False
-
-
+ 
+ 
+ 
+# ── Harvest ───────────────────────────────────────────────────────────────────
+ 
+_harvest_running = False
+_harvest_log = []
+_harvest_result = {}
+ 
+ 
+class HarvestParams(BaseModel):
+    industry: str = Field(min_length=2, max_length=100)
+    location: str = Field(min_length=2, max_length=100)
+    limit: int = Field(default=20, ge=1, le=50)
+ 
+ 
+@app.get("/find", response_class=HTMLResponse)
+async def find_leads():
+    return HTMLResponse((UI_DIR / "find.html").read_text(encoding="utf-8"))
+ 
+ 
+@app.post("/api/harvest")
+async def start_harvest(params: HarvestParams, background_tasks: BackgroundTasks):
+    global _harvest_running, _harvest_log, _harvest_result
+    if _harvest_running:
+        raise HTTPException(409, "Harvest already running")
+    _harvest_running = True
+    _harvest_log = []
+    _harvest_result = {}
+    background_tasks.add_task(_run_harvest, params.industry, params.location, params.limit)
+    return {"started": True}
+ 
+ 
+async def _run_harvest(industry: str, location: str, limit: int):
+    global _harvest_running, _harvest_log, _harvest_result
+    try:
+        from db.harvester import harvest
+        async def log(msg):
+            _harvest_log.append(msg)
+        result = await harvest(industry, location, limit, log_cb=log)
+        _harvest_result = result
+    finally:
+        _harvest_running = False
+ 
+ 
+@app.get("/api/harvest/stream")
+async def harvest_stream(request: Request):
+    async def gen():
+        last = 0
+        while _harvest_running or last < len(_harvest_log):
+            if last < len(_harvest_log):
+                for msg in _harvest_log[last:]:
+                    yield {"event": "log", "data": json.dumps({"msg": msg})}
+                last = len(_harvest_log)
+            if not _harvest_running:
+                yield {"event": "done", "data": json.dumps({"result": _harvest_result})}
+                break
+            await asyncio.sleep(0.4)
+    return EventSourceResponse(gen())
+ 
+ 
+@app.get("/api/harvest/status")
+async def harvest_status():
+    return {"running": _harvest_running, "log": _harvest_log[-20:], "result": _harvest_result}
+ 
+ 
 if UI_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(UI_DIR)), name="static")
