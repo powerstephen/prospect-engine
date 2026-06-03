@@ -12,20 +12,20 @@ import base64
 import os
 import sys
 from datetime import datetime, timezone
- 
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
- 
+
 from db.supabase_client import get_contacts_for_batch_score, update_contact_score
- 
+
 SCORE_THRESHOLD_HOT  = int(os.environ.get("SCORE_THRESHOLD_HOT",  "50"))
 SCORE_THRESHOLD_WARM = int(os.environ.get("SCORE_THRESHOLD_WARM", "30"))
 SUPABASE_URL = "https://neonmrgszujadgfidlbj.supabase.co"
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 BUCKET = "roast-screenshots"
- 
- 
+
+
 async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "mobile") -> str | None:
     """Upload screenshot to Supabase Storage and return public URL."""
     try:
@@ -49,28 +49,28 @@ async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "
     except Exception as e:
         print(f"Upload error {suffix}: {e}")
         return None
- 
- 
+
+
 async def create_phone_mockup(screenshot_bytes: bytes) -> bytes | None:
     """Composite mobile screenshot into a phone frame using PIL."""
     try:
         from PIL import Image, ImageDraw
         import io
- 
+
         screen = Image.open(io.BytesIO(screenshot_bytes)).convert("RGBA")
         sw, sh = screen.size
- 
+
         pad_top = 80
         pad_bottom = 80
         pad_side = 30
         corner_r = 40
- 
+
         frame_w = sw + pad_side * 2
         frame_h = sh + pad_top + pad_bottom
- 
+
         phone = Image.new("RGBA", (frame_w, frame_h), (0, 0, 0, 0))
         draw = ImageDraw.Draw(phone)
- 
+
         draw.rounded_rectangle(
             [(0, 0), (frame_w - 1, frame_h - 1)],
             radius=corner_r,
@@ -95,41 +95,41 @@ async def create_phone_mockup(screenshot_bytes: bytes) -> bytes | None:
             radius=3, fill=(80, 80, 85, 255),
         )
         phone.paste(screen.convert("RGBA"), (pad_side, pad_top))
- 
+
         out = Image.new("RGB", (frame_w, frame_h), (245, 245, 247))
         out.paste(phone, mask=phone.split()[3])
- 
+
         buf = io.BytesIO()
         out.save(buf, format="JPEG", quality=85)
         return buf.getvalue()
- 
+
     except ImportError:
         return screenshot_bytes
     except Exception as e:
         print(f"Mockup error: {e}")
         return screenshot_bytes
- 
- 
+
+
 async def create_desktop_mockup(screenshot_bytes: bytes) -> bytes | None:
     """Composite desktop screenshot into a browser/monitor frame using PIL."""
     try:
         from PIL import Image, ImageDraw
         import io
- 
+
         screen = Image.open(io.BytesIO(screenshot_bytes)).convert("RGBA")
         sw, sh = screen.size
- 
+
         # Browser chrome dimensions
         bar_h = 36
         pad_side = 4
         pad_bottom = 4
- 
+
         frame_w = sw + pad_side * 2
         frame_h = sh + bar_h + pad_bottom
- 
+
         frame = Image.new("RGBA", (frame_w, frame_h), (0, 0, 0, 0))
         draw = ImageDraw.Draw(frame)
- 
+
         # Browser window
         draw.rounded_rectangle(
             [(0, 0), (frame_w - 1, frame_h - 1)],
@@ -138,7 +138,7 @@ async def create_desktop_mockup(screenshot_bytes: bytes) -> bytes | None:
             outline=(60, 63, 72, 255),
             width=1,
         )
- 
+
         # Browser bar
         draw.rounded_rectangle(
             [(0, 0), (frame_w - 1, bar_h)],
@@ -146,12 +146,12 @@ async def create_desktop_mockup(screenshot_bytes: bytes) -> bytes | None:
             fill=(50, 52, 58, 255),
         )
         draw.rectangle([(0, bar_h // 2), (frame_w, bar_h)], fill=(50, 52, 58, 255))
- 
+
         # Traffic lights
         for i, color in enumerate([(255, 95, 87), (255, 189, 46), (39, 201, 63)]):
             x = 12 + i * 20
             draw.ellipse([(x, 12), (x + 12, 24)], fill=color)
- 
+
         # URL bar
         url_x = frame_w // 2 - 120
         draw.rounded_rectangle(
@@ -159,24 +159,24 @@ async def create_desktop_mockup(screenshot_bytes: bytes) -> bytes | None:
             radius=4,
             fill=(30, 32, 38, 255),
         )
- 
+
         # Paste screenshot
         frame.paste(screen.convert("RGBA"), (pad_side, bar_h))
- 
+
         out = Image.new("RGB", (frame_w, frame_h), (245, 245, 247))
         out.paste(frame, mask=frame.split()[3])
- 
+
         buf = io.BytesIO()
         out.save(buf, format="JPEG", quality=85)
         return buf.getvalue()
- 
+
     except ImportError:
         return screenshot_bytes
     except Exception as e:
         print(f"Desktop mockup error: {e}")
         return screenshot_bytes
- 
- 
+
+
 async def run_ai_vision(contact: dict, log_cb=None) -> dict:
     """
     Mobile + desktop screenshots + GPT-4o Vision + mockups + upload to Storage.
@@ -186,23 +186,23 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
         if log_cb:
             try: await log_cb(msg)
             except Exception: pass
- 
+
     website = (contact.get("website") or "").strip()
     if not website:
         return {}
     if not website.startswith("http"):
         website = "https://" + website
- 
+
     openai_key = os.environ.get("OPENAI_API_KEY", "")
     if not openai_key:
         await log("  ↳ No OpenAI key — skipping AI vision")
         return {}
- 
+
     # ── Screenshots (mobile + desktop in one browser session) ──
     await log(f"  📸 Screenshotting {contact.get('company','?')} — mobile + desktop...")
     mobile_screenshot = None
     desktop_screenshot = None
- 
+
     try:
         from playwright.async_api import async_playwright
         async with async_playwright() as p:
@@ -210,7 +210,7 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                 headless=True,
                 args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
             )
- 
+
             # ── Mobile screenshot ──
             mobile_ctx = await browser.new_context(
                 viewport={"width": 375, "height": 812},
@@ -232,7 +232,7 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                 mobile_screenshot = await mobile_page.screenshot(full_page=False, type="jpeg", quality=75)
                 await log(f"  ✓ Mobile screenshot ({len(mobile_screenshot)} bytes)")
             await mobile_ctx.close()
- 
+
             # ── Desktop screenshot ──
             desktop_ctx = await browser.new_context(
                 viewport={"width": 1440, "height": 900},
@@ -248,18 +248,18 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                     await desktop_page.wait_for_timeout(1500)
                 except Exception as e:
                     await log(f"  ✗ Desktop page load failed: {e}")
- 
+
             if desktop_page:
                 desktop_screenshot = await desktop_page.screenshot(full_page=False, type="jpeg", quality=75)
                 await log(f"  ✓ Desktop screenshot ({len(desktop_screenshot)} bytes)")
             await desktop_ctx.close()
- 
+
             await browser.close()
- 
+
     except Exception as e:
         await log(f"  ✗ Screenshot failed: {e}")
         return {}
- 
+
     # ── GPT-4o Vision analysis (using mobile screenshot) ──
     vision_result = {}
     if mobile_screenshot:
@@ -267,24 +267,28 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
         try:
             from openai import AsyncOpenAI
             import json
- 
+
             client = AsyncOpenAI(api_key=openai_key)
             image_b64 = base64.b64encode(mobile_screenshot).decode("utf-8")
- 
-            prompt = """You are a web design expert analysing a mobile screenshot of a roofing company website.
-Be brutally honest. Return ONLY valid JSON:
+
+            prompt = """You are a web UX expert analysing a mobile screenshot of a roofing company website.
+Be brutally honest. Analyse what a real customer experiences. Return ONLY valid JSON:
 {
   "ai_mobile_score": <1-10, 10=perfect mobile experience>,
-  "hero_broken": <true if hero image missing or broken or white screen>,
-  "cta_above_fold": <true if clear CTA button visible without scrolling>,
-  "phone_above_fold": <true if phone number visible without scrolling>,
-  "design_quality": <1-10>,
-  "images_rendering": <true if images display correctly>,
-  "biggest_problem": <one sentence worst visible issue>,
-  "ai_visual_summary": <2-3 sentences: what customer sees + main improvements needed>,
+  "hero_broken": <true if hero image missing, broken, white screen, or loading spinner>,
+  "cta_above_fold": <true if a real actionable CTA button is visible without scrolling>,
+  "phone_above_fold": <true if phone number is visible without scrolling>,
+  "design_quality": <1-10, consider: modern=8-10, dated/basic=4-6, broken/ugly=1-3>,
+  "images_rendering": <true if images display correctly and fit the screen>,
+  "has_real_form": <true if there is an actual contact/quote form visible, false if CTA only opens phone dialler or email>,
+  "cta_quality": <"excellent", "good", "poor", or "broken" — broken means opens email/phone only>,
+  "trust_signals_visible": <true if reviews, star rating, badges, or credentials visible without scrolling>,
+  "looks_modern": <true if design looks professional and modern, false if it looks dated or amateur>,
+  "biggest_problem": <one sentence, the single worst UX issue a customer would experience>,
+  "ai_visual_summary": <2-3 sentences: what a real customer experiences + the 2 most important improvements>,
   "urgency": <"critical", "high", "medium", or "low">
 }"""
- 
+
             response = await client.chat.completions.create(
                 model="gpt-4o",
                 messages=[{
@@ -297,13 +301,13 @@ Be brutally honest. Return ONLY valid JSON:
                 max_tokens=500,
                 temperature=0.1,
             )
- 
+
             raw = response.choices[0].message.content.strip()
             if "```json" in raw:
                 raw = raw.split("```json")[1].split("```")[0].strip()
             elif "```" in raw:
                 raw = raw.split("```")[1].split("```")[0].strip()
- 
+
             vision_result = json.loads(raw)
             await log(
                 f"  ✓ AI — Mobile: {vision_result.get('ai_mobile_score')}/10 | "
@@ -313,19 +317,19 @@ Be brutally honest. Return ONLY valid JSON:
             )
         except Exception as e:
             await log(f"  ✗ GPT-4o failed: {e}")
- 
+
     # ── Mockups ──
     await log(f"  📱 Creating mockups...")
     mobile_mockup = await create_phone_mockup(mobile_screenshot) if mobile_screenshot else None
     desktop_mockup = await create_desktop_mockup(desktop_screenshot) if desktop_screenshot else None
- 
+
     # ── Upload all to Supabase Storage ──
     contact_id = contact.get("id")
     screenshot_url = None
     mockup_url = None
     desktop_screenshot_url = None
     desktop_mockup_url = None
- 
+
     if contact_id:
         await log(f"  ☁ Uploading to Supabase Storage...")
         if mobile_screenshot:
@@ -338,7 +342,7 @@ Be brutally honest. Return ONLY valid JSON:
             desktop_mockup_url = await upload_screenshot(contact_id, desktop_mockup, "desktop_mockup")
         await log(f"  ✓ Mobile: {mockup_url}")
         await log(f"  ✓ Desktop: {desktop_mockup_url}")
- 
+
     return {
         **vision_result,
         "mobile_screenshot_url":  screenshot_url,
@@ -346,37 +350,37 @@ Be brutally honest. Return ONLY valid JSON:
         "desktop_screenshot_url": desktop_screenshot_url,
         "desktop_mockup_url":     desktop_mockup_url,
     }
- 
- 
+
+
 async def score_contact(contact: dict, log_cb=None) -> dict:
     """Full scoring pipeline — website audit + AI vision (mobile + desktop)."""
- 
+
     async def log(msg):
         if log_cb:
             try: await log_cb(msg)
             except Exception: pass
- 
+
     website = (contact.get("website") or "").strip()
     if not website:
         await log(f"  ↳ {contact.get('company','?')} — no website, skipping")
         return {"error": "no website", "status": "new"}
- 
+
     if not website.startswith("http"):
         website = "https://" + website
- 
+
     await log(f"Scoring {contact.get('company','?')} ({website})...")
- 
+
     try:
         from scraper.engine import audit_url, detect_size_signals, detect_intelligence_signals, calculate_icp_score
         import httpx
- 
+
         # 1. Website audit
         audit = await audit_url(website)
- 
+
         # 2. Size signals
         size_signals = await detect_size_signals(website, contact.get("company", ""))
         audit.update(size_signals)
- 
+
         # 3. Intelligence signals
         try:
             headers = {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15"}
@@ -385,18 +389,18 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
                 html = r.text
         except Exception:
             html = ""
- 
+
         intel = await detect_intelligence_signals(html, audit.get("website_score", 0))
         audit.update(intel)
         audit["mobile_issues"] = audit.get("dimensions", {}).get("mobile", {}).get("mobile_issues", [])
- 
+
         # 4. ICP score
         icp = calculate_icp_score(audit, contact)
         combined = icp.get("combined_score", icp["icp_score"])
- 
+
         # 5. AI Vision (mobile + desktop)
         vision = await run_ai_vision(contact, log_cb=log)
- 
+
         # 6. Boost from AI findings
         ai_boost = 0
         if vision.get("ai_mobile_score"):
@@ -407,9 +411,9 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         if vision.get("hero_broken"):          ai_boost += 5
         if not vision.get("cta_above_fold"):   ai_boost += 4
         if not vision.get("phone_above_fold"): ai_boost += 3
- 
+
         combined = min(99, combined + ai_boost)
- 
+
         # 7. Auto-route
         if combined >= SCORE_THRESHOLD_HOT:
             status = "scored"
@@ -417,7 +421,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
             status = "nurture"
         else:
             status = "archived"
- 
+
         await log(
             f"  ✓ {contact.get('company','?')} — "
             f"Opp: {combined} | ICP: {icp['icp_score']} | "
@@ -425,7 +429,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
             f"AI Mobile: {vision.get('ai_mobile_score','—')}/10 | "
             f"Tier: {icp['icp_tier']} → {status.upper()}"
         )
- 
+
         return {
             "opportunity_score":      combined,
             "icp_score":              icp["icp_score"],
@@ -446,37 +450,37 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
             "phone_above_fold":       vision.get("phone_above_fold", False),
             "ai_scored_at":           "now()",
         }
- 
+
     except Exception as e:
         await log(f"  ✗ Error scoring {website}: {e}")
         return {"error": str(e), "status": "new"}
- 
- 
+
+
 async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
     """Score up to `limit` new contacts."""
- 
+
     async def log(msg):
         if log_cb:
             try: await log_cb(msg)
             except Exception: pass
- 
+
     contacts = get_contacts_for_batch_score(limit=limit)
- 
+
     if not contacts:
         await log("No new contacts to score.")
         return {"scored": 0, "hot": 0, "warm": 0, "archived": 0, "errors": 0}
- 
+
     await log(f"Starting batch score — {len(contacts)} contacts queued...")
     results = {"scored": 0, "hot": 0, "warm": 0, "archived": 0, "errors": 0}
- 
+
     for contact in contacts:
         try:
             result = await score_contact(contact, log_cb=log_cb)
- 
+
             if result.get("error") and result.get("status") == "new":
                 results["errors"] += 1
                 continue
- 
+
             update_contact_score(
                 contact_id=contact["id"],
                 opportunity_score=result.get("opportunity_score", 0),
@@ -488,7 +492,7 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                 revenue_leak=result.get("revenue_leak", False),
                 status=result.get("status", "new"),
             )
- 
+
             # Write AI vision fields
             ai_fields = {}
             for k in ["mobile_screenshot_url", "mobile_mockup_url",
@@ -497,7 +501,7 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                       "hero_broken", "cta_above_fold", "phone_above_fold", "ai_scored_at"]:
                 if result.get(k) is not None:
                     ai_fields[k] = result[k]
- 
+
             if ai_fields:
                 try:
                     import httpx
@@ -517,30 +521,29 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                             print(f"AI PATCH failed: {r.status_code} — {r.text[:200]}")
                 except Exception as e:
                     print(f"AI fields save error: {e}")
- 
+
             status = result.get("status", "new")
             results["scored"] += 1
             if status == "scored":     results["hot"] += 1
             elif status == "nurture":  results["warm"] += 1
             elif status == "archived": results["archived"] += 1
- 
+
             await asyncio.sleep(1)
- 
+
         except Exception as e:
             await log(f"  ✗ Unexpected error: {e}")
             results["errors"] += 1
- 
+
     await log(
         f"\nBatch complete — {results['scored']} scored | "
         f"{results['hot']} hot | {results['warm']} warm | "
         f"{results['archived']} archived | {results['errors']} errors"
     )
     return results
- 
- 
+
+
 if __name__ == "__main__":
     async def _main():
         async def log(msg): print(msg)
         await run_batch_score(limit=2, log_cb=log)
     asyncio.run(_main())
- 
