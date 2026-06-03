@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moneyball — Find Leads</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f; --surface: #111318; --surface2: #181b22;
+    --border: #1e2230; --border2: #2a2f42; --text: #e2e6f0;
+    --muted: #5a6070; --accent: #00d4aa; --accent2: #0099ff;
+    --danger: #ff4455; --warn: #ffaa00;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; }
+
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 20px; height: 52px; position: sticky; top: 0; z-index: 100;
+  }
+  nav a { display: flex; align-items: center; flex-shrink: 0; }
+  nav img { height: 26px; width: auto; }
+  .nav-center { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+  .nav-right button {
+    font-family: var(--mono); font-size: 11px; padding: 6px 16px;
+    border-radius: 4px; border: 1px solid var(--border2);
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+
+  .page { max-width: 780px; margin: 0 auto; padding: 40px 20px; }
+
+  h1 { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+
+  /* ── Search Form ── */
+  .search-card {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 24px; margin-bottom: 24px;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 12px; align-items: end; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .form-input {
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); font-family: var(--mono); font-size: 12px;
+    padding: 8px 12px; border-radius: 4px; outline: none; transition: border-color .15s;
+    width: 100%;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  select.form-input { cursor: pointer; }
+  select.form-input option { background: var(--surface2); }
+
+  .btn-harvest {
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    padding: 8px 20px; border-radius: 4px; border: none;
+    background: var(--accent); color: #000; cursor: pointer;
+    transition: all .15s; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-harvest:hover { background: #00f0c0; }
+  .btn-harvest:disabled { opacity: .5; cursor: not-allowed; }
+
+  .btn-secondary {
+    font-family: var(--mono); font-size: 11px;
+    padding: 8px 14px; border-radius: 4px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── Stats Strip ── */
+  .stats-strip {
+    display: none; grid-template-columns: repeat(4, 1fr);
+    gap: 1px; background: var(--border); border-radius: 6px;
+    overflow: hidden; margin-bottom: 20px;
+  }
+  .stats-strip.visible { display: grid; }
+  .stat {
+    background: var(--surface2); padding: 14px 16px; text-align: center;
+  }
+  .stat-val { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text); }
+  .stat-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
+  .stat-val.green { color: var(--accent); }
+  .stat-val.blue  { color: var(--accent2); }
+  .stat-val.warn  { color: var(--warn); }
+
+  /* ── Progress / Log ── */
+  .progress-card {
+    display: none; background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; overflow: hidden; margin-bottom: 24px;
+  }
+  .progress-card.visible { display: block; }
+  .progress-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .progress-title { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+  .progress-status { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .progress-bar-wrap { height: 3px; background: var(--border); }
+  .progress-bar { height: 100%; background: var(--accent); transition: width .3s; width: 0%; }
+  .log-wrap { height: 280px; overflow-y: auto; padding: 12px 16px; }
+  .log-wrap::-webkit-scrollbar { width: 4px; }
+  .log-wrap::-webkit-scrollbar-thumb { background: var(--border2); }
+  .log-line { font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
+  .log-line.success { color: var(--accent); }
+  .log-line.info    { color: var(--accent2); }
+  .log-line.warn    { color: var(--warn); }
+  .log-line.error   { color: var(--danger); }
+  .log-line.divider { color: var(--border2); }
+
+  /* ── History ── */
+  .history-title { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; }
+  .history-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px;
+  }
+  .history-query { font-family: var(--mono); font-size: 12px; color: var(--text); flex: 1; }
+  .history-meta  { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .history-badge {
+    font-family: var(--mono); font-size: 10px; padding: 2px 8px;
+    border-radius: 10px; background: rgba(0,212,170,.15); color: var(--accent);
+    border: 1px solid rgba(0,212,170,.3);
+  }
+
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(0,0,0,.3);
+    border-top-color: #000; border-radius: 50%;
+    animation: spin .6s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .goto-leads {
+    display: none; text-align: center; padding: 16px;
+    font-family: var(--mono); font-size: 12px;
+  }
+  .goto-leads.visible { display: block; }
+  .goto-leads a {
+    color: var(--accent); text-decoration: none;
+    border: 1px solid var(--accent); padding: 8px 20px; border-radius: 4px;
+    display: inline-block; transition: all .15s;
+  }
+  .goto-leads a:hover { background: var(--accent); color: #000; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/leads">
+    <img src="/static/moneyball-logo.png" alt="Moneyball">
+  </a>
+  <span class="nav-center">Find Leads</span>
+  <div class="nav-right">
+    <button>Log in</button>
+  </div>
+</nav>
+
+<div class="page">
+  <h1>🔍 Find Leads</h1>
+  <p class="subtitle">Search Google Maps for businesses, find their emails, score their websites — only fully enriched leads land in your pipeline.</p>
+
+  <!-- Search Form -->
+  <div class="search-card">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Industry</label>
+        <input class="form-input" id="industry" type="text" placeholder="roofing contractor" value="roofing contractor">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location</label>
+        <input class="form-input" id="location" type="text" placeholder="Miami, FL">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max Results</label>
+        <select class="form-input" id="limit">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">&nbsp;</label>
+        <button class="btn-harvest" id="harvest-btn" onclick="startHarvest()">
+          <span id="btn-spinner" class="spinner" style="display:none"></span>
+          <span id="btn-text">Run Search</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-strip" id="stats-strip">
+    <div class="stat"><div class="stat-val" id="stat-found">—</div><div class="stat-label">Found</div></div>
+    <div class="stat"><div class="stat-val green" id="stat-enriched">—</div><div class="stat-label">Emails Found</div></div>
+    <div class="stat"><div class="stat-val blue" id="stat-saved">—</div><div class="stat-label">Added to Leads</div></div>
+    <div class="stat"><div class="stat-val warn" id="stat-skipped">—</div><div class="stat-label">Skipped</div></div>
+  </div>
+
+  <!-- Progress Log -->
+  <div class="progress-card" id="progress-card">
+    <div class="progress-header">
+      <span class="progress-title" id="progress-title">Running harvest...</span>
+      <span class="progress-status" id="progress-status">Starting...</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="log-wrap" id="log-wrap"></div>
+  </div>
+
+  <!-- Go to Leads -->
+  <div class="goto-leads" id="goto-leads">
+    <a href="/leads">→ View new leads in Prospect Engine</a>
+  </div>
+
+  <!-- History -->
+  <div id="history-wrap" style="margin-top:32px;">
+    <div class="history-title">Recent Searches</div>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<script>
+let running = false;
+let history = JSON.parse(localStorage.getItem('harvest_history') || '[]');
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!history.length) {
+    list.innerHTML = '<p style="font-family:var(--mono);font-size:11px;color:var(--muted)">No searches yet</p>';
+    return;
+  }
+  list.innerHTML = history.slice(0, 10).map(h => `
+    <div class="history-item">
+      <div class="history-query">${h.industry} · ${h.location}</div>
+      <div class="history-meta">${h.date}</div>
+      <div class="history-badge">+${h.saved} leads</div>
+    </div>
+  `).join('');
+}
+
+function addLog(msg, type = '') {
+  const wrap = document.getElementById('log-wrap');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  
+  // Auto-detect type from message
+  if (!type) {
+    if (msg.includes('✓') || msg.includes('Saved') || msg.includes('complete')) type = 'success';
+    else if (msg.includes('🔍') || msg.includes('[')) type = 'info';
+    else if (msg.includes('✗') || msg.includes('failed') || msg.includes('error')) type = 'error';
+    else if (msg.includes('↳') || msg.includes('skipping')) type = 'warn';
+    else if (msg.includes('===') || msg.includes('---')) type = 'divider';
+    line.className = 'log-line ' + type;
+  }
+  
+  line.textContent = msg;
+  wrap.appendChild(line);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function startHarvest() {
+  if (running) return;
+
+  const industry = document.getElementById('industry').value.trim();
+  const location = document.getElementById('location').value.trim();
+  const limit    = parseInt(document.getElementById('limit').value);
+
+  if (!industry || !location) {
+    alert('Please enter both industry and location');
+    return;
+  }
+
+  running = true;
+  document.getElementById('harvest-btn').disabled = true;
+  document.getElementById('btn-spinner').style.display = 'inline-block';
+  document.getElementById('btn-text').textContent = 'Running...';
+  document.getElementById('progress-card').classList.add('visible');
+  document.getElementById('stats-strip').classList.add('visible');
+  document.getElementById('goto-leads').classList.remove('visible');
+  document.getElementById('log-wrap').innerHTML = '';
+  document.getElementById('progress-title').textContent = `Harvesting: ${industry} in ${location}`;
+  document.getElementById('progress-status').textContent = 'Starting...';
+  document.getElementById('progress-bar').style.width = '5%';
+
+  // Reset stats
+  ['found','enriched','saved','skipped'].forEach(k => {
+    document.getElementById('stat-' + k).textContent = '—';
+  });
+
+  try {
+    // Start harvest
+    const res = await fetch('/api/harvest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ industry, location, limit }),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+    // Stream logs
+    const evtSource = new EventSource('/api/harvest/stream');
+    let progress = 5;
+
+    evtSource.addEventListener('log', e => {
+      const data = JSON.parse(e.data);
+      const msg = data.msg || '';
+      addLog(msg);
+
+      // Update progress bar heuristically
+      if (msg.includes('[')) {
+        const match = msg.match(/\[(\d+)\/(\d+)\]/);
+        if (match) {
+          progress = Math.round((parseInt(match[1]) / parseInt(match[2])) * 90) + 5;
+          document.getElementById('progress-bar').style.width = progress + '%';
+          document.getElementById('progress-status').textContent = `${match[1]} of ${match[2]} processed`;
+        }
+      }
+    });
+
+    evtSource.addEventListener('done', e => {
+      evtSource.close();
+      const data = JSON.parse(e.data);
+
+      document.getElementById('progress-bar').style.width = '100%';
+      document.getElementById('progress-status').textContent = 'Complete!';
+
+      if (data.result) {
+        const r = data.result;
+        document.getElementById('stat-found').textContent    = r.found    || 0;
+        document.getElementById('stat-enriched').textContent = r.enriched || 0;
+        document.getElementById('stat-saved').textContent    = r.saved    || 0;
+        document.getElementById('stat-skipped').textContent  = r.skipped  || 0;
+
+        // Save to history
+        const entry = {
+          industry, location, limit,
+          saved: r.saved || 0,
+          date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        };
+        history.unshift(entry);
+        localStorage.setItem('harvest_history', JSON.stringify(history.slice(0, 20)));
+        renderHistory();
+      }
+
+      document.getElementById('goto-leads').classList.add('visible');
+
+      running = false;
+      document.getElementById('harvest-btn').disabled = false;
+      document.getElementById('btn-spinner').style.display = 'none';
+      document.getElementById('btn-text').textContent = 'Run Search';
+    });
+
+    evtSource.onerror = () => {
+      evtSource.close();
+      addLog('Connection lost — check Railway logs', 'error');
+      running = false;
+      document.getElementById('harvest-btn').disabled = false;
+      document.getElementById('btn-spinner').style.display = 'none';
+      document.getElementById('btn-text').textContent = 'Run Search';
+    };
+
+  } catch(e) {
+    addLog('Error: ' + e.message, 'error');
+    running = false;
+    document.getElementById('harvest-btn').disabled = false;
+    document.getElementById('btn-spinner').style.display = 'none';
+    document.getElementById('btn-text').textContent = 'Run Search';
+  }
+}
+
+// Enter key triggers search
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !running) startHarvest();
+});
+
+renderHistory();
+</script>
+</body>
+</html>
