@@ -211,7 +211,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
         "flag": "Good" if is_ssl else "Critical"
     }
 
-    # 4. CTA
+    # 4. CTA — including UX quality checks
     cta_strong = [
         "schedule now", "book now", "book appointment", "book online",
         "schedule appointment", "schedule online", "request appointment",
@@ -221,32 +221,107 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     ]
     cta_weak = ["schedule", "appointment", "book", "contact", "quote", "estimate", "call us", "get started", "request", "reserve"]
     strong_hits = sum(1 for c in cta_strong if c in t)
-    weak_hits = sum(1 for c in cta_weak if c in t)
+    weak_hits   = sum(1 for c in cta_weak if c in t)
+
     if strong_hits >= 3:   cv, ct, cf = 10, f"Multiple strong CTAs ({strong_hits})", "Good"
     elif strong_hits == 2: cv, ct, cf = 8,  "Good CTAs present", "Good"
     elif strong_hits == 1: cv, ct, cf = 5,  "One strong CTA", "Needs Work"
     elif weak_hits >= 3:   cv, ct, cf = 3,  "Only weak CTAs", "Needs Work"
     elif weak_hits >= 1:   cv, ct, cf = 1,  "Very weak CTAs", "Critical"
     else:                  cv, ct, cf = 0,  "No calls to action", "Critical"
-    dims["cta"] = {"score": cv, "max": 10, "label": "CTA", "icon": "🎯", "status": ct, "flag": cf}
 
-    # 5. Trust
+    # UX quality deductions
+    has_form    = bool(re.search(r'<form[\s>]|contact.form|wpcf7|wpforms|gravity.form|ninja.form|formidable', h))
+    has_mailto  = 'href="mailto:' in h or "href='mailto:" in h
+    has_tel     = 'href="tel:' in h or "href='tel:" in h
+    has_booking = any(x in h for x in ["calendly", "acuity", "booksy", "oncehub", "hubspot.meetings"])
+
+    cta_issues = []
+    if has_mailto and not has_form and not has_booking:
+        cv = max(0, cv - 4)
+        cta_issues.append("mailto: only — opens email client 🚩")
+        cf = "Critical"
+    if has_tel and not has_form and not has_booking and not has_mailto:
+        cv = max(0, cv - 2)
+        cta_issues.append("phone-only CTA — no online form 🚩")
+        if cf == "Good": cf = "Needs Work"
+    if not has_form and not has_booking:
+        cv = max(0, cv - 2)
+        cta_issues.append("no contact form detected 🚩")
+        if cf == "Good": cf = "Needs Work"
+    if has_booking:
+        cv = min(10, cv + 2)
+        ct = "Online booking tool detected ✓"
+    if cta_issues:
+        ct = ct + " | " + " | ".join(cta_issues)
+
+    dims["cta"] = {"score": cv, "max": 10, "label": "CTA", "icon": "🎯", "status": ct, "flag": cf,
+                   "has_form": has_form, "has_mailto_only": has_mailto and not has_form,
+                   "has_booking": has_booking}
+
+    # 5. Trust — with modernity and social proof signals
     trust = 0
     trust_found = []
-    if any(x in t for x in ["testimonial", "what our clients say", "customer review", "reviews"]):
-        trust += 3; trust_found.append("testimonials")
-    if any(x in t for x in ["meet the team", "meet our team", "our team", "meet the owner"]):
-        trust += 2; trust_found.append("team profiles")
+    trust_issues = []
+
+    # Google reviews widget or count
+    has_google_reviews = bool(re.search(r'google.*review|review.*google|\d+\s*google\s*review', h))
+    if has_google_reviews:
+        trust += 3; trust_found.append("Google reviews")
+    elif any(x in t for x in ["testimonial", "what our clients say", "customer review", "reviews"]):
+        trust += 2; trust_found.append("testimonials")
+    else:
+        trust_issues.append("no reviews visible 🚩")
+
+    # Star rating displayed
+    if re.search(r'\d\.\d\s*(?:stars?|★|out of 5|/5)', t):
+        trust += 2; trust_found.append("star rating")
+
+    # Team / owner profiles
+    if any(x in t for x in ["meet the team", "meet our team", "our team", "meet the owner", "about us"]):
+        trust += 1; trust_found.append("team profiles")
+
+    # Credentials
     if any(x in t for x in ["certified", "accredited", "licensed", "insured", "bonded", "bbb", "award"]):
         trust += 2; trust_found.append("credentials")
+
+    # Experience
     if re.search(r'(since|established|founded|serving)\s*(since\s*)?\d{4}|over\s+\d+\s+years', t):
-        trust += 2; trust_found.append("experience")
+        trust += 1; trust_found.append("experience")
+
+    # Warranty / guarantee
     if any(x in t for x in ["warranty", "guarantee", "guaranteed"]):
         trust += 1; trust_found.append("warranty")
+
+    # Project count / social proof numbers
+    if re.search(r'\d{2,}\+?\s*(happy\s*)?(clients?|customers?|homes?|projects?|roofs?|jobs?)', t):
+        trust += 1; trust_found.append("project count")
+
+    # Review platforms
+    if any(x in h for x in ["trustpilot", "birdeye", "podium", "grade.us", "reviews.io"]):
+        trust += 1; trust_found.append("review platform")
+
+    # Modernity penalty — old copyright
+    copyright_match = re.search(r'©\s*(\d{4})|copyright\s*©?\s*(\d{4})', t)
+    if copyright_match:
+        year = int(copyright_match.group(1) or copyright_match.group(2))
+        age = 2026 - year
+        if age >= 4:
+            trust = max(0, trust - 2)
+            trust_issues.append(f"© {year} — site looks dated 🚩")
+
+    # DIY builder penalty
+    if any(x in h for x in ["wix.com", "squarespace.com", "weebly.com"]):
+        trust = max(0, trust - 1)
+        trust_issues.append("DIY website builder detected")
+
     trust = min(trust, 10)
     tf = "Good" if trust >= 7 else ("Needs Work" if trust >= 4 else "Critical")
-    tt = f"Trust: {', '.join(trust_found)}" if trust_found else "No trust signals"
-    dims["trust"] = {"score": trust, "max": 10, "label": "Trust", "icon": "🛡️", "status": tt, "flag": tf}
+    tt = f"Trust: {chr(44).join(trust_found)}" if trust_found else "No trust signals"
+    if trust_issues:
+        tt += " | Issues: " + ", ".join(trust_issues)
+    dims["trust"] = {"score": trust, "max": 10, "label": "Trust", "icon": "🛡️", "status": tt, "flag": tf,
+                     "has_google_reviews": has_google_reviews, "trust_issues": trust_issues}
 
     # 6. Booking
     booking_strong = ["book online", "book appointment", "schedule online", "online scheduling", "request appointment online", "online booking", "instant quote"]
