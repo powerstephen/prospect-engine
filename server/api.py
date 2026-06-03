@@ -185,7 +185,7 @@ async def report_by_name(slug: str):
     return _render_report(biz)
 
 
-@app.get("/report/{idx}", response_class=HTMLResponse)
+@app.get("/report/idx/{idx}", response_class=HTMLResponse)
 async def report(idx: int):
     if idx < len(_results):
         biz = _results[idx]
