@@ -414,8 +414,8 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
 
         combined = min(99, combined + ai_boost)
 
-        # 7. Auto-route
-            status = "scored"
+        # Everything with a website goes to scored — manual archive only
+        status = "scored"
 
         await log(
             f"  ✓ {contact.get('company','?')} — "
