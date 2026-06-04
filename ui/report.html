@@ -335,10 +335,6 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 </div>
 
 <script>
-// ── Keep original Supabase config unchanged ──
-const SB = 'https://neonmrgszujadgfidlbj.supabase.co';
-const SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lb25tcmdzenVqYWRnZmlkbGJqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDAwMTEzNywiZXhwIjoyMDk1NTc3MTM3fQ.cXi5YNKg-CNbN95pvrBM7zNyhY_ZXDnBzgt8vhc3qY0';
-
 const DIM_META = {
   speed:   {icon:'⚡',label:'Speed'},
   mobile:  {icon:'📱',label:'Mobile'},
@@ -352,68 +348,26 @@ const DIM_META = {
   tech:    {icon:'📊',label:'Tech & Tracking'},
 };
 
-function slug() {
-  const p = window.location.pathname.split('/');
-  return p[p.length-1] || p[p.length-2];
-}
+function scoreColor(s){if(s<=30)return'#ef4444';if(s<=50)return'#f97316';if(s<=65)return'#f59e0b';if(s<=80)return'#84cc16';return'#10b981';}
+function gradeLabel(s){if(s<=30)return'Critical';if(s<=50)return'Poor';if(s<=65)return'Average';if(s<=80)return'Decent';return'Strong';}
 
-function scoreColor(s) {
-  if(s<=30) return '#ef4444';
-  if(s<=50) return '#f97316';
-  if(s<=65) return '#f59e0b';
-  if(s<=80) return '#84cc16';
-  return '#10b981';
-}
-function gradeLabel(s) {
-  if(s<=30) return 'Critical';
-  if(s<=50) return 'Poor';
-  if(s<=65) return 'Average';
-  if(s<=80) return 'Decent';
-  return 'Strong';
-}
-
-function setDonut(arcId, numId, gradeId, score) {
-  const c = scoreColor(score);
-  const r=66, circ=2*Math.PI*r, dash=(score/100)*circ;
+function setDonut(arcId,numId,gradeId,score,r,circ){
+  const c=scoreColor(score),dash=(score/100)*circ;
   document.getElementById(arcId).setAttribute('stroke-dasharray',`${dash} ${circ}`);
   document.getElementById(arcId).setAttribute('stroke',c);
   document.getElementById(numId).textContent=score;
   document.getElementById(numId).style.color=c;
-  if(gradeId) {
-    const g=document.getElementById(gradeId);
-    g.textContent=gradeLabel(score);
-    g.style=`background:${c}22;color:${c};border:1px solid ${c}44;`;
-  }
+  if(gradeId){const g=document.getElementById(gradeId);g.textContent=gradeLabel(score);g.style=`background:${c}22;color:${c};border:1px solid ${c}44;`;}
 }
 
-function setSmallDonut(arcId, numId, gradeId, score) {
-  const c = scoreColor(score);
-  const r=46, circ=2*Math.PI*r, dash=(score/100)*circ;
-  document.getElementById(arcId).setAttribute('stroke-dasharray',`${dash} ${circ}`);
-  document.getElementById(arcId).setAttribute('stroke',c);
-  document.getElementById(numId).textContent=score;
-  document.getElementById(numId).style.color=c;
-  if(gradeId) {
-    const g=document.getElementById(gradeId);
-    g.textContent=gradeLabel(score);
-    g.style=`background:${c}22;color:${c};border:1px solid ${c}44;`;
-  }
-}
+function dimRingColor(s,m){const p=s/m;if(p>=0.75)return'#10b981';if(p>=0.5)return'#f59e0b';return'#ef4444';}
 
-function dimRingColor(score,max) {
-  const p=score/max;
-  if(p>=0.75) return '#10b981';
-  if(p>=0.5)  return '#f59e0b';
-  return '#ef4444';
-}
-
-function renderDimCard(key,dim) {
+function renderDimCard(key,dim){
   const meta=DIM_META[key]||{icon:'•',label:key};
-  const score=dim.score??0, max=dim.max??10;
+  const score=dim.score??0,max=dim.max??10;
   const c=dimRingColor(score,max);
-  const circ=2*Math.PI*21, dash=(score/max)*circ;
+  const circ=2*Math.PI*21,dash=(score/max)*circ;
   const fc=dim.flag==='Critical'?'critical':dim.flag==='Needs Work'?'needs-work':'good';
-  const fb=dim.flag==='Critical'?'critical':dim.flag==='Needs Work'?'needs-work':'good';
   return `<div class="dim-card ${fc}">
     <div class="dim-ring-wrap">
       <svg width="52" height="52" viewBox="0 0 52 52">
@@ -424,17 +378,17 @@ function renderDimCard(key,dim) {
       <div class="dim-ring-val" style="color:${c}">${score}</div>
     </div>
     <div class="dim-name">${meta.icon} ${meta.label}</div>
-    <span class="dim-flag-badge ${fb}">${dim.flag||'Good'}</span>
+    <span class="dim-flag-badge ${fc}">${dim.flag||'Good'}</span>
   </div>`;
 }
 
-function dimPill(key,dim) {
+function dimPill(key,dim){
   const c=dim.flag==='Critical'?'critical':dim.flag==='Needs Work'?'needs-work':'good';
   const meta=DIM_META[key]||{label:key};
   return `<span class="dim-pill ${c}">${meta.label}</span>`;
 }
 
-function renderRecs(recs) {
+function renderRecs(recs){
   return recs.map((r,i)=>`
     <div class="rec-card">
       <div class="rec-num">Fix ${i+1}</div>
@@ -444,113 +398,87 @@ function renderRecs(recs) {
     </div>`).join('');
 }
 
-function fallbackRecs(c) {
-  const dims=c.dimensions||{};
-  const recs=[];
-  if(dims.mobile?.flag==='Critical') recs.push({title:"Fix the mobile experience",description:"Your site has critical issues on mobile — where most of your customers are searching. Faster loading and a clear CTA on mobile will capture significantly more leads.",impact:"Stop losing 60%+ of mobile visitors"});
-  else recs.push({title:"Optimise for mobile users",description:"Your mobile experience needs improvement. Clearer CTAs and faster loading will capture more leads from phone searches.",impact:"More calls from mobile"});
-  if(dims.cta?.flag==='Critical') recs.push({title:"Add a clear call-to-action above the fold",description:"Your quote or contact button isn't immediately visible when someone lands on your site. Moving it to the top can double your conversion rate.",impact:"2x more quote requests"});
-  else recs.push({title:"Add a tap-to-call button",description:"Customers want to call — especially after a storm. A sticky tap-to-call button on mobile means one tap from search result to your phone ringing.",impact:"More inbound calls"});
-  if(dims.trust?.flag==='Critical'||dims.social?.flag==='Critical') recs.push({title:"Add visible trust signals",description:"Your Google reviews and credentials aren't visible above the fold. Adding these immediately builds credibility and increases the likelihood visitors contact you.",impact:"Higher conversion rate"});
-  else recs.push({title:"Optimise your booking flow",description:"Making it easier to request a quote or book an inspection online removes friction. Every extra click costs you leads.",impact:"More online enquiries"});
-  return recs;
-}
-
-async function init() {
-  const s=slug();
-  if(!s||s==='report'){show('error');return;}
+function populate(biz){
+  const dims=biz.dimensions||{};
+  const ws=biz.website_score||biz.health_score||50;
   const d=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   document.getElementById('r-date').textContent=d;
   document.getElementById('r-footer-date').textContent=d;
 
-  try {
-    const res=await fetch(`${SB}/rest/v1/contacts?report_slug=eq.${encodeURIComponent(s)}&select=*&limit=1`,{
-      headers:{'apikey':SK,'Authorization':`Bearer ${SK}`}
-    });
-    const data=await res.json();
-    if(!data?.length){show('error');return;}
-    const c=data[0];
-    const dims=c.dimensions||{};
+  const displayUrl=(biz.website||biz.name||'—').replace(/^https?:\/\//,'').split('?')[0].split('/')[0];
+  document.getElementById('r-url').textContent=displayUrl;
+  document.getElementById('r-footer-biz').textContent=biz.name||displayUrl;
+  if(biz.name) document.getElementById('r-recs-sub').textContent=`Personalised to ${biz.name}. Not a generic checklist.`;
 
-    // URL + footer
-    const displayUrl=(c.website||c.company||'—').replace(/^https?:\/\//,'').split('?')[0].split('/')[0];
-    document.getElementById('r-url').textContent=displayUrl;
-    document.getElementById('r-footer-biz').textContent=c.company||displayUrl;
-    if(c.company) document.getElementById('r-recs-sub').textContent=`Personalised to ${c.company}. Not a generic checklist.`;
+  const critCount=Object.values(dims).filter(d=>d.flag==='Critical').length;
+  document.getElementById('r-sub').innerHTML=`<strong>${biz.name||displayUrl}</strong> scored ${ws}/100.${critCount>0?` ${critCount} critical issue${critCount>1?'s':''} actively costing you leads.`:' Some improvements needed.'}`;
 
-    // Hero summary
-    const ws=c.website_score||50;
-    const critCount=Object.values(dims).filter(d=>d.flag==='Critical').length;
-    document.getElementById('r-sub').innerHTML=`<strong>${c.company||displayUrl}</strong> scored ${ws}/100.${critCount>0?` ${critCount} critical issue${critCount>1?'s':''} actively costing you leads.`:' Some improvements needed.'}`;
+  // Hero donut
+  setDonut('r-donut-arc','r-score','r-grade',ws,66,2*Math.PI*66);
 
-    // Hero donut
-    setDonut('r-donut-arc','r-score','r-grade',ws);
+  // Hero flags
+  const flagsEl=document.getElementById('r-flags');
+  const crits=Object.entries(dims).filter(([,v])=>v.flag==='Critical');
+  const works=Object.entries(dims).filter(([,v])=>v.flag==='Needs Work');
+  flagsEl.innerHTML=[...crits,...works].map(([k,d])=>`<span class="flag-pill ${d.flag==='Critical'?'c':'w'}">${DIM_META[k]?.label||k}</span>`).join('');
 
-    // Hero flags - crits first
-    const flagsEl=document.getElementById('r-flags');
-    const allFlags=[...Object.entries(dims).filter(([,v])=>v.flag==='Critical'),...Object.entries(dims).filter(([,v])=>v.flag==='Needs Work')];
-    flagsEl.innerHTML=allFlags.map(([k,d])=>`<span class="flag-pill ${d.flag==='Critical'?'c':'w'}">${DIM_META[k]?.label||k}</span>`).join('');
+  // Dims grid
+  const dimOrder=['speed','mobile','ssl','cta','trust','booking','social','seo','visual','tech'];
+  document.getElementById('r-dims').innerHTML=dimOrder.map(k=>dims[k]?renderDimCard(k,dims[k]):'').join('');
 
-    // Dims grid
-    const dimOrder=['speed','mobile','ssl','cta','trust','booking','social','seo','visual','tech'];
-    document.getElementById('r-dims').innerHTML=dimOrder.map(k=>dims[k]?renderDimCard(k,dims[k]):'').join('');
+  // Mobile/Desktop sub-scores
+  const mobileDimKeys=['mobile','cta','trust','booking','social'];
+  const desktopDimKeys=['speed','seo','visual','tech','ssl'];
+  const mScore=Math.round(mobileDimKeys.reduce((s,k)=>s+(dims[k]?dims[k].score/dims[k].max*10:5),0)/mobileDimKeys.length*10);
+  const dScore=Math.round(desktopDimKeys.reduce((s,k)=>s+(dims[k]?dims[k].score/dims[k].max*10:5),0)/desktopDimKeys.length*10);
+  setDonut('r-mobile-arc','r-mobile-score-num','r-mobile-grade',mScore,46,2*Math.PI*46);
+  setDonut('r-desktop-arc','r-desktop-score-num','r-desktop-grade',dScore,46,2*Math.PI*46);
 
-    // Mobile score (derived from mobile dims)
-    const mobileDimKeys=['mobile','cta','trust','booking','social'];
-    const desktopDimKeys=['speed','seo','visual','tech','ssl'];
-    const mScore=Math.round(mobileDimKeys.reduce((s,k)=>s+(dims[k]?dims[k].score/dims[k].max*10:5),0)/mobileDimKeys.length*10);
-    const dScore=Math.round(desktopDimKeys.reduce((s,k)=>s+(dims[k]?dims[k].score/dims[k].max*10:5),0)/desktopDimKeys.length*10);
-    setSmallDonut('r-mobile-arc','r-mobile-score-num','r-mobile-grade',mScore);
-    setSmallDonut('r-desktop-arc','r-desktop-score-num','r-desktop-grade',dScore);
+  // Pills
+  const mDimsEl=document.getElementById('r-mobile-dims');
+  [...mobileDimKeys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...mobileDimKeys.filter(k=>dims[k]&&dims[k].flag==='Needs Work'),...mobileDimKeys.filter(k=>dims[k]&&dims[k].flag==='Good')].forEach(k=>{if(dims[k])mDimsEl.innerHTML+=dimPill(k,dims[k]);});
+  const dDimsEl=document.getElementById('r-desktop-dims');
+  [...desktopDimKeys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...desktopDimKeys.filter(k=>dims[k]&&dims[k].flag==='Needs Work'),...desktopDimKeys.filter(k=>dims[k]&&dims[k].flag==='Good')].forEach(k=>{if(dims[k])dDimsEl.innerHTML+=dimPill(k,dims[k]);});
 
-    // Mobile pills - crits first
-    const mDimsEl=document.getElementById('r-mobile-dims');
-    [...mobileDimKeys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...mobileDimKeys.filter(k=>dims[k]&&dims[k].flag==='Needs Work'),...mobileDimKeys.filter(k=>dims[k]&&dims[k].flag==='Good')].forEach(k=>{if(dims[k])mDimsEl.innerHTML+=dimPill(k,dims[k]);});
-    const dDimsEl=document.getElementById('r-desktop-dims');
-    [...desktopDimKeys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...desktopDimKeys.filter(k=>dims[k]&&dims[k].flag==='Needs Work'),...desktopDimKeys.filter(k=>dims[k]&&dims[k].flag==='Good')].forEach(k=>{if(dims[k])dDimsEl.innerHTML+=dimPill(k,dims[k]);});
+  // Screenshots
+  const mobileUrl=biz.mobile_mockup_url||biz.mobile_screenshot_url;
+  if(mobileUrl){
+    const el=document.getElementById('r-mobile-screen');
+    el.style.background='none';
+    el.innerHTML=`<img src="${mobileUrl}" style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="Mobile">`;
+  }
+  const desktopUrl=biz.desktop_mockup_url||biz.desktop_screenshot_url;
+  if(desktopUrl){
+    const el=document.getElementById('r-desktop-screen');
+    el.style.background='none';
+    el.innerHTML=`<img src="${desktopUrl}" style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="Desktop">`;
+  }
 
-    // Mobile screenshot - use mobile_mockup_url or mobile_screenshot_url
-    const mobileUrl=c.mobile_mockup_url||c.mobile_screenshot_url;
-    if(mobileUrl) {
-      const screenEl=document.getElementById('r-mobile-screen');
-      screenEl.style.background='none';
-      screenEl.innerHTML=`<img src="${mobileUrl}" style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="Mobile">`;
-    }
+  // Show report
+  document.getElementById('loading').style.display='none';
+  document.getElementById('report').style.display='block';
 
-    // Desktop screenshot
-    const desktopUrl=c.desktop_mockup_url||c.desktop_screenshot_url;
-    if(desktopUrl) {
-      const screenEl=document.getElementById('r-desktop-screen');
-      screenEl.style.background='none';
-      screenEl.innerHTML=`<img src="${desktopUrl}" style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="Desktop">`;
-    }
-
-    show('report');
-
-    // Recommendations
-    let recs=c.report_recommendations;
-    if(!recs?.length) {
-      try {
-        const r=await fetch(`/api/contacts/${c.id}/generate-recommendations`);
-        if(r.ok) recs=(await r.json()).recommendations;
-      } catch(e) {}
-    }
-    if(!recs?.length) recs=fallbackRecs(c);
+  // Recs
+  const recs=biz.recommendations||biz.report_recommendations||[];
+  if(recs.length){
     document.getElementById('r-recs').innerHTML=renderRecs(recs);
-
-  } catch(e) {
-    console.error(e);
-    show('error');
+  } else {
+    // Fallback recs
+    const fallback=[];
+    if(dims.mobile?.flag==='Critical') fallback.push({title:"Fix the mobile experience",description:"Critical issues on mobile — where most of your customers search. Faster loading and a clear CTA will capture more leads.",impact:"Stop losing 60%+ of mobile visitors"});
+    else fallback.push({title:"Optimise for mobile users",description:"Your mobile experience needs improvement. Clearer CTAs and faster loading will capture more leads.",impact:"More calls from mobile"});
+    if(dims.cta?.flag==='Critical') fallback.push({title:"Add a clear call-to-action above the fold",description:"Your quote button isn't immediately visible. Moving it to the top can double your conversion rate.",impact:"2x more quote requests"});
+    else fallback.push({title:"Add a tap-to-call button",description:"A sticky tap-to-call button on mobile means one tap from search result to your phone ringing.",impact:"More inbound calls"});
+    if(dims.trust?.flag==='Critical'||dims.social?.flag==='Critical') fallback.push({title:"Add visible trust signals",description:"Your Google reviews and credentials aren't visible above the fold. Adding these builds credibility immediately.",impact:"Higher conversion rate"});
+    else fallback.push({title:"Optimise your booking flow",description:"Making it easier to request a quote online removes friction. Every extra click costs you leads.",impact:"More online enquiries"});
+    document.getElementById('r-recs').innerHTML=renderRecs(fallback);
   }
 }
 
-function show(id) {
-  document.getElementById('loading').style.display='none';
-  document.getElementById('report').style.display=id==='report'?'block':'none';
-  document.getElementById('error-view').style.display=id==='error'?'flex':'none';
-}
+const reportData=(typeof window.REPORT_DATA!=='undefined'?window.REPORT_DATA:null);
+if(reportData){populate(reportData);}
+else{document.getElementById('loading').style.display='none';document.getElementById('error-view').style.display='flex';}
 
-init();
 </script>
 </body>
 </html>
