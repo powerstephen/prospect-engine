@@ -181,13 +181,12 @@ async def save_single_roast(request: Request):
 @app.get("/r/{slug}", response_class=HTMLResponse)
 async def report_by_name(slug: str):
     biz = get_result_by_slug(slug)
-if biz: return _render_report(biz)
-return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
+    if biz: return _render_report(biz)
+    return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
 
 
 @app.get("/report/{idx}", response_class=HTMLResponse)
 async def report(idx: str):
-    # Integer = old session-based roaster report
     if idx.isdigit():
         i = int(idx)
         if i < len(_results):
@@ -198,8 +197,8 @@ async def report(idx: str):
             biz = get_result(session, i)
             if not biz: raise HTTPException(404, f"Result {i} not found.")
         return _render_report(biz)
-    # Slug = contact audit report — serve HTML and let JS fetch from Supabase
     return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
+
 
 def _render_report(biz: dict) -> HTMLResponse:
     report_html = (UI_DIR / "report.html").read_text(encoding="utf-8")
@@ -270,7 +269,6 @@ _batch_log = []
 
 
 async def _write_ai_fields(contact_id: int, result: dict, log):
-    """Write AI vision fields back to Supabase contacts table."""
     import httpx
     import os
     supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
@@ -282,10 +280,8 @@ async def _write_ai_fields(contact_id: int, result: dict, log):
               "phone_above_fold", "ai_scored_at"]:
         if result.get(k) is not None:
             ai_fields[k] = result[k]
-
     if not ai_fields:
         return
-
     try:
         await log(f"  💾 Saving AI fields: {list(ai_fields.keys())}")
         h = {
@@ -366,7 +362,6 @@ async def _run_bulk_score(ids: list[int]):
                     revenue_leak=result.get("revenue_leak", False),
                     status=result.get("status", "new"),
                 )
-                # Write AI vision fields
                 await _write_ai_fields(contact["id"], result, log)
                 scored += 1
                 await asyncio.sleep(1)
@@ -471,11 +466,8 @@ async def batch_stream(request: Request):
     return EventSourceResponse(gen())
 
 
-
-
 @app.post("/api/bulk/enrich")
 async def bulk_enrich(params: BulkScoreParams, background_tasks: BackgroundTasks):
-    """Enrich selected contacts via QuickEnrich."""
     global _batch_running, _batch_log
     if _batch_running: raise HTTPException(409, "Already running")
     if not params.ids: raise HTTPException(400, "No IDs provided")
@@ -492,7 +484,6 @@ async def _run_enrich(ids: list[int]):
         await run_bulk_enrich(ids, log_cb=log)
     finally:
         _batch_running = False
-
 
 
 # ── Harvest ───────────────────────────────────────────────────────────────────
@@ -594,28 +585,24 @@ async def generate_report_url(contact_id: int):
 
 @app.get("/api/contacts/{contact_id}/generate-recommendations")
 async def generate_recommendations(contact_id: int):
-    """Generate and cache 3 GPT-4o recommendations for a contact."""
     import os as _os, httpx as _httpx, json as _json
     supabase_key = _os.environ.get("SUPABASE_SERVICE_KEY", "")
     openai_key   = _os.environ.get("OPENAI_API_KEY", "")
     supabase_url = "https://neonmrgszujadgfidlbj.supabase.co"
     sb_headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}", "Content-Type": "application/json"}
 
-    # Fetch contact
     async with _httpx.AsyncClient(timeout=10) as c:
         r = await c.get(f"{supabase_url}/rest/v1/contacts?id=eq.{contact_id}&select=*", headers=sb_headers)
         data = r.json()
     if not data: raise HTTPException(404, "Contact not found")
     contact = data[0]
 
-    # Return cached if exists
     if contact.get("report_recommendations"):
         return {"recommendations": contact["report_recommendations"]}
 
     if not openai_key:
         raise HTTPException(400, "No OpenAI key")
 
-    # Generate with GPT-4o
     prompt = f"""You are a web performance expert writing a website audit report for a roofing contractor.
 
 Company: {contact.get('company')}
@@ -655,7 +642,6 @@ Keep descriptions under 2 sentences. Impact = one short phrase like "More calls 
         elif "```" in raw: raw = raw.split("```")[1].split("```")[0].strip()
         recs = _json.loads(raw)
 
-        # Cache in Supabase
         async with _httpx.AsyncClient(timeout=10) as c:
             await c.patch(
                 f"{supabase_url}/rest/v1/contacts?id=eq.{contact_id}",
