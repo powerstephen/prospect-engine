@@ -181,8 +181,8 @@ async def save_single_roast(request: Request):
 @app.get("/r/{slug}", response_class=HTMLResponse)
 async def report_by_name(slug: str):
     biz = get_result_by_slug(slug)
-    if not biz: raise HTTPException(404, f"Report for '{slug}' not found or expired.")
-    return _render_report(biz)
+if biz: return _render_report(biz)
+return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
 
 
 @app.get("/report/{idx}", response_class=HTMLResponse)
