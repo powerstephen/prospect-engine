@@ -198,11 +198,8 @@ async def report(idx: str):
             biz = get_result(session, i)
             if not biz: raise HTTPException(404, f"Result {i} not found.")
         return _render_report(biz)
-    # Slug = contact audit report
-    biz = get_result_by_slug(idx)
-    if not biz: raise HTTPException(404, f"Report for '{idx}' not found.")
-    return _render_report(biz)
-
+    # Slug = contact audit report — serve HTML and let JS fetch from Supabase
+    return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
 
 def _render_report(biz: dict) -> HTMLResponse:
     report_html = (UI_DIR / "report.html").read_text(encoding="utf-8")
