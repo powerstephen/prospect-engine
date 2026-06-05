@@ -65,7 +65,7 @@ def get_session_results(session_id: str) -> list:
 def make_slug(name: str) -> str:
     import re
     slug = re.sub(r'[^a-z0-9]+', '-', name.lower().strip())
-    return slug.strip('-')[:50]
+    return slug.strip('-')[:80]
 
 def save_result_by_name(biz: dict) -> str:
     slug = make_slug(biz.get("name", "business"))
