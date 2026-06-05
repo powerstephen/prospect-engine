@@ -199,7 +199,9 @@ async def report(idx: str):
             if not biz: raise HTTPException(404, f"Result {i} not found.")
         return _render_report(biz)
     # Slug = contact audit report
-    return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
+    biz = get_result_by_slug(idx)
+    if not biz: raise HTTPException(404, f"Report for '{idx}' not found.")
+    return _render_report(biz)
 
 
 def _render_report(biz: dict) -> HTMLResponse:
