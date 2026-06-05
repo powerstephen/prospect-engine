@@ -665,3 +665,4 @@ Keep descriptions under 2 sentences. Impact = one short phrase like "More calls 
         return {"recommendations": recs}
     except Exception as e:
         raise HTTPException(500, f"Generation failed: {e}")
+
