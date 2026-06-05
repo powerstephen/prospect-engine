@@ -180,7 +180,9 @@ async def save_single_roast(request: Request):
 
 @app.get("/r/{slug}", response_class=HTMLResponse)
 async def report_by_name(slug: str):
-    biz = get_result_by_slug(slug)`n    if biz: return _render_report(biz)`n    return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
+    biz = get_result_by_slug(slug)
+if biz: return _render_report(biz)
+return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
 
 
 @app.get("/report/{idx}", response_class=HTMLResponse)
@@ -663,4 +665,3 @@ Keep descriptions under 2 sentences. Impact = one short phrase like "More calls 
         return {"recommendations": recs}
     except Exception as e:
         raise HTTPException(500, f"Generation failed: {e}")
-
