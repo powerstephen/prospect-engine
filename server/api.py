@@ -572,7 +572,7 @@ async def generate_report_url(contact_id: int):
     company  = contact.get("company", "business")
     location = (contact.get("location") or "").split(",")[0].strip()
     raw  = f"{company} {location}".lower()
-    slug = _re.sub(r'[^a-z0-9]+', '-', raw).strip('-')[:60]
+    slug = _re.sub(r'[^a-z0-9]+', '-', raw).strip('-')[:50] + f"-{contact_id}"
     report_url = f"/report/{slug}"
     async with _httpx.AsyncClient(timeout=10) as c:
         await c.patch(
