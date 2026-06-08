@@ -554,8 +554,12 @@ if UI_DIR.exists():
 
 @app.get("/report/{slug}", response_class=HTMLResponse)
 async def contact_report(slug: str):
-    return HTMLResponse((UI_DIR / "roast_report.html").read_text(encoding="utf-8"))
-
+    html = (UI_DIR / "roast_report.html").read_text(encoding="utf-8")
+    return HTMLResponse(html, headers={
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    })
 
 @app.post("/api/contacts/{contact_id}/generate-report")
 async def generate_report_url(contact_id: int):
