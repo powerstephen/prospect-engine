@@ -271,6 +271,14 @@ async def harvest(
             "intel_pills":      icp.get("icp_pills") or [],
             "size_signals":     audit.get("size_signals") or [],
             "revenue_leak":     audit.get("revenue_leak") or False,
+            "dimensions":       audit.get("dimensions") or {},
+            "load_time":        audit.get("load_time") or None,
+            "psi_mobile_lcp":   audit.get("psi_mobile_lcp"),
+            "psi_desktop_lcp":  audit.get("psi_desktop_lcp"),
+            "psi_mobile_perf":  audit.get("psi_mobile_perf"),
+            "psi_desktop_perf": audit.get("psi_desktop_perf"),
+            "google_rating":    biz.get("rating") or None,
+            "review_count":     biz.get("reviews") or None,
             "scored_at":        datetime.now(timezone.utc).isoformat() if combined else None,
         }
 
