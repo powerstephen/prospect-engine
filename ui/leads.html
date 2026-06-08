@@ -702,7 +702,7 @@ function openDetail(id) {
       <div class="detail-row"><span class="detail-key">Sequence</span><span class="detail-val">${l.sequence_name||'—'}</span></div>
       <div class="detail-row"><span class="detail-key">Sent</span><span class="detail-val">${l.sent_at ? new Date(l.sent_at).toLocaleDateString() : '—'}</span></div>
       <div class="detail-row"><span class="detail-key">Replied</span><span class="detail-val">${l.replied_at ? new Date(l.replied_at).toLocaleDateString() : '—'}</span></div>
-      ${l.report_url ? `<div class="detail-row"><span class="detail-key">Report</span><span class="detail-val"><a href="${l.report_url}" target="_blank">View ↗</a></span></div>` : ""}
+      ${l.report_slug ? `<div class="detail-row"><span class="detail-key">Report</span><span class="detail-val"><a href="https://prospect-engine-production-9368.up.railway.app/report/${l.report_slug}" target="_blank">View ↗</a></span></div>` : ""}
     </div>
     <div style="margin-top:4px;display:flex;gap:8px;">
       <button class="btn btn-ghost" style="flex:1" onclick="openAddModal(detailLead)">Edit</button>
