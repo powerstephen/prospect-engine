@@ -238,9 +238,15 @@ async def harvest(
             except Exception:
                 html = ""
 
-            intel = await detect_intelligence_signals(html, audit.get("website_score", 0))
-            audit.update(intel)
-            audit["mobile_issues"] = audit.get("dimensions", {}).get("mobile", {}).get("mobile_issues", [])
+            # Real measured speed (PageSpeed Insights), falls back to estimate
+            try:
+                from scraper.lighthouse import measure_speed
+                psi = await measure_speed(website)
+                audit.update(psi)
+                if psi:
+                    await log(f"  PSI: mobile {psi.get('psi_mobile_lcp','?')}s / desktop {psi.get('psi_desktop_lcp','?')}s")
+            except Exception as e:
+                await log(f"  PSI skipped: {e}")
 
             icp = calculate_icp_score(audit, biz)
             combined = min(99, icp.get("combined_score", icp["icp_score"]))
