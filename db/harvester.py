@@ -1,5 +1,5 @@
 """
-Harvester — combined pipeline:
+Harvester - combined pipeline:
 1. Google Maps search for businesses
 2. Email enrichment (scrape + Google search)
 3. Website scoring
@@ -89,7 +89,7 @@ def pick_best_email(emails: list[str], domain: str) -> str | None:
 
 
 async def find_email(website: str, domain: str, log) -> str | None:
-    """Three-stage email finder — website scrape → Google search → pattern guess."""
+    """Three-stage email finder - website scrape → Google search → pattern guess."""
 
     # Stage 1: Website scrape
     all_emails = []
@@ -135,7 +135,7 @@ async def find_email(website: str, domain: str, log) -> str | None:
         except Exception:
             pass
 
-    # Stage 3: Pattern guess — common prefixes
+    # Stage 3: Pattern guess - common prefixes
     for prefix in ["info", "contact", "hello", "office"]:
         return f"{prefix}@{domain}"  # Return most likely, unverified
 
@@ -149,7 +149,7 @@ async def harvest(
     log_cb=None,
 ) -> dict:
     """
-    Full harvest pipeline — find businesses, enrich emails, score, save.
+    Full harvest pipeline - find businesses, enrich emails, score, save.
     Only saves contacts that have an email.
     """
     import httpx
@@ -172,7 +172,7 @@ async def harvest(
         return {"found": 0, "enriched": 0, "saved": 0, "skipped": 0}
 
     if not businesses:
-        await log("No businesses found — try different search terms")
+        await log("No businesses found - try different search terms")
         return {"found": 0, "enriched": 0, "saved": 0, "skipped": 0}
 
     # ── Step 2: Process each business ──
@@ -194,7 +194,7 @@ async def harvest(
         await log(f"\n[{i}/{len(businesses)}] {name}")
 
         if not website:
-            await log(f"  ↳ No website — skipping")
+            await log(f"  ↳ No website - skipping")
             skipped += 1
             continue
 
@@ -208,7 +208,7 @@ async def harvest(
         email = await find_email(website, domain, log)
 
         if not email:
-            await log(f"  ↳ No email found — skipping")
+            await log(f"  ↳ No email found - skipping")
             skipped += 1
             continue
 
@@ -282,7 +282,7 @@ async def harvest(
                     saved += 1
                     await log(f"  ✓ Saved to Leads")
                 else:
-                    await log(f"  ✗ Save failed: {r.status_code} — {r.text[:100]}")
+                    await log(f"  ✗ Save failed: {r.status_code} - {r.text[:100]}")
         except Exception as e:
             await log(f"  ✗ Save error: {e}")
 

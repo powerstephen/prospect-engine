@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v36</title>
+<title>Website Audit Report · Eversite v35</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -93,7 +93,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 
 <div id="loading" class="loading">
   <div class="spinner"></div>
-  <p>Loading your recommendations...</p>
+  <p>Loading your audit report...</p>
 </div>
 
 <div id="report" style="display:none">
@@ -112,12 +112,12 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
       </div>
       <div class="report-meta">
         <span id="r-date"></span>
-        <span>Website Growth Recommendations</span>
+        <span>Confidential Website Audit</span>
       </div>
     </div>
     <div class="hero-grid">
       <div>
-        <div class="hero-eyebrow">Prepared for you by Eversite</div>
+        <div class="hero-eyebrow">Website Performance Report</div>
         <div class="hero-url-display" id="r-url">—</div>
         <div class="hero-summary" id="r-sub">—</div>
         <div class="hero-flags" id="r-flags"></div>
@@ -145,7 +145,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 <!-- MOBILE PERFORMANCE -->
 <div class="section">
   <div class="inner">
-    <div class="eyebrow">On Mobile</div>
+    <div class="eyebrow">Mobile Performance</div>
     <div class="mobile-grid">
       <div style="display:flex;justify-content:center;">
                             <div style="filter:drop-shadow(0 24px 48px rgba(0,0,0,0.7));">
@@ -175,11 +175,12 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
             <span id="r-mobile-grade" style="font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;"></span>
           </div>
         </div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:8px;">
-          <p style="margin-bottom:6px;font-size:14px;"><strong style="color:var(--text);">75%+ of local searches happen on a phone.</strong> This is the version most of your customers see first, and where the biggest wins are.</p>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:20px;">
+          <p style="margin-bottom:10px;font-size:14px;"><strong style="color:var(--text);">6 in 10 visitors arrive on a phone.</strong> This is the version costing you the most leads.</p>
+          <p style="margin-bottom:10px;">Your site loads in <strong style="color:var(--red);">3.2s</strong> on mobile — benchmark is under 2s. Every extra second loses <strong style="color:var(--text);">7% of visitors</strong> before they see a word. No online booking. No visible reviews. No clear next step.</p>
+          <p>Google runs <strong style="color:var(--text);">75%+ of local searches on mobile.</strong> Fix these gaps and you capture leads you're handing to competitors.</p>
         </div>
-        <ul class="issue-list" id="r-mobile-issues"></ul>
-        <div class="dim-pills" id="r-mobile-dims" style="margin-top:20px;"></div>
+        <div class="dim-pills" id="r-mobile-dims"></div>
       </div>
     </div>
   </div>
@@ -188,7 +189,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 <!-- DESKTOP PERFORMANCE -->
 <div class="section alt">
   <div class="inner">
-    <div class="eyebrow">On Desktop</div>
+    <div class="eyebrow">Desktop Performance</div>
     <div class="desktop-top-grid">
       <div>
         <div style="display:flex;align-items:center;gap:20px;margin-bottom:18px;">
@@ -211,8 +212,9 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
         <div class="dim-pills" id="r-desktop-dims"></div>
       </div>
       <div style="padding-top:6px;font-size:13px;color:var(--muted);line-height:1.8;">
-        <p style="margin-bottom:6px;"><strong style="color:var(--text);">Desktop visitors are your highest-intent leads.</strong> More time, a bigger screen, and ready to decide. Here's what's standing between a visit and a call.</p>
-        <ul class="issue-list" id="r-desktop-issues"></ul>
+        <p style="margin-bottom:12px;"><strong style="color:var(--text);">Desktop visitors are your highest-intent leads.</strong> They have more time, a bigger screen, and they're ready to decide.</p>
+        <p style="margin-bottom:12px;">A slow site, cluttered layout or missing trust signals ends the conversation before it starts.</p>
+        <p>The issues flagged here are what's standing between a visit and a phone call.</p>
       </div>
     </div>
     <div style="max-width:860px;margin:0 auto;">
@@ -230,11 +232,13 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 <!-- RECOMMENDATIONS -->
 <div class="section">
   <div class="inner">
-    <div class="eyebrow">Our Recommendations</div>
-    <div style="font-family:'Montserrat',sans-serif;font-size:26px;font-weight:800;margin-bottom:8px;">Three things that would get you more calls</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:32px;" id="r-recs-sub">Specific to your site, not a generic checklist.</div>
-    <div class="recs-rows" id="r-recs">
-      <div class="rec-row"><div class="recs-loading"><div class="rec-spinner"></div></div><div class="recs-loading"><div class="rec-spinner"></div>Putting your recommendations together...</div></div>
+    <div class="eyebrow">Recommendations</div>
+    <div style="font-family:'Montserrat',sans-serif;font-size:26px;font-weight:800;margin-bottom:8px;">What we'd fix first — and why</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:32px;" id="r-recs-sub">Personalised to your site. Not a generic checklist.</div>
+    <div class="recs-grid" id="r-recs">
+      <div class="rec-card"><div class="recs-loading"><div class="rec-spinner"></div>Generating recommendations...</div></div>
+      <div class="rec-card"><div class="recs-loading"><div class="rec-spinner"></div></div></div>
+      <div class="rec-card"><div class="recs-loading"><div class="rec-spinner"></div></div></div>
     </div>
   </div>
 </div>
@@ -243,10 +247,10 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 <div class="section">
   <div class="inner">
     <div class="cta-wrap">
-      <div class="eyebrow" style="text-align:center;">Your Move</div>
-      <div style="font-family:'Montserrat',sans-serif;font-size:34px;font-weight:800;line-height:1.15;margin-bottom:14px;">These are yours to use</div>
+      <div class="eyebrow" style="text-align:center;">Next Step</div>
+      <div style="font-family:'Montserrat',sans-serif;font-size:34px;font-weight:800;line-height:1.15;margin-bottom:14px;">Get your full live audit</div>
       <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:32px;">This is a snapshot. Our full audit runs <strong style="color:var(--text);">100 data points</strong> across speed, conversions, local SEO, trust signals and more — and shows you exactly what to fix to get more calls and leads.</div>
-      <a href="https://eversite.com/joe" class="cta-btn" id="r-cta">Book a Free Call →</a>
+      <a href="https://eversite.com/joe" class="cta-btn" id="r-cta">Get My Full Audit →</a>
       <div style="margin-top:20px;font-size:12px;color:var(--muted2);">— or —</div>
       <div style="margin-top:10px;font-size:13px;color:var(--muted);">Call our Dallas office · <a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a></div>
     </div>
@@ -303,16 +307,14 @@ function populate(biz){
   const name=biz.company||biz.name||url;
   document.getElementById('r-url').textContent=url||'—';
   document.getElementById('r-footer-biz').textContent=name;
-  if(name)document.getElementById('r-recs-sub').textContent=`Specific to ${name}, not a generic checklist.`;
+  if(name)document.getElementById('r-recs-sub').textContent=`Personalised to ${name}. Not a generic checklist.`;
 
   const crits=Object.values(dims).filter(d=>d.flag==='Critical').length;
-  const opps=Object.values(dims).filter(d=>d.flag==='Critical'||d.flag==='Needs Work').length;
   const sub=document.getElementById('r-sub');
   if(sub){
-    const oppText=opps===1?'one clear opportunity':`${opps} clear opportunities`;
-    if(ws<=50)sub.innerHTML=`We took a look at <strong>${name}</strong> and found ${oppText} to bring in more calls and leads. The good news: these are all very fixable.`;
-    else if(ws<=65)sub.innerHTML=`<strong>${name}</strong> already has a solid foundation. We found ${oppText} that would push it further and turn more visitors into customers.`;
-    else sub.innerHTML=`<strong>${name}</strong> is in good shape, and there's still ${oppText} to capture a few more leads from the visitors you already get.`;
+    if(ws<=50)sub.innerHTML=`<strong>${name}</strong> scored ${ws}/100.${crits?` ${crits} critical issue${crits>1?'s':''} actively costing you leads.`:''}`;
+    else if(ws<=65)sub.innerHTML=`<strong>${name}</strong> scored ${ws}/100. A solid site — but the live audit surfaces what's still holding your conversion rate back.`;
+    else sub.innerHTML=`<strong>${name}</strong> scored ${ws}/100. A decent site with real room to push conversion higher. The live audit surfaces the remaining gaps.`;
   }
 
   setArc('r-donut-arc','r-score','r-grade',ws,66);
@@ -361,46 +363,6 @@ function populate(biz){
   }
   pills('r-mobile-dims',mk);
   pills('r-desktop-dims',dk);
-  const mLcp=parseFloat(biz.psi_mobile_lcp)||null;
-  const dLcp=parseFloat(biz.psi_desktop_lcp)||null;
-  const estLoad=biz.load_time?parseFloat(biz.load_time):null;
-  const rating=parseFloat(biz.google_rating)||null;
-  const reviews=parseInt(biz.review_count)||null;
-  const ISSUE={
-    speed:(ctx)=>{
-      const t=ctx==='mobile'?mLcp:dLcp;
-      if(t)return `Loads in <strong>${t}s</strong> on ${ctx}. Visitors start dropping off after about 3 seconds.`;
-      if(ctx==='desktop'&&estLoad)return `Server responds in <strong>${estLoad}s</strong>, and the full page render is slower still.`;
-      return "Pages are slow to load, and every extra second loses visitors before they see a word.";
-    },
-    mobile:()=>"The site is hard to use on a phone. Tap targets, sizing and layout work against the visitor instead of helping them.",
-    cta:()=>"There's no clear next step above the fold, so visitors don't know how to get in touch.",
-    booking:()=>"There's no easy way to request a quote or book online, so you're relying on people to pick up the phone during business hours.",
-    trust:()=>{
-      if(rating&&reviews)return `You have <strong>${rating} stars from ${reviews} reviews</strong>, but it isn't surfaced where people decide. It's buried instead of front and centre.`;
-      return "Reviews and credentials aren't visible early, so people decide before they ever see your reputation.";
-    },
-    social:()=>{
-      if(rating&&reviews)return `A <strong>${rating} star (${reviews} reviews)</strong> reputation that isn't doing its job. It's not visible on the pages that matter.`;
-      return "Social proof is thin or buried, and testimonials and ratings aren't pulling their weight.";
-    },
-    ssl:()=>"The site isn't fully secure, so browsers may warn visitors before they even land.",
-    seo:()=>"You're hard to find in local search, so competitors are showing up first.",
-    visual:()=>"The layout feels dated or cluttered, which undercuts trust before the content gets a chance.",
-    tech:()=>"Tracking is incomplete, so you can't see where leads come from or what's working."
-  };
-  function issues(elId,keys,ctx){
-    const el=document.getElementById(elId);if(!el)return;
-    const flagged=[...keys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...keys.filter(k=>dims[k]&&dims[k].flag==='Needs Work')].slice(0,3);
-    if(!flagged.length){el.innerHTML=`<li><span class="issue-dot needs-work">+</span><div>This area is in good shape. No major issues flagged.</div></li>`;return;}
-    el.innerHTML=flagged.map(k=>{
-      const fc=dims[k].flag==='Critical'?'critical':'needs-work';
-      const body=typeof ISSUE[k]==='function'?ISSUE[k](ctx):(ISSUE[k]||'');
-      return `<li><span class="issue-dot ${fc}">${fc==='critical'?'!':'~'}</span><div><strong>${(typeof DM!=='undefined'&&DM[k])||k}.</strong> ${body}</div></li>`;
-    }).join('');
-  }
-  issues('r-mobile-issues',mk,'mobile');
-  issues('r-desktop-issues',dk,'desktop');
 
   // Load screenshots into device overlays
   const mUrl=biz.mobile_screenshot_url||biz.mobile_mockup_url||'';
@@ -416,9 +378,9 @@ function populate(biz){
   if(recs.length)renderRecs(recs);
   else{
     renderRecs([
-      {title:"Make the mobile experience effortless",description:"Most of your visitors are on a phone. Faster loading and a clear, tappable next step turns more of those searchers into calls.",impact:"More calls from mobile"},
-      {title:"Put a clear call-to-action above the fold",description:"Right now the next step isn't obvious the moment someone lands. Making it impossible to miss is one of the quickest wins available.",impact:"More quote requests"},
-      {title:"Bring your reviews front and centre",description:"Your reputation is an asset, so surfacing reviews and credentials early builds trust before a visitor even reads your services.",impact:"Higher visitor confidence"}
+      {title:"Fix the mobile experience",description:"Critical mobile issues are losing the majority of leads. Faster loading and a clear CTA will convert more phone searchers.",impact:"Stop losing mobile visitors"},
+      {title:"Add a call-to-action above the fold",description:"Your quote button isn't immediately visible on landing. Moving it to the top can double your conversion rate.",impact:"2x more quote requests"},
+      {title:"Add visible trust signals",description:"Reviews and credentials aren't visible above the fold. Adding these immediately builds credibility.",impact:"Higher conversion rate"}
     ]);
     if(biz.id)fetch(`/api/contacts/${biz.id}/generate-recommendations`).then(r=>r.ok?r.json():null).then(j=>{if(j?.recommendations?.length)renderRecs(j.recommendations);}).catch(()=>{});
   }
@@ -426,13 +388,11 @@ function populate(biz){
 
 function renderRecs(recs){
   const g=document.getElementById('r-recs');if(!g)return;
-  g.innerHTML=recs.map((r,i)=>`<div class="rec-row">
-    <div class="rec-row-num">${String(i+1).padStart(2,'0')}</div>
-    <div>
-      <div class="rec-row-title">${r.title}</div>
-      <div class="rec-row-body">${r.description||r.body||''}</div>
-      ${r.impact?`<div class="rec-row-impact">${r.impact}</div>`:''}
-    </div>
+  g.innerHTML=recs.map((r,i)=>`<div class="rec-card">
+    <div class="rec-num">Fix ${i+1}</div>
+    <div class="rec-title">${r.title}</div>
+    <div class="rec-body">${r.description||r.body||''}</div>
+    ${r.impact?`<div class="rec-impact">${r.impact}</div>`:''}
   </div>`).join('');
 }
 
@@ -455,8 +415,6 @@ async function init(){
       company:c.company||c.name,website:c.website,
       website_score:c.website_score||50,
       dimensions:c.dimensions||{},
-      psi_mobile_lcp:c.psi_mobile_lcp,psi_desktop_lcp:c.psi_desktop_lcp,
-      load_time:c.load_time,google_rating:c.google_rating,review_count:c.review_count,
       recommendations:c.report_recommendations||[],
       mobile_screenshot_url:c.mobile_screenshot_url||c.mobile_mockup_url||'',
       desktop_screenshot_url:c.desktop_screenshot_url||c.desktop_mockup_url||'',
@@ -475,8 +433,3 @@ init();
 </script>
 </body>
 </html>
-
-
-
-
-
