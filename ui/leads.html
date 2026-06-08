@@ -518,6 +518,19 @@ function sortBy(col) {
   applyFilters();
 }
 
+function cityState(addr){
+  if(!addr) return '—';
+  const parts = addr.split(',').map(s=>s.trim()).filter(Boolean);
+  if(parts.length < 2) return addr;
+  const state = (parts[parts.length-1].split(/\s+/)[0]) || '';
+  const city = parts[parts.length-2] || '';
+  return state ? `${city}, ${state}` : city;
+}
+function tidyIndustry(ind){
+  if(!ind) return '—';
+  return ind.replace(/\s*contractor\s*/i,' ').replace(/\s+/g,' ').trim();
+}
+
 function renderTable() {
   const tbody = document.getElementById('leads-tbody');
   const page  = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
@@ -530,8 +543,8 @@ function renderTable() {
     return `<tr class="${selected.has(l.id) ? 'selected' : ''}" data-id="${l.id}">
       <td><input type="checkbox" ${selected.has(l.id) ? 'checked' : ''} onchange="toggleSelect(${l.id}, this)"></td>
       <td class="cell-company">${l.website ? `<a href="https://${l.website}" target="_blank">${l.company || '—'}</a>` : (l.company || '—')}${l.employee_count ? `<div class="cell-muted">${l.employee_count} emp</div>` : ''}</td>
-      <td class="cell-muted">${l.industry || '—'}</td>
-      <td class="cell-muted">${l.location || '—'}</td>
+      <td class="cell-muted">${tidyIndustry(l.industry)}</td>
+      <td class="cell-muted">${cityState(l.location)}</td>
       <td><span class="cell-score" style="color:${scoreColor}">${oppScore}</span><div class="score-bar"><div class="score-bar-fill" style="width:${oppScore}%;background:${scoreColor}"></div></div></td>
       <td><span class="cell-score" style="color:var(--muted);font-size:12px">${l.icp_score || 0}</span></td>
       <td><span class="tier-badge tier-${l.icp_tier || 'D'}">${l.icp_tier || 'D'}</span></td>
