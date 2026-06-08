@@ -752,9 +752,9 @@ async function generateReport() {
     if (idx >= 0) { allLeads[idx].report_url = data.report_url; allLeads[idx].report_slug = data.slug; }
     showToast('Report generated!', 'success');
     // Open report in new tab
-    window.open(data.report_url, '_blank');
+    window.open('https://prospect-engine-production-9368.up.railway.app' + data.report_url, '_blank');
     btn.textContent = 'View Report';
-    btn.onclick = () => window.open(data.report_url, '_blank');
+    btn.onclick = () => window.open('https://prospect-engine-production-9368.up.railway.app' + data.report_url, '_blank');
   } catch(e) {
     showToast('Failed: ' + e.message, 'error');
     btn.textContent = 'Generate Report';
@@ -854,3 +854,4 @@ loadLeads();
 </script>
 </body>
 </html>
+
