@@ -370,6 +370,16 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
 
     await log(f"Scoring {contact.get('company','?')} ({website})...")
 
+    # Real measured speed (PageSpeed Insights)
+    psi = {}
+    try:
+        from scraper.lighthouse import measure_speed
+        psi = await measure_speed(website)
+        if psi:
+            await log(f"  PSI: mobile {psi.get('psi_mobile_lcp','?')}s / desktop {psi.get('psi_desktop_lcp','?')}s")
+    except Exception as e:
+        await log(f"  PSI skipped: {e}")
+
     try:
         from scraper.engine import audit_url, detect_size_signals, detect_intelligence_signals, calculate_icp_score
         import httpx
@@ -443,6 +453,10 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
             "hero_broken":            vision.get("hero_broken", False),
             "cta_above_fold":         vision.get("cta_above_fold", False),
             "phone_above_fold":       vision.get("phone_above_fold", False),
+            "psi_mobile_lcp":         psi.get("psi_mobile_lcp"),
+            "psi_desktop_lcp":        psi.get("psi_desktop_lcp"),
+            "psi_mobile_perf":        psi.get("psi_mobile_perf"),
+            "psi_desktop_perf":       psi.get("psi_desktop_perf"),
             "ai_scored_at":           "now()",
         }
 
