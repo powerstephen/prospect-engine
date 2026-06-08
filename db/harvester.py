@@ -238,9 +238,15 @@ async def harvest(
             except Exception:
                 html = ""
 
-            intel = await detect_intelligence_signals(html, audit.get("website_score", 0))
-            audit.update(intel)
-            audit["mobile_issues"] = audit.get("dimensions", {}).get("mobile", {}).get("mobile_issues", [])
+            # Real measured speed (PageSpeed Insights), falls back to estimate
+            try:
+                from scraper.lighthouse import measure_speed
+                psi = await measure_speed(website)
+                audit.update(psi)
+                if psi:
+                    await log(f"  PSI: mobile {psi.get('psi_mobile_lcp','?')}s / desktop {psi.get('psi_desktop_lcp','?')}s")
+            except Exception as e:
+                await log(f"  PSI skipped: {e}")
 
             icp = calculate_icp_score(audit, biz)
             combined = min(99, icp.get("combined_score", icp["icp_score"]))
@@ -265,6 +271,14 @@ async def harvest(
             "intel_pills":      icp.get("icp_pills") or [],
             "size_signals":     audit.get("size_signals") or [],
             "revenue_leak":     audit.get("revenue_leak") or False,
+            "dimensions":       audit.get("dimensions") or {},
+            "load_time":        audit.get("load_time") or None,
+            "psi_mobile_lcp":   audit.get("psi_mobile_lcp"),
+            "psi_desktop_lcp":  audit.get("psi_desktop_lcp"),
+            "psi_mobile_perf":  audit.get("psi_mobile_perf"),
+            "psi_desktop_perf": audit.get("psi_desktop_perf"),
+            "google_rating":    biz.get("rating") or None,
+            "review_count":     biz.get("reviews") or None,
             "scored_at":        datetime.now(timezone.utc).isoformat() if combined else None,
         }
 
