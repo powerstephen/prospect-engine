@@ -37,7 +37,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .donut-lbl{font-size:10px;color:var(--muted2);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px}
 .donut-grade{display:inline-block;margin-top:10px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 14px;border-radius:20px;text-align:center;width:100%}
 .section{padding:64px 40px;border-top:1px solid var(--border)}
-.section.alt{background:var(--navy2)}
+.section.alt{background:var(--navy)}
 .inner{max-width:920px;margin:0 auto}
 .eyebrow{font-size:14px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
 .dims-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
@@ -61,13 +61,14 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .dim-pill.needs-work{background:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid rgba(245,158,11,0.28)}
 .dim-pill.good{background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.28)}
 .recs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.recs-rows{display:flex;flex-direction:column;gap:14px}
-.rec-row{display:grid;grid-template-columns:64px 1fr;gap:22px;align-items:start;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:14px;padding:24px 26px;position:relative;overflow:hidden}
-.rec-row::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--teal),transparent)}
-.rec-row-num{font-family:'Montserrat',sans-serif;font-size:34px;font-weight:800;color:var(--teal);line-height:1;opacity:0.9}
-.rec-row-title{font-family:'Montserrat',sans-serif;font-size:17px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:8px}
-.rec-row-body{font-size:13px;color:var(--muted);line-height:1.7}
-.rec-row-impact{margin-top:14px;display:inline-block;font-size:10px;font-weight:700;color:var(--teal);letter-spacing:0.5px;text-transform:uppercase;background:rgba(0,196,212,0.08);border:1px solid rgba(0,196,212,0.2);padding:5px 12px;border-radius:20px}
+.recs-rows{display:flex;flex-direction:column}
+.rec-row{display:grid;grid-template-columns:54px 1fr;gap:24px;align-items:start;padding:28px 0;border-top:1px solid var(--border)}
+.rec-row:first-child{border-top:none;padding-top:8px}
+.rec-row-num{font-family:'Montserrat',sans-serif;font-size:28px;font-weight:800;color:var(--teal);line-height:1;opacity:0.55}
+.rec-row-title{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:9px;letter-spacing:-0.2px}
+.rec-row-body{font-size:13.5px;color:var(--muted);line-height:1.75;max-width:600px}
+.rec-row-impact{margin-top:14px;display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--teal);letter-spacing:0.3px}
+.rec-row-impact::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--teal)}
 .issue-list{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:10px}
 .issue-list li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--muted);line-height:1.55}
 .issue-dot{flex-shrink:0;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:10px;font-weight:800}
@@ -83,7 +84,14 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .recs-loading{display:flex;align-items:center;gap:8px;color:var(--muted2);font-size:12px;padding:24px 0}
 .rec-spinner{width:13px;height:13px;border:2px solid rgba(0,196,212,0.18);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.cta-wrap{text-align:center;max-width:540px;margin:0 auto}
+.cta-stack{max-width:560px;margin:0 auto;text-align:center}
+.cta-stack .eyebrow{display:block}
+.gbadge{display:inline-flex;align-items:center;gap:10px;margin-top:38px;padding:12px 22px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:40px}
+.gbadge-g{font-family:'Montserrat',sans-serif;font-weight:800;font-size:16px;letter-spacing:-0.5px}
+.gbadge-g .b{color:#4285F4}.gbadge-g .r{color:#EA4335}.gbadge-g .y{color:#FBBC05}.gbadge-g .g2{color:#34A853}
+.gbadge-stars{color:#FBBC05;font-size:15px;letter-spacing:2px}
+.gbadge-num{font-family:'Montserrat',sans-serif;font-size:16px;font-weight:800;color:var(--text)}
+.gbadge-count{font-size:12px;color:var(--muted)}
 .cta-btn{display:inline-block;background:var(--teal);color:#060c18;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;padding:17px 40px;border-radius:8px;text-decoration:none;letter-spacing:0.3px}
 .cta-btn:hover{opacity:0.86}
 .footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--navy)}
@@ -255,17 +263,21 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 <!-- CTA -->
 <div class="section">
   <div class="inner">
-    <div class="cta-wrap">
-      <div class="eyebrow" style="text-align:center;">Your Move</div>
-      <div style="font-family:'Montserrat',sans-serif;font-size:34px;font-weight:800;line-height:1.15;margin-bottom:14px;">These are yours to use</div>
-      <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:32px;">This is a snapshot. Our full audit runs <strong style="color:var(--text);">100 data points</strong> across speed, conversions, local SEO, trust signals and more — and shows you exactly what to fix to get more calls and leads.</div>
-      <a href="https://eversite.com/joe" class="cta-btn" id="r-cta">Book a Free Call →</a>
-      <div style="margin-top:20px;font-size:12px;color:var(--muted2);">— or —</div>
-      <div style="margin-top:10px;font-size:13px;color:var(--muted);">Call our Dallas office · <a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a></div>
+    <div class="cta-stack">
+      <div class="eyebrow">Here To Help</div>
+      <div style="font-family:'Montserrat',sans-serif;font-size:32px;font-weight:800;line-height:1.18;margin-bottom:16px;">We hope this is useful</div>
+      <div style="font-size:14.5px;color:var(--muted);line-height:1.75;margin-bottom:30px;">We put this together to give you a few genuine wins you can action yourself. If you would like the full picture, we are happy to run a complete <strong style="color:var(--text);">100-point review</strong> of your site, or just have a chat about it. No pressure either way.</div>
+      <a href="https://eversite.com/joe" class="cta-btn" id="r-cta">Get a Full Review, Free &rarr;</a>
+      <div style="margin-top:16px;font-size:13px;color:var(--muted);">or call our Dallas office on <a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a> and ask for Joe or Rob</div>
+      <div class="gbadge">
+        <span class="gbadge-g"><span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="g2">l</span><span class="r">e</span></span>
+        <span class="gbadge-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        <span class="gbadge-num">5.0</span>
+        <span class="gbadge-count">from Eversite clients</span>
+      </div>
     </div>
   </div>
 </div>
-
 <!-- FOOTER -->
 <div class="footer">
   <div style="display:flex;align-items:center;gap:20px;">
