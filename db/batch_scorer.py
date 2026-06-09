@@ -453,6 +453,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
             "hero_broken":            vision.get("hero_broken", False),
             "cta_above_fold":         vision.get("cta_above_fold", False),
             "phone_above_fold":       vision.get("phone_above_fold", False),
+                                "dimensions":             audit.get("dimensions") or {},
             "psi_mobile_lcp":         psi.get("psi_mobile_lcp"),
             "psi_desktop_lcp":        psi.get("psi_desktop_lcp"),
             "psi_mobile_perf":        psi.get("psi_mobile_perf"),
