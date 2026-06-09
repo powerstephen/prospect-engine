@@ -35,6 +35,7 @@
   }
   .nav-logo { display: flex; align-items: center; flex-shrink: 0; }
   .nav-logo img { height: 26px; width: auto; }
+  .nav-title { color: #fff; font-weight: 700; font-size: 15px; letter-spacing: 0.3px; }
   .nav-center { display: flex; align-items: center; gap: 0; }
   .nav-center a {
     font-family: var(--mono); font-size: 12px; color: var(--muted);
@@ -208,8 +209,7 @@
     <img src="/static/moneyball-logo.png" alt="Moneyball">
   </a>
   <div class="nav-center">
-    <a href="/leads" class="active">Prospect Engine</a>
-    <a href="/find">Find Leads</a>
+    <span class="nav-title">Prospect Engine</span>
   </div>
   <div class="nav-right">
     <button>Log in</button>
@@ -223,7 +223,8 @@
     <div class="spacer"></div>
     <button class="btn btn-ghost" onclick="openImportModal()">↑ Import CSV</button>
     <button class="btn btn-ghost" onclick="exportCSV()">↓ Export</button>
-    <button class="btn btn-primary" onclick="openAddModal()">+ Add Lead</button>
+    <button class="btn btn-ghost" onclick="openAddModal()">+ Add Lead</button>
+    <button class="btn btn-primary" onclick="window.location.href='/find'">Find Leads</button>
   </div>
 
   <div class="pipeline-strip">
