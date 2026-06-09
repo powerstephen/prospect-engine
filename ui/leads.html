@@ -779,6 +779,7 @@ async function generateReport() {
     window.open('https://prospect-engine-production-9368.up.railway.app' + data.report_url, '_blank');
     btn.textContent = 'View Report';
     btn.onclick = () => { if (detailLead && detailLead.report_url) window.open('https://prospect-engine-production-9368.up.railway.app' + detailLead.report_url, '_blank'); };
+  } catch(e) {
     showToast('Failed: ' + e.message, 'error');
     btn.textContent = 'Generate Report';
   }
