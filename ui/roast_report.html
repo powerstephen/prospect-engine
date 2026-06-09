@@ -419,7 +419,11 @@ function populate(biz){
   };
   function issues(elId,keys,ctx){
     const el=document.getElementById(elId);if(!el)return;
-    const flagged=[...keys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...keys.filter(k=>dims[k]&&dims[k].flag==='Needs Work')].slice(0,3);
+    let flagged=[...keys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...keys.filter(k=>dims[k]&&dims[k].flag==='Needs Work')];
+    // AI vision guard: don't claim "no CTA" or "no phone" if the AI saw one in the screenshot
+    if(biz.cta_above_fold===true)flagged=flagged.filter(k=>k!=='cta');
+    if(biz.phone_above_fold===true)flagged=flagged.filter(k=>k!=='booking');
+    flagged=flagged.slice(0,3);
     if(!flagged.length){el.innerHTML=`<li><span class="issue-dot needs-work">+</span><div>This area is in good shape. No major issues flagged.</div></li>`;return;}
     el.innerHTML=flagged.map(k=>{
       const fc=dims[k].flag==='Critical'?'critical':'needs-work';
