@@ -464,8 +464,17 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         }
 
     except Exception as e:
-        await log(f"  ✗ Error scoring {website}: {e}")
-        return {"error": str(e), "status": "new"}
+        await log(f"  PARTIAL: vision/audit failed ({e}) - saving PSI anyway")
+        return {
+            "status": "scored",
+            "psi_mobile_lcp":   psi.get("psi_mobile_lcp"),
+            "psi_desktop_lcp":  psi.get("psi_desktop_lcp"),
+            "psi_mobile_fcp":   psi.get("psi_mobile_fcp"),
+            "psi_desktop_fcp":  psi.get("psi_desktop_fcp"),
+            "psi_mobile_perf":  psi.get("psi_mobile_perf"),
+            "psi_desktop_perf": psi.get("psi_desktop_perf"),
+            "ai_scored_at":     "now()",
+        }
 
 
 async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
