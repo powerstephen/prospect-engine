@@ -510,7 +510,9 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
             for k in ["mobile_screenshot_url", "mobile_mockup_url",
                       "desktop_screenshot_url", "desktop_mockup_url",
                       "ai_mobile_score", "ai_visual_summary",
-                      "hero_broken", "cta_above_fold", "phone_above_fold", "ai_scored_at"]:
+                      "hero_broken", "cta_above_fold", "phone_above_fold", "ai_scored_at",
+                      "psi_mobile_lcp", "psi_desktop_lcp", "psi_mobile_fcp", "psi_desktop_fcp",
+                      "psi_mobile_perf", "psi_desktop_perf", "dimensions"]:
                 if result.get(k) is not None:
                     ai_fields[k] = result[k]
 
