@@ -391,15 +391,16 @@ function populate(biz){
   pills('r-desktop-dims',dk);
   const mLcp=parseFloat(biz.psi_mobile_lcp)||null;
   const dLcp=parseFloat(biz.psi_desktop_lcp)||null;
+  const mFcp=parseFloat(biz.psi_mobile_fcp)||null;
+  const dFcp=parseFloat(biz.psi_desktop_fcp)||null;
   const estLoad=biz.load_time?parseFloat(biz.load_time):null;
   const rating=parseFloat(biz.google_rating)||null;
   const reviews=parseInt(biz.review_count)||null;
   const ISSUE={
     speed:(ctx)=>{
-      const t=ctx==='mobile'?mLcp:dLcp;
-      if(t)return `Loads in <strong>${t}s</strong> on ${ctx}. Visitors start dropping off after about 3 seconds.`;
-      if(ctx==='desktop'&&estLoad)return `Server responds in <strong>${estLoad}s</strong>, and the full page render is slower still.`;
-      return "Pages are slow to load, and every extra second loses visitors before they see a word.";
+      const f=ctx==='mobile'?mFcp:dFcp;
+      if(f)return `Tested on Google PageSpeed Insights, your ${ctx} site shows a blank screen for around <strong>${Math.round(f)} seconds</strong> before any content appears. Most visitors leave before that.`;
+      return "Your site is slow to show content, and every extra second loses visitors before they see a word.";
     },
     mobile:()=>"The site is hard to use on a phone. Tap targets, sizing and layout work against the visitor instead of helping them.",
     cta:()=>"There's no clear next step above the fold, so visitors don't know how to get in touch.",
@@ -488,6 +489,7 @@ async function init(){
       website_score:c.website_score||50,
       dimensions:c.dimensions||{},
       psi_mobile_lcp:c.psi_mobile_lcp,psi_desktop_lcp:c.psi_desktop_lcp,
+      psi_mobile_fcp:c.psi_mobile_fcp,psi_desktop_fcp:c.psi_desktop_fcp,
       load_time:c.load_time,google_rating:c.google_rating,review_count:c.review_count,
       recommendations:c.report_recommendations||[],
       mobile_screenshot_url:c.mobile_screenshot_url||c.mobile_mockup_url||'',
