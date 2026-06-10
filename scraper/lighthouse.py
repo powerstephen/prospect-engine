@@ -22,9 +22,11 @@ async def _run(url: str, strategy: str) -> dict:
     lh = data.get("lighthouseResult", {})
     audits = lh.get("audits", {})
     lcp_ms = audits.get("largest-contentful-paint", {}).get("numericValue")
+    fcp_ms = audits.get("first-contentful-paint", {}).get("numericValue")
     perf = lh.get("categories", {}).get("performance", {}).get("score")
     return {
         "lcp": round(lcp_ms / 1000, 1) if lcp_ms else None,
+        "fcp": round(fcp_ms / 1000, 1) if fcp_ms else None,
         "perf": round(perf * 100) if perf is not None else None,
     }
 
@@ -49,9 +51,11 @@ async def measure_speed(url: str) -> dict:
         out = {}
         if isinstance(mobile, dict):
             out["psi_mobile_lcp"] = mobile.get("lcp")
+            out["psi_mobile_fcp"] = mobile.get("fcp")
             out["psi_mobile_perf"] = mobile.get("perf")
         if isinstance(desktop, dict):
             out["psi_desktop_lcp"] = desktop.get("lcp")
+            out["psi_desktop_fcp"] = desktop.get("fcp")
             out["psi_desktop_perf"] = desktop.get("perf")
         return {k: v for k, v in out.items() if v is not None}
     except Exception:

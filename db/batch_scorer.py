@@ -455,9 +455,11 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
             "phone_above_fold":       vision.get("phone_above_fold", False),
                                 "dimensions":             audit.get("dimensions") or {},
             "psi_mobile_lcp":         psi.get("psi_mobile_lcp"),
-            "psi_desktop_lcp":        psi.get("psi_desktop_lcp"),
-            "psi_mobile_perf":        psi.get("psi_mobile_perf"),
-            "psi_desktop_perf":       psi.get("psi_desktop_perf"),
+                                "psi_desktop_lcp":        psi.get("psi_desktop_lcp"),
+                                "psi_mobile_fcp":         psi.get("psi_mobile_fcp"),
+                                "psi_desktop_fcp":        psi.get("psi_desktop_fcp"),
+                                "psi_mobile_perf":        psi.get("psi_mobile_perf"),
+                                "psi_desktop_perf":       psi.get("psi_desktop_perf"),
             "ai_scored_at":           "now()",
         }
 
