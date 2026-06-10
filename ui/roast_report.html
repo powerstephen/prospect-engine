@@ -200,6 +200,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
         <div style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:8px;">
           <p style="margin-bottom:6px;font-size:14px;"><strong style="color:var(--text);">75%+ of local searches happen on a phone.</strong> This is the version most of your customers see first, and where the biggest wins are.</p>
         </div>
+        <div id="r-speed-line" style="display:none;margin:16px 0;padding:14px 16px;border-radius:10px;font-size:13px;line-height:1.6;"></div>
         <ul class="issue-list" id="r-mobile-issues"></ul>
         <div class="dim-pills" id="r-mobile-dims" style="margin-top:20px;"></div>
       </div>
@@ -432,7 +433,23 @@ function populate(biz){
       return `<li><span class="issue-dot ${fc}">${fc==='critical'?'!':'~'}</span><div><strong>${(typeof DM!=='undefined'&&DM[k])||k}.</strong> ${body}</div></li>`;
     }).join('');
   }
-  issues('r-mobile-issues',mk,'mobile');
+  // Always-on speed line, driven by FCP (Google PageSpeed), tone adapts at 2.5s
+  (function(){
+    const el=document.getElementById('r-speed-line');
+    if(!el||!mFcp)return;
+    const s=Math.round(mFcp*10)/10;
+    if(mFcp<2.5){
+      el.style.background='rgba(16,185,129,0.08)';el.style.border='1px solid rgba(16,185,129,0.28)';
+      el.innerHTML=`<strong style="color:#10b981;">Speed is working in your favour.</strong> Tested on Google PageSpeed Insights, your mobile site shows content in about <strong>${s} seconds</strong>. That's quick, and it keeps visitors from dropping off. It can always be tuned further, but this one's a strength.`;
+    } else {
+      el.style.background='rgba(245,158,11,0.08)';el.style.border='1px solid rgba(245,158,11,0.28)';
+      el.innerHTML=`<strong style="color:#f59e0b;">Speed: room to improve.</strong> Tested on Google PageSpeed Insights, your mobile site shows a blank screen for around <strong>${Math.round(mFcp)} seconds</strong> before any content appears. Most visitors leave before that, so this is one of the biggest wins available.`;
+    }
+    el.style.display='block';
+  })();
+  // Remove speed from the flag-driven bullets (it now has its own always-on line)
+  const mkIssues=mk.filter(k=>k!=='speed');
+  issues('r-mobile-issues',mkIssues,'mobile');
   issues('r-desktop-issues',dk,'desktop');
 
   // Load screenshots into device overlays
