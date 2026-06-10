@@ -232,6 +232,16 @@ async def list_contacts(status: str = None, industry: str = None, limit: int = 2
     except Exception as e:
         raise HTTPException(500, f"Database error: {e}")
 
+@app.get("/psi-test")
+async def psi_test():
+    import os
+    from scraper.lighthouse import measure_speed
+    try:
+        result = await measure_speed("https://frtroof.com/")
+        return {"key_present": bool(os.environ.get("PSI_KEY")), "result": result}
+    except Exception as e:
+        return {"key_present": bool(os.environ.get("PSI_KEY")), "error": str(e)}
+
 @app.get("/api/contacts/stats")
 async def contact_stats():
     try:
