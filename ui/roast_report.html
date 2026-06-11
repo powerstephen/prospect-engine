@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v42</title>
+<title>Website Growth Recommendations · Eversite v43</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -123,11 +123,29 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .error-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:40px;text-align:center}
 @media(max-width:680px){
   .hero-grid,.desktop-top-grid,.recs-grid{grid-template-columns:1fr}
-  .mobile-grid{grid-template-columns:1fr}
+  .mobile-grid{grid-template-columns:1fr !important}
   .dims-grid{grid-template-columns:repeat(2,1fr)}
   .section{padding:40px 24px}
   .hero-inner{padding:40px 24px}
   .footer{flex-direction:column;gap:8px;text-align:center}
+  .footer-inner{flex-direction:column;align-items:center;gap:14px;text-align:center}
+  .footer-inner>div{align-items:center !important}
+  /* Header stacks cleanly */
+  .hero-bar{flex-direction:column;align-items:flex-start;gap:16px;margin-bottom:36px}
+  .report-meta{align-items:flex-start}
+  /* Score + heading stack vertically, divider becomes a top border */
+  .mobile-top{grid-template-columns:1fr;gap:20px;margin-bottom:28px}
+  .mobile-top-heading{padding-left:0;padding-top:20px;border-left:none;border-top:1px solid var(--border2);font-size:21px !important}
+  /* Bigger laptop scale removed on phone, screenshot centered */
+  .mobile-grid>div:first-child{transform:none !important}
+  /* Metric rows: smaller icon column so text has room */
+  .metric-row{grid-template-columns:56px 1fr;gap:16px;padding:18px 0}
+  .metric-icon svg{width:32px;height:32px}
+  .metric-bignum{font-size:20px}
+  .metric-title{font-size:16px !important}
+  .metric-body{font-size:12.5px}
+  /* CTA trust panel spacing */
+  .cta-trust{padding:26px 22px}
 }
 </style>
 </head>
@@ -321,7 +339,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
     <div class="footer-note">Prepared for <span id="r-footer-biz"></span></div>
     <div class="footer-note" id="r-footer-date"></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v42</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v43</div>
   </div>
   </div>
 </div>
