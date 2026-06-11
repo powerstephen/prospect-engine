@@ -227,7 +227,35 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                     await mobile_page.wait_for_timeout(2000)
                 except Exception as e:
                     await log(f"  ✗ Mobile page load failed: {e}")
-            
+
+            # ── Bot-protection / Cloudflare challenge detection ──
+            # If the page is a security interstitial, screenshots and speed
+            # numbers are meaningless (we'd capture a robot, not the site).
+            # Flag the lead so the caller can archive it instead of scoring.
+            try:
+                page_title = (await mobile_page.title() or "").lower()
+                page_text = (await mobile_page.inner_text("body") or "").lower()
+            except Exception:
+                page_title, page_text = "", ""
+            CHALLENGE_MARKERS = [
+                "just a moment",
+                "checking the site connection security",
+                "checking your browser",
+                "enable javascript and cookies to continue",
+                "verifying you are human",
+                "attention required",
+                "cf-browser-verification",
+                "challenge-platform",
+                "ddos protection by",
+                "ray id",
+            ]
+            blob = page_title + " " + page_text
+            if any(m in blob for m in CHALLENGE_MARKERS):
+                await log(f"  ⚠ Bot protection detected (Cloudflare/challenge) - flagging as bot_protected")
+                await mobile_ctx.close()
+                await browser.close()
+                return {"bot_protected": True}
+
             if mobile_page:
                 mobile_screenshot = await mobile_page.screenshot(full_page=False, type="jpeg", quality=75)
                 await log(f"  ✓ Mobile screenshot ({len(mobile_screenshot)} bytes)")
@@ -412,6 +440,15 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         # 5. AI Vision (mobile + desktop)
         vision = await run_ai_vision(contact, log_cb=log)
 
+        # If the site is behind a bot/Cloudflare challenge, the screenshot and
+        # speed numbers are junk. Archive the lead instead of scoring it.
+        if vision.get("bot_protected"):
+            await log(f"  ⚠ {contact.get('company','?')} - bot-protected site, archiving (not scoring)")
+            return {
+                "status": "bot_protected",
+                "ai_scored_at": "now()",
+            }
+
         # 6. Boost from AI findings
         ai_boost = 0
         if vision.get("ai_mobile_score"):
@@ -493,7 +530,7 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
         return {"scored": 0, "hot": 0, "warm": 0, "archived": 0, "errors": 0}
 
     await log(f"Starting batch score — {len(contacts)} contacts queued...")
-    results = {"scored": 0, "hot": 0, "warm": 0, "archived": 0, "errors": 0}
+    results = {"scored": 0, "hot": 0, "warm": 0, "archived": 0, "bot_protected": 0, "errors": 0}
 
     for contact in contacts:
         try:
@@ -551,6 +588,7 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
             if status == "scored":     results["hot"] += 1
             elif status == "nurture":  results["warm"] += 1
             elif status == "archived": results["archived"] += 1
+            elif status == "bot_protected": results["bot_protected"] = results.get("bot_protected", 0) + 1
 
             await asyncio.sleep(1)
 
