@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v46</title>
+<title>Website Growth Recommendations · Eversite v48</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -17,7 +17,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 }
 .hero{background:var(--navy);padding:0;position:relative;overflow:hidden}
 .hero::after{content:'';position:absolute;top:-200px;right:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(0,196,212,0.06) 0%,transparent 65%);pointer-events:none}
-.hero-inner{max-width:920px;margin:0 auto;padding:52px 40px 60px}
+.hero-inner{max-width:1000px;margin:0 auto;padding:52px 40px 60px}
 .hero-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:52px}
 .report-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 .report-meta span{font-size:10px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase}
@@ -335,7 +335,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
     <div class="footer-note" id="r-footer-date"></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v46</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v48</div>
   </div>
   </div>
 </div>
@@ -578,16 +578,50 @@ function populate(biz){
   document.getElementById('loading').style.display='none';
   document.getElementById('report').style.display='block';
 
-  const recs=biz.recommendations||biz.report_recommendations||[];
-  if(recs.length)renderRecs(recs);
-  else{
-    renderRecs([
-      {title:"Speed up your mobile site",description:"Most of your visitors are on a phone. Faster loading and a clear, tappable next step turns more of those searchers into calls.",impact:"Faster site, more traffic"},
-      {title:"Make the next step obvious",description:"Right now the next step isn't clear the moment someone lands. A clear call-to-action above the fold is one of the quickest wins available.",impact:"Better CTAs, more leads"},
-      {title:"Put your reviews front and centre",description:"Your reputation is an asset, so surfacing reviews and credentials early builds trust before a visitor even reads your services.",impact:"More calls, more customers"}
-    ]);
-    if(biz.id)fetch(`/api/contacts/${biz.id}/generate-recommendations`).then(r=>r.ok?r.json():null).then(j=>{if(j?.recommendations?.length)renderRecs(j.recommendations);}).catch(()=>{});
-  }
+  // Recommendations derived from the lowest-scoring dimensions (grounded, can't contradict the site)
+  renderRecs(buildRecsFromDims(dims));
+}
+
+// Vetted recommendation copy per dimension — grounded, defensible, outcome-focused.
+// Some entries adapt to the dimension's status/sub-fields for accuracy.
+function buildRecsFromDims(dims){
+  const REC={
+    cta:(d)=>{
+      const mailtoOnly=d.has_mailto_only===true;
+      const noForm=d.has_form===false;
+      if(mailtoOnly||noForm)return {title:"Make it easier to get in touch",description:"Your main button opens an email client rather than a quick contact form. Adding a simple form lets visitors request a quote in a couple of taps, without leaving your site.",impact:"More quote requests"};
+      return {title:"Make the next step obvious",description:"Give visitors one clear action the moment they land, so they always know how to get in touch.",impact:"Better CTAs, more leads"};
+    },
+    booking:()=>({title:"Add online quote requests",description:"Right now the only way to reach you is by phone. A simple request-a-quote option captures leads even outside business hours, when a lot of roofing searches happen.",impact:"More leads, day and night"}),
+    trust:(d)=>{
+      const noReviews=d.has_google_reviews===false;
+      if(noReviews)return {title:"Put your Google reviews front and centre",description:"Your reviews aren't surfaced where people decide. Showing your rating and recent reviews early builds trust before a visitor even reads your services.",impact:"More calls, more customers"};
+      return {title:"Surface your reputation earlier",description:"Your credentials and testimonials are there, but they aren't visible where people decide. Bringing them up front builds trust faster.",impact:"More calls, more customers"};
+    },
+    social:()=>({title:"Show off your reputation",description:"Feature your star rating and recent reviews prominently so new visitors trust you straight away.",impact:"Higher visitor confidence"}),
+    speed:()=>({title:"Speed up your site",description:"Your site is slow to show content, and visitors leave before it loads. Compressing images and cleaning up what loads first is one of the fastest wins available.",impact:"Faster site, more traffic"}),
+    mobile:(d)=>{
+      const overflow=d.overflow_images>0;
+      if(overflow)return {title:"Fix the mobile layout",description:"Some images spill outside the screen on phones, which makes the site feel broken. Tidying the mobile layout keeps visitors engaged.",impact:"More calls from mobile"};
+      return {title:"Make the mobile experience effortless",description:"Most visitors arrive on a phone. Making the layout, buttons and text effortless on mobile turns more of them into calls.",impact:"More calls from mobile"};
+    },
+    seo:()=>({title:"Get found in local search",description:"Tune your titles, content and Google profile so you show up when locals search for a roofer in your area.",impact:"More local traffic"}),
+    visual:()=>({title:"Freshen up the design",description:"A cleaner, more modern look builds trust faster and keeps visitors reading instead of bouncing.",impact:"Stronger first impression"}),
+    tech:()=>({title:"Track where your leads come from",description:"Your tracking is incomplete, so you can't see which channels actually drive calls. Completing it shows you what's working.",impact:"Know what's working"}),
+    ssl:()=>({title:"Secure your site",description:"Your site isn't fully secure, so browsers may warn visitors away before they ever land. Fixing this removes that barrier.",impact:"Fewer drop-offs"})
+  };
+  // Rank dimensions by score ratio ascending (lowest = most worth fixing).
+  // Tie-break by lead-impact priority so customer-facing wins beat technical ones.
+  const PRIORITY={cta:1,booking:2,trust:3,social:4,speed:5,mobile:6,visual:7,seo:8,tech:9,ssl:10};
+  const ranked=Object.entries(dims)
+    .filter(([k,d])=>REC[k]&&d&&typeof d.score==='number')
+    .sort((a,b)=>{
+      const ra=a[1].score/a[1].max, rb=b[1].score/b[1].max;
+      if(ra!==rb)return ra-rb;
+      return (PRIORITY[a[0]]||99)-(PRIORITY[b[0]]||99);
+    })
+    .slice(0,3);
+  return ranked.map(([k,d])=>REC[k](d));
 }
 
 function renderRecs(recs){
