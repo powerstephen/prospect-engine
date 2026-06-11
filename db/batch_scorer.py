@@ -498,6 +498,8 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
                                 "psi_desktop_fcp":        psi.get("psi_desktop_fcp"),
                                 "psi_mobile_perf":        psi.get("psi_mobile_perf"),
                                 "psi_desktop_perf":       psi.get("psi_desktop_perf"),
+            "total_image_kb":         audit.get("total_image_kb"),
+            "heavy_images":           audit.get("heavy_images"),
             "ai_scored_at":           "now()",
         }
 
@@ -559,7 +561,8 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                       "ai_mobile_score", "ai_visual_summary",
                       "hero_broken", "cta_above_fold", "phone_above_fold", "ai_scored_at",
                       "psi_mobile_lcp", "psi_desktop_lcp", "psi_mobile_fcp", "psi_desktop_fcp",
-                      "psi_mobile_perf", "psi_desktop_perf", "dimensions"]:
+                      "psi_mobile_perf", "psi_desktop_perf", "dimensions",
+                      "total_image_kb", "heavy_images"]:
                 if result.get(k) is not None:
                     ai_fields[k] = result[k]
 
