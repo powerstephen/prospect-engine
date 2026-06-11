@@ -31,10 +31,28 @@ async def _run(url: str, strategy: str) -> dict:
     }
 
 
+async def _run_with_retry(url: str, strategy: str, attempts: int = 2) -> dict:
+    """Run a PSI audit, retrying once on failure. Returns {} if all attempts fail.
+    Mobile audits time out / rate-limit more often than desktop, so a single
+    retry recovers most transient failures."""
+    last_exc = None
+    for i in range(attempts):
+        try:
+            return await _run(url, strategy)
+        except Exception as e:
+            last_exc = e
+            if i < attempts - 1:
+                await asyncio.sleep(2)  # brief backoff before retry
+    return {}
+
+
 async def measure_speed(url: str) -> dict:
     """
     Returns real measured numbers when PSI succeeds, else {} so the
     caller falls back to the httpx estimate. Never raises.
+    Mobile and desktop are run sequentially (mobile first, as the priority
+    metric) with a retry each, which is far more reliable than firing both
+    at once - that tended to leave mobile null while desktop succeeded.
     """
     if not url:
         return {}
@@ -43,11 +61,8 @@ async def measure_speed(url: str) -> dict:
     if not PSI_KEY:
         return {}
     try:
-        mobile, desktop = await asyncio.gather(
-            _run(url, "mobile"),
-            _run(url, "desktop"),
-            return_exceptions=True,
-        )
+        mobile = await _run_with_retry(url, "mobile")
+        desktop = await _run_with_retry(url, "desktop")
         out = {}
         if isinstance(mobile, dict):
             out["psi_mobile_lcp"] = mobile.get("lcp")
