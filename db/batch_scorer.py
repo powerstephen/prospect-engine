@@ -379,6 +379,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
             await log(f"  PSI: mobile {psi.get('psi_mobile_lcp','?')}s / desktop {psi.get('psi_desktop_lcp','?')}s")
     except Exception as e:
         await log(f"  PSI skipped: {e}")
+        globals()["_LAST_PSI_ERROR"] = str(e)[:400]
 
     try:
         from scraper.engine import audit_url, detect_size_signals, detect_intelligence_signals, calculate_icp_score
