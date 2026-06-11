@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v50</title>
+<title>Website Growth Recommendations · Eversite v54</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -335,7 +335,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
     <div class="footer-note" id="r-footer-date"></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v50</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v54</div>
   </div>
   </div>
 </div>
@@ -496,21 +496,45 @@ function populate(biz){
     const stopwatch=(col)=>`<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M9 2h6"/><path d="M19 6l-1.5-1.5"/></svg>`;
     const triangle=(col)=>`<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.2 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
     let rows='';
-    // FCP hero row
-    if(mFcp){
+    // Speed hero row: lead with whichever metric is actually the problem.
+    // FCP under ~3s is fine; if LCP is slow, THAT is the story, so lead with it.
+    const mlcp=parseFloat(biz.psi_mobile_lcp)||null;
+    const fcpOk=mFcp&&mFcp<3;
+    const lcpSlow=mlcp&&mlcp>=4;
+    const lcpMiddle=mlcp&&mlcp>=2.5&&mlcp<4;
+    if(mFcp&&fcpOk&&lcpSlow){
+      // FCP is fine but the full page is slow to finish - lead with LCP (the real problem)
+      const ls=mlcp.toFixed(1);
+      rows+=`<div class="metric-row">
+        <div class="metric-icon">${stopwatch('#ef4444')}<div class="metric-bignum" style="color:#ef4444;">${ls}s</div><div class="metric-sub">FULL LOAD</div></div>
+        <div>
+          <div class="metric-title">Your full page takes ${ls} seconds to load</div>
+          <div class="metric-body">Measured on Google PageSpeed Insights. The first content appears quickly (around ${mFcp.toFixed(1)}s), but the page isn't fully loaded and usable until ${ls} seconds, so visitors are left waiting and staring at a half-built page.</div>
+          <div class="metric-point">Most visitors won't wait this long before leaving.</div>
+        </div>
+      </div>`;
+    } else if(mFcp&&fcpOk&&lcpMiddle){
+      // FCP fine, LCP decent but improvable - lead with LCP framed as a sharpening opportunity
+      const ls=mlcp.toFixed(1);
+      rows+=`<div class="metric-row">
+        <div class="metric-icon">${stopwatch('#f59e0b')}<div class="metric-bignum" style="color:#f59e0b;">${ls}s</div><div class="metric-sub">FULL LOAD</div></div>
+        <div>
+          <div class="metric-title">Your full page loads in ${ls} seconds</div>
+          <div class="metric-body">Measured on Google PageSpeed Insights. Your first content appears quickly (around ${mFcp.toFixed(1)}s), and the full page finishes in ${ls}s. That's decent, but there's room to make it faster, which usually comes down to compressing large images.</div>
+          <div class="metric-point">A faster full load keeps more visitors from drifting away.</div>
+        </div>
+      </div>`;
+    } else if(mFcp){
+      // Lead with FCP: either it's the problem (slow) or everything is genuinely fast
       const s=(Math.round(mFcp*10)/10).toFixed(1);
       const fast=mFcp<2.5;
       const col=fast?'#10b981':'#f59e0b';
-      const mlcp=parseFloat(biz.psi_mobile_lcp)||null;
-      // If the full page (LCP) takes notably longer than first paint, surface it
-      const showLcp=mlcp&&mlcp>=4&&mlcp>mFcp+1.5;
-      const lcpLine=showLcp?` The full page takes around ${mlcp.toFixed(1)} seconds to finish loading, so visitors are left waiting well after the first content appears.`:'';
       rows+=`<div class="metric-row">
         <div class="metric-icon">${stopwatch(col)}<div class="metric-bignum" style="color:${col};">${s}s</div><div class="metric-sub">FCP</div></div>
         <div>
           <div class="metric-title">First content loads in ${s} seconds</div>
-          <div class="metric-body">Measured on Google PageSpeed Insights, this is how long the mobile screen stays blank before anything appears.${lcpLine}</div>
-          <div class="metric-point">${fast&&!showLcp?"That's quick, and it keeps visitors from dropping off.":"Over half of visitors leave if it takes more than 3 seconds."}</div>
+          <div class="metric-body">Measured on Google PageSpeed Insights, this is how long the mobile screen stays blank before anything appears.</div>
+          <div class="metric-point">${fast?"That's quick, and it keeps visitors from dropping off.":"Over half of visitors leave if it takes more than 3 seconds."}</div>
         </div>
       </div>`;
     } else {
@@ -616,7 +640,7 @@ function buildRecsFromDims(dims,ctx){
       if(overflow)return {title:"Fix the mobile layout",description:`Some images (${d.overflow_images}) spill outside the screen on phones, which makes the site feel broken. Tidying the mobile layout keeps visitors engaged.`,impact:"More calls from mobile"};
       return {title:"Make the mobile experience effortless",description:"Most visitors arrive on a phone. Making the layout, buttons and text effortless on mobile turns more of them into calls.",impact:"More calls from mobile"};
     },
-    seo:()=>({title:"Get found in local search",description:"Tune your titles, content and Google profile so you show up when locals search for a roofer in your area.",impact:"More local traffic"}),
+    seo:()=>({title:"Strengthen your on-page basics",description:"A few of the on-page signals search engines look for could be stronger, like a clear page title, a meta description, and your location and services in the content. Tightening these gives search engines a better understanding of who you are and where you work.",impact:"A stronger search foundation"}),
     visual:()=>({title:"Freshen up the design",description:"A cleaner, more modern look builds trust faster and keeps visitors reading instead of bouncing.",impact:"Stronger first impression"}),
     tech:()=>({title:"Track where your leads come from",description:"Your tracking is incomplete, so you can't see which channels actually drive calls. Completing it shows you what's working.",impact:"Know what's working"}),
     ssl:()=>({title:"Secure your site",description:"Your site isn't fully secure, so browsers may warn visitors away before they ever land. Fixing this removes that barrier.",impact:"Fewer drop-offs"})
@@ -656,6 +680,13 @@ function buildRecsFromDims(dims,ctx){
     ranked=ranked.filter(k=>k!=='cta'&&k!=='booking');
   }
 
+  // 2b) Merge Trust + Social into one "reputation" theme when BOTH are weak (they overlap on reviews)
+  let mergedReputation=null;
+  if(isWeak('trust')&&isWeak('social')){
+    mergedReputation={title:"Put your reviews front and centre",description:"Your reviews and credentials aren't surfaced where people decide. Featuring your star rating and recent reviews early builds trust before a visitor even reads your services.",impact:"More calls, more customers"};
+    ranked=ranked.filter(k=>k!=='trust'&&k!=='social');
+  }
+
   // 3) Inject an LCP-driven speed rec if the full load time is slow and speed isn't already top-ranked
   let forceSpeed=null;
   if(worstLcp&&worstLcp>=4&&!ranked.slice(0,1).includes('speed')){
@@ -663,10 +694,11 @@ function buildRecsFromDims(dims,ctx){
     ranked=ranked.filter(k=>k!=='speed');
   }
 
-  // 4) Assemble: merged contact first (if any), then forced speed (if any), then fill from ranked dims
+  // 4) Assemble: merged themes first, then forced speed, then fill from ranked dims
   const out=[];
   if(mergedContact)out.push(mergedContact);
   if(forceSpeed)out.push(forceSpeed);
+  if(mergedReputation)out.push(mergedReputation);
   for(const k of ranked){
     if(out.length>=3)break;
     out.push(REC[k](dims[k]));
