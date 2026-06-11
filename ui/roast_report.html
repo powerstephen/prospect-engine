@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v49</title>
+<title>Website Growth Recommendations · Eversite v50</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -335,7 +335,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
     <div class="footer-note" id="r-footer-date"></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v49</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v50</div>
   </div>
   </div>
 </div>
@@ -501,12 +501,16 @@ function populate(biz){
       const s=(Math.round(mFcp*10)/10).toFixed(1);
       const fast=mFcp<2.5;
       const col=fast?'#10b981':'#f59e0b';
+      const mlcp=parseFloat(biz.psi_mobile_lcp)||null;
+      // If the full page (LCP) takes notably longer than first paint, surface it
+      const showLcp=mlcp&&mlcp>=4&&mlcp>mFcp+1.5;
+      const lcpLine=showLcp?` The full page takes around ${mlcp.toFixed(1)} seconds to finish loading, so visitors are left waiting well after the first content appears.`:'';
       rows+=`<div class="metric-row">
         <div class="metric-icon">${stopwatch(col)}<div class="metric-bignum" style="color:${col};">${s}s</div><div class="metric-sub">FCP</div></div>
         <div>
           <div class="metric-title">First content loads in ${s} seconds</div>
-          <div class="metric-body">Measured on Google PageSpeed Insights, this is how long the mobile screen stays blank before anything appears.</div>
-          <div class="metric-point">${fast?"That's quick, and it keeps visitors from dropping off.":"Over half of visitors leave if it takes more than 3 seconds."}</div>
+          <div class="metric-body">Measured on Google PageSpeed Insights, this is how long the mobile screen stays blank before anything appears.${lcpLine}</div>
+          <div class="metric-point">${fast&&!showLcp?"That's quick, and it keeps visitors from dropping off.":"Over half of visitors leave if it takes more than 3 seconds."}</div>
         </div>
       </div>`;
     } else {
@@ -579,14 +583,19 @@ function populate(biz){
   document.getElementById('report').style.display='block';
 
   // Recommendations derived from the lowest-scoring dimensions (grounded, can't contradict the site)
-  renderRecs(buildRecsFromDims(dims,{mFcp,mLcp,biz}));
+  renderRecs(buildRecsFromDims(dims,{mFcp,mLcp,dLcp,biz}));
 }
 
 // Vetted recommendation copy per dimension — grounded, defensible, outcome-focused.
 function buildRecsFromDims(dims,ctx){
   ctx=ctx||{};
-  const mLcp=ctx.mLcp||null, mFcp=ctx.mFcp||null;
+  const mLcp=ctx.mLcp||null, mFcp=ctx.mFcp||null, dLcp=ctx.dLcp||null;
   const biz=ctx.biz||{};
+  // Pick the worse of mobile/desktop LCP and remember which surface it is
+  let worstLcp=null, worstSurface='';
+  if(mLcp&&dLcp){ if(mLcp>=dLcp){worstLcp=mLcp;worstSurface='mobile';}else{worstLcp=dLcp;worstSurface='desktop';} }
+  else if(mLcp){worstLcp=mLcp;worstSurface='mobile';}
+  else if(dLcp){worstLcp=dLcp;worstSurface='desktop';}
   const REC={
     cta:(d)=>{
       const mailtoOnly=d.has_mailto_only===true;
@@ -615,8 +624,8 @@ function buildRecsFromDims(dims,ctx){
   // Speed rec built from real LCP (full load time) + image weight if available
   function buildSpeedRec(){
     const totalImgMb=biz.total_image_kb?(biz.total_image_kb/1024):null;
-    if(mLcp&&mLcp>=4){
-      let desc=`Your full page takes around ${mLcp.toFixed(1)} seconds to finish loading on mobile. Visitors rarely wait that long, so this is likely costing you leads before they ever see your site.`;
+    if(worstLcp&&worstLcp>=4){
+      let desc=`Your full page takes around ${worstLcp.toFixed(1)} seconds to finish loading on ${worstSurface}. Visitors rarely wait that long, so this is likely costing you leads before they ever see your site.`;
       if(totalImgMb&&totalImgMb>=2){
         desc+=` The main culprit is image weight: your homepage loads about ${totalImgMb.toFixed(1)}MB of images. Compressing these is usually the single biggest speed win.`;
       } else {
@@ -649,7 +658,7 @@ function buildRecsFromDims(dims,ctx){
 
   // 3) Inject an LCP-driven speed rec if the full load time is slow and speed isn't already top-ranked
   let forceSpeed=null;
-  if(mLcp&&mLcp>=4&&!ranked.slice(0,1).includes('speed')){
+  if(worstLcp&&worstLcp>=4&&!ranked.slice(0,1).includes('speed')){
     forceSpeed=buildSpeedRec();
     ranked=ranked.filter(k=>k!=='speed');
   }
