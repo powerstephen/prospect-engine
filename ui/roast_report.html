@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v44</title>
+<title>Website Growth Recommendations · Eversite v46</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -57,7 +57,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .mobile-top{display:grid;grid-template-columns:auto 1fr;gap:44px;align-items:center;margin-bottom:36px}
 .mobile-top-heading{padding-left:44px;border-left:1px solid var(--border2)}
 .metric-rows{display:flex;flex-direction:column;gap:4px}
-.desktop-issues-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 40px;max-width:860px;margin:0 auto}
+.desktop-issues-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 48px;max-width:920px;margin:0 auto}
 .desktop-issues-grid .metric-row{border-top:none}
 .metric-row{display:grid;grid-template-columns:88px 1fr;gap:22px;align-items:center;padding:20px 0;border-top:1px solid var(--border)}
 .metric-row:first-child{border-top:none;padding-top:4px}
@@ -304,7 +304,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 <!-- CTA -->
 <div class="section">
   <div class="inner">
-    <div style="max-width:760px;margin:0 auto;">
+    <div style="max-width:920px;margin:0 auto;">
       <div class="eyebrow">Here To Help</div>
       <div style="font-family:'Montserrat',sans-serif;font-size:30px;font-weight:800;line-height:1.18;margin-bottom:18px;">We hope this was useful</div>
       <div style="font-size:14.5px;color:var(--muted);line-height:1.8;margin-bottom:10px;text-align:left;">This is just a quick snapshot of your site, and we hope you find the information useful. If you would like us to provide a full <strong style="color:var(--text);">100-point review</strong> of your site, we are more than happy to do that for you, for free, at a time of your choosing. Just fill out the form to book in your free review.</div>
@@ -335,7 +335,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
     <div class="footer-note" id="r-footer-date"></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v44</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v46</div>
   </div>
   </div>
 </div>
@@ -380,10 +380,9 @@ function populate(biz){
   const sub=document.getElementById('r-sub');
   if(sub){
     if(opps===0){
-      sub.innerHTML=`We've put together some insights and recommendations for <strong>${name}</strong> to help generate more leads and grow. The good news: your site is already in great shape, and we didn't find anything major holding you back. A few small refinements aside, it's working for you.`;
+      sub.innerHTML=`We've taken a close look at <strong>${name}</strong> across site speed, mobile experience, how easy it is to get in touch, and how your reputation shows up online. The good news: your site is already in great shape. Inside are a few insights worth knowing to keep the calls coming in.`;
     } else {
-      const oppText=opps===1?'one clear opportunity':`${opps} clear opportunities`;
-      sub.innerHTML=`We've put together some insights and actionable recommendations for <strong>${name}</strong> to help generate more leads and grow. We found ${oppText} to bring in more calls from the visitors you already get, and the good news is they're all very fixable.`;
+      sub.innerHTML=`We've taken a close look at <strong>${name}</strong> across site speed, mobile experience, how easy it is to get in touch, and how your reputation shows up online. Inside are a few things worth knowing about your site, and some small changes that could make a real difference to how many leads it brings in.`;
     }
   }
 
