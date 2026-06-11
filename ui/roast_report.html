@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v48</title>
+<title>Website Growth Recommendations · Eversite v49</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -335,7 +335,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
     <div class="footer-note" id="r-footer-date"></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v48</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v49</div>
   </div>
   </div>
 </div>
@@ -579,12 +579,14 @@ function populate(biz){
   document.getElementById('report').style.display='block';
 
   // Recommendations derived from the lowest-scoring dimensions (grounded, can't contradict the site)
-  renderRecs(buildRecsFromDims(dims));
+  renderRecs(buildRecsFromDims(dims,{mFcp,mLcp,biz}));
 }
 
 // Vetted recommendation copy per dimension — grounded, defensible, outcome-focused.
-// Some entries adapt to the dimension's status/sub-fields for accuracy.
-function buildRecsFromDims(dims){
+function buildRecsFromDims(dims,ctx){
+  ctx=ctx||{};
+  const mLcp=ctx.mLcp||null, mFcp=ctx.mFcp||null;
+  const biz=ctx.biz||{};
   const REC={
     cta:(d)=>{
       const mailtoOnly=d.has_mailto_only===true;
@@ -599,10 +601,10 @@ function buildRecsFromDims(dims){
       return {title:"Surface your reputation earlier",description:"Your credentials and testimonials are there, but they aren't visible where people decide. Bringing them up front builds trust faster.",impact:"More calls, more customers"};
     },
     social:()=>({title:"Show off your reputation",description:"Feature your star rating and recent reviews prominently so new visitors trust you straight away.",impact:"Higher visitor confidence"}),
-    speed:()=>({title:"Speed up your site",description:"Your site is slow to show content, and visitors leave before it loads. Compressing images and cleaning up what loads first is one of the fastest wins available.",impact:"Faster site, more traffic"}),
+    speed:()=>buildSpeedRec(),
     mobile:(d)=>{
       const overflow=d.overflow_images>0;
-      if(overflow)return {title:"Fix the mobile layout",description:"Some images spill outside the screen on phones, which makes the site feel broken. Tidying the mobile layout keeps visitors engaged.",impact:"More calls from mobile"};
+      if(overflow)return {title:"Fix the mobile layout",description:`Some images (${d.overflow_images}) spill outside the screen on phones, which makes the site feel broken. Tidying the mobile layout keeps visitors engaged.`,impact:"More calls from mobile"};
       return {title:"Make the mobile experience effortless",description:"Most visitors arrive on a phone. Making the layout, buttons and text effortless on mobile turns more of them into calls.",impact:"More calls from mobile"};
     },
     seo:()=>({title:"Get found in local search",description:"Tune your titles, content and Google profile so you show up when locals search for a roofer in your area.",impact:"More local traffic"}),
@@ -610,18 +612,57 @@ function buildRecsFromDims(dims){
     tech:()=>({title:"Track where your leads come from",description:"Your tracking is incomplete, so you can't see which channels actually drive calls. Completing it shows you what's working.",impact:"Know what's working"}),
     ssl:()=>({title:"Secure your site",description:"Your site isn't fully secure, so browsers may warn visitors away before they ever land. Fixing this removes that barrier.",impact:"Fewer drop-offs"})
   };
-  // Rank dimensions by score ratio ascending (lowest = most worth fixing).
-  // Tie-break by lead-impact priority so customer-facing wins beat technical ones.
+  // Speed rec built from real LCP (full load time) + image weight if available
+  function buildSpeedRec(){
+    const totalImgMb=biz.total_image_kb?(biz.total_image_kb/1024):null;
+    if(mLcp&&mLcp>=4){
+      let desc=`Your full page takes around ${mLcp.toFixed(1)} seconds to finish loading on mobile. Visitors rarely wait that long, so this is likely costing you leads before they ever see your site.`;
+      if(totalImgMb&&totalImgMb>=2){
+        desc+=` The main culprit is image weight: your homepage loads about ${totalImgMb.toFixed(1)}MB of images. Compressing these is usually the single biggest speed win.`;
+      } else {
+        desc+=` Compressing large images is usually the fastest way to bring this down.`;
+      }
+      return {title:"Speed up your loading time",description:desc,impact:"Faster site, more traffic"};
+    }
+    return {title:"Speed up your site",description:"Your site is slow to show content, and visitors leave before it loads. Compressing images and cleaning up what loads first is one of the fastest wins available.",impact:"Faster site, more traffic"};
+  }
+
+  // 1) Build the ranked candidate list (lowest score first, lead-impact tiebreak)
   const PRIORITY={cta:1,booking:2,trust:3,social:4,speed:5,mobile:6,visual:7,seo:8,tech:9,ssl:10};
-  const ranked=Object.entries(dims)
+  let ranked=Object.entries(dims)
     .filter(([k,d])=>REC[k]&&d&&typeof d.score==='number')
     .sort((a,b)=>{
       const ra=a[1].score/a[1].max, rb=b[1].score/b[1].max;
       if(ra!==rb)return ra-rb;
       return (PRIORITY[a[0]]||99)-(PRIORITY[b[0]]||99);
     })
-    .slice(0,3);
-  return ranked.map(([k,d])=>REC[k](d));
+    .map(([k])=>k);
+
+  // 2) Merge CTA + Booking into one "get in touch" theme when BOTH are genuinely weak (avoid contradiction)
+  const isWeak=(k)=>dims[k]&&(dims[k].flag==='Critical'||dims[k].flag==='Needs Work');
+  const ctaFlagged=isWeak('cta'), bookingFlagged=isWeak('booking');
+  let mergedContact=null;
+  if(ctaFlagged&&bookingFlagged){
+    mergedContact={title:"Make it easier to get in touch",description:"Right now your only options are an email link and a phone number. Adding a simple quote form lets visitors reach you in a couple of taps, capturing leads even outside business hours.",impact:"More leads, day and night"};
+    ranked=ranked.filter(k=>k!=='cta'&&k!=='booking');
+  }
+
+  // 3) Inject an LCP-driven speed rec if the full load time is slow and speed isn't already top-ranked
+  let forceSpeed=null;
+  if(mLcp&&mLcp>=4&&!ranked.slice(0,1).includes('speed')){
+    forceSpeed=buildSpeedRec();
+    ranked=ranked.filter(k=>k!=='speed');
+  }
+
+  // 4) Assemble: merged contact first (if any), then forced speed (if any), then fill from ranked dims
+  const out=[];
+  if(mergedContact)out.push(mergedContact);
+  if(forceSpeed)out.push(forceSpeed);
+  for(const k of ranked){
+    if(out.length>=3)break;
+    out.push(REC[k](dims[k]));
+  }
+  return out.slice(0,3);
 }
 
 function renderRecs(recs){
@@ -655,6 +696,7 @@ async function init(){
       dimensions:c.dimensions||{},
       psi_mobile_lcp:c.psi_mobile_lcp,psi_desktop_lcp:c.psi_desktop_lcp,
       psi_mobile_fcp:c.psi_mobile_fcp,psi_desktop_fcp:c.psi_desktop_fcp,
+      total_image_kb:c.total_image_kb,heavy_images:c.heavy_images,
       load_time:c.load_time,google_rating:c.google_rating,review_count:c.review_count,
       recommendations:c.report_recommendations||[],
       mobile_screenshot_url:c.mobile_screenshot_url||c.mobile_mockup_url||'',
