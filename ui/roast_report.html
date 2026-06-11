@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v41</title>
+<title>Website Growth Recommendations · Eversite v42</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -98,6 +98,13 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .rec-spinner{width:13px;height:13px;border:2px solid rgba(0,196,212,0.18);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .cta-stack{max-width:560px;margin:0 auto;text-align:center}
+.cta-split{display:grid;grid-template-columns:1.1fr 0.9fr;gap:48px;align-items:center;max-width:920px;margin:0 auto}
+.cta-left{text-align:left}
+.cta-trust{background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:16px;padding:34px 32px;text-align:left}
+.cta-trust-line{font-family:'Montserrat',sans-serif;font-size:19px;font-weight:800;color:var(--text);line-height:1.35;margin:18px 0 22px;letter-spacing:-0.2px}
+.cta-trust-detail{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:6px}
+.cta-trust-detail a{color:var(--teal);text-decoration:none;font-weight:600}
+@media(max-width:680px){.cta-split{grid-template-columns:1fr;gap:32px}.cta-left{text-align:center}}
 .cta-stack .eyebrow{display:block}
 .gbadge{display:inline-flex;align-items:center;gap:10px;margin-top:38px;padding:12px 22px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:40px}
 .gbadge-g{font-family:'Montserrat',sans-serif;font-weight:800;font-size:16px;letter-spacing:-0.5px}
@@ -267,8 +274,8 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     <div class="eyebrow">Our Recommendations</div>
     <div style="font-family:'Montserrat',sans-serif;font-size:26px;font-weight:800;margin-bottom:8px;">Three things that would get you more calls</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:32px;" id="r-recs-sub">Specific to your site, not a generic checklist.</div>
-    <div class="recs-rows" id="r-recs">
-      <div class="rec-row"><div class="recs-loading"><div class="rec-spinner"></div></div><div class="recs-loading"><div class="rec-spinner"></div>Putting your recommendations together...</div></div>
+    <div class="recs-grid" id="r-recs">
+      <div class="rec-card"><div class="recs-loading"><div class="rec-spinner"></div>Putting your recommendations together...</div></div>
     </div>
   </div>
 </div>
@@ -276,17 +283,26 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 <!-- CTA -->
 <div class="section">
   <div class="inner">
-    <div class="cta-stack">
-      <div class="eyebrow">Here To Help</div>
-      <div style="font-family:'Montserrat',sans-serif;font-size:32px;font-weight:800;line-height:1.18;margin-bottom:16px;">We hope this is useful</div>
-      <div style="font-size:14.5px;color:var(--muted);line-height:1.75;margin-bottom:30px;">We put this together to give you a few genuine wins you can action yourself. If you would like the full picture, we are happy to run a complete <strong style="color:var(--text);">100-point review</strong> of your site, or just have a chat about it. No pressure either way.</div>
-      <a href="https://eversite.com/joe" class="cta-btn" id="r-cta">Get a Full Review, Free &rarr;</a>
-      <div style="margin-top:16px;font-size:13px;color:var(--muted);">or call our Dallas office on <a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a> and ask for Joe or Rob</div>
-      <div class="gbadge">
-        <span class="gbadge-g"><span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="g2">l</span><span class="r">e</span></span>
-        <span class="gbadge-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-        <span class="gbadge-num">5.0</span>
-        <span class="gbadge-count">from Eversite clients</span>
+    <div class="cta-split">
+      <div class="cta-left">
+        <div class="eyebrow">Here To Help</div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:30px;font-weight:800;line-height:1.18;margin-bottom:16px;">We hope this is useful</div>
+        <div style="font-size:14.5px;color:var(--muted);line-height:1.75;margin-bottom:28px;">We put this together to give you a few genuine wins you can action yourself. If you would like the full picture, we are happy to run a complete <strong style="color:var(--text);">100-point review</strong> of your site, or just have a chat about it. No pressure either way.</div>
+        <a href="https://eversite.com/joe" class="cta-btn" id="r-cta">Get a Full Review, Free &rarr;</a>
+        <div style="margin-top:16px;font-size:13px;color:var(--muted);">or call our Dallas office on <a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a> and ask for Joe or Rob</div>
+      </div>
+      <div class="cta-trust">
+        <img src="data:image/png;base64,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" style="height:30px;display:block;">
+        <div class="cta-trust-line">Websites that turn local searches into booked jobs.</div>
+        <div class="cta-trust-detail">Eversite builds and runs high-performing websites for home services businesses across the US.</div>
+        <div class="cta-trust-detail" style="margin-top:14px;">325 North St. Paul Street, Dallas TX 75201</div>
+        <div class="cta-trust-detail"><a href="tel:+19857181900">(985) 718-1900</a></div>
+        <div class="gbadge" style="margin-top:20px;">
+          <span class="gbadge-g"><span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="b">g</span><span class="g2">l</span><span class="r">e</span></span>
+          <span class="gbadge-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          <span class="gbadge-num">5.0</span>
+          <span class="gbadge-count">from Eversite clients</span>
+        </div>
       </div>
     </div>
   </div>
@@ -305,7 +321,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
     <div class="footer-note">Prepared for <span id="r-footer-biz"></span></div>
     <div class="footer-note" id="r-footer-date"></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v41</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.1);margin-top:2px;">v42</div>
   </div>
   </div>
 </div>
@@ -349,10 +365,14 @@ function populate(biz){
   const opps=Object.values(dims).filter(d=>d.flag==='Critical'||d.flag==='Needs Work').length;
   const sub=document.getElementById('r-sub');
   if(sub){
-    const oppText=opps===1?'one clear opportunity':`${opps} clear opportunities`;
-    if(ws<=50)sub.innerHTML=`We took a look at <strong>${name}</strong> and found ${oppText} to bring in more calls and leads. The good news: these are all very fixable.`;
-    else if(ws<=65)sub.innerHTML=`<strong>${name}</strong> already has a solid foundation. We found ${oppText} that would push it further and turn more visitors into customers.`;
-    else sub.innerHTML=`<strong>${name}</strong> is in good shape, and there's still ${oppText} to capture a few more leads from the visitors you already get.`;
+    if(opps===0){
+      sub.innerHTML=`<strong>${name}</strong> is in great shape. We looked across the usual problem areas and didn't find anything major holding you back, which is genuinely rare. A few small refinements aside, your site is already working for you.`;
+    } else {
+      const oppText=opps===1?'one clear opportunity':`${opps} clear opportunities`;
+      if(ws<=50)sub.innerHTML=`We took a look at <strong>${name}</strong> and found ${oppText} to bring in more calls and leads. The good news: these are all very fixable.`;
+      else if(ws<=65)sub.innerHTML=`<strong>${name}</strong> already has a solid foundation. We found ${oppText} that would push it further and turn more visitors into customers.`;
+      else sub.innerHTML=`<strong>${name}</strong> is in good shape, and there's still ${oppText} to capture a few more leads from the visitors you already get.`;
+    }
   }
 
   setArc('r-donut-arc','r-score','r-grade',ws,66);
@@ -586,13 +606,11 @@ function populate(biz){
 
 function renderRecs(recs){
   const g=document.getElementById('r-recs');if(!g)return;
-  g.innerHTML=recs.map((r,i)=>`<div class="rec-row">
-    <div class="rec-row-num">${String(i+1).padStart(2,'0')}</div>
-    <div>
-      <div class="rec-row-title">${r.title}</div>
-      <div class="rec-row-body">${r.description||r.body||''}</div>
-      ${r.impact?`<div class="rec-row-impact">${r.impact}</div>`:''}
-    </div>
+  g.innerHTML=recs.slice(0,3).map((r,i)=>`<div class="rec-card">
+    <div class="rec-num">Step ${String(i+1).padStart(2,'0')}</div>
+    <div class="rec-title">${r.title}</div>
+    <div class="rec-body">${r.description||r.body||''}</div>
+    ${r.impact?`<div class="rec-impact">${r.impact}</div>`:''}
   </div>`).join('');
 }
 
