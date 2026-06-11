@@ -451,6 +451,79 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     }
 
 
+async def scan_image_weight(html: str, base_url: str) -> dict:
+    """Measure total image weight on the page by fetching image sizes.
+    Returns total_image_kb and heavy_images (largest few). Capped and time-limited
+    so it does not slow the batch or fail on slow sites.
+    """
+    result = {"total_image_kb": None, "heavy_images": None}
+    try:
+        from urllib.parse import urljoin
+        if not base_url.startswith("http"):
+            base_url = "https://" + base_url
+
+        # Collect <img src> URLs (also srcset first candidate) and CSS url() backgrounds
+        srcs = []
+        for m in re.findall(r'<img[^>]+>', html, re.IGNORECASE):
+            src = re.search(r'src=["\']([^"\']+)["\']', m, re.IGNORECASE)
+            if src:
+                srcs.append(src.group(1))
+        for bg in re.findall(r'url\(["\']?([^)"\']+\.(?:jpg|jpeg|png|webp|gif))["\']?\)', html, re.IGNORECASE):
+            srcs.append(bg)
+
+        # Normalise, dedupe, skip data URIs and tiny tracking pixels
+        seen = set()
+        urls = []
+        for s in srcs:
+            if s.startswith("data:"):
+                continue
+            full = urljoin(base_url, s)
+            if full in seen:
+                continue
+            seen.add(full)
+            urls.append(full)
+        urls = urls[:15]  # cap so we do not hammer slow sites
+        if not urls:
+            return result
+
+        headers = {**HEADERS}
+
+        async def get_size(client, u):
+            try:
+                # Try HEAD first (cheap), fall back to a ranged GET if no length
+                r = await client.head(u, follow_redirects=True)
+                cl = r.headers.get("content-length")
+                if cl and cl.isdigit():
+                    return (u, int(cl))
+                r = await client.get(u, follow_redirects=True, headers={"Range": "bytes=0-0"})
+                cl = r.headers.get("content-range") or r.headers.get("content-length")
+                if cl:
+                    digits = re.search(r'/(\d+)$', cl) or re.search(r'(\d+)', cl)
+                    if digits:
+                        return (u, int(digits.group(1)))
+            except Exception:
+                return None
+            return None
+
+        import asyncio as _asyncio
+        async with httpx.AsyncClient(timeout=6, headers=headers, verify=False) as client:
+            sizes = await _asyncio.gather(*[get_size(client, u) for u in urls])
+
+        sizes = [s for s in sizes if s and s[1] > 0]
+        if not sizes:
+            return result
+
+        total_bytes = sum(b for _, b in sizes)
+        sizes.sort(key=lambda x: x[1], reverse=True)
+        heavy = [{"url": u, "kb": round(b / 1024, 1)} for u, b in sizes[:3]]
+
+        result["total_image_kb"] = round(total_bytes / 1024, 1)
+        result["heavy_images"] = heavy
+    except Exception:
+        pass
+    return result
+
+
 async def audit_url(url: str) -> dict:
     if not url:
         return {
@@ -470,7 +543,16 @@ async def audit_url(url: str) -> dict:
                 "critical_count": 8, "needs_work_count": 0,
                 "staleness_flags": [], "signal_count": 62,
             }
-        return score_site(html, text, load_time, is_ssl)
+        result = score_site(html, text, load_time, is_ssl)
+        # Add image-weight data (best-effort; never blocks scoring)
+        try:
+            img_data = await scan_image_weight(html, url)
+            result["total_image_kb"] = img_data.get("total_image_kb")
+            result["heavy_images"] = img_data.get("heavy_images")
+        except Exception:
+            result["total_image_kb"] = None
+            result["heavy_images"] = None
+        return result
     except Exception as e:
         return {
             "error": str(e)[:80], "website_score": 10, "opportunity_score": 90,
