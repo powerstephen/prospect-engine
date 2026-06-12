@@ -444,7 +444,7 @@ function populate(biz){
   // Short teal takeaway for each issue, shown like the FCP call-out
   const POINT={
     cta:'A clear next step turns more visitors into calls.',
-    booking:'Let people request a quote in seconds, day or night.',
+    booking:'Less friction, more booked jobs.',
     trust:'Show your reviews where people decide.',
     social:'Put your Google rating front and centre.',
     mobile:'Make every tap effortless on a phone.',
@@ -461,7 +461,7 @@ function populate(biz){
     },
     mobile:(ctx,d)=>{if(d&&Array.isArray(d.mobile_issues)&&d.mobile_issues.length){const raw=d.mobile_issues.join(' ').toLowerCase();const parts=[];if(raw.indexOf('viewport')>-1)parts.push("your site does not tell phones it is mobile friendly, so it can load at desktop size on a phone");const ov=(d.overflow_images||0);if(ov>0)parts.push(ov+" image"+(ov>1?"s":"")+" spill outside the screen on phones, which makes the layout feel broken");if(raw.indexOf('zoom')>-1)parts.push("pinch to zoom is blocked, which frustrates visitors trying to read");if(raw.indexOf('tap-to-call')>-1||raw.indexOf('tap to call')>-1)parts.push("your phone number is not tap to call, so mobile visitors have to copy it out by hand");if(parts.length)return parts.slice(0,2).join('. ').replace(/^./,c=>c.toUpperCase())+'.';}return "A few things make the site harder to use on a phone than it needs to be. Smoothing these keeps mobile visitors engaged.";},
     cta:(ctx,d)=>{if(d&&d.has_mailto_only===true)return "Right now getting in touch means copying out an email address by hand. A simple contact form would let visitors message you in a couple of taps.";if(d&&d.has_form===false)return "There's no quick contact form on the page, so visitors have to phone or email manually. A simple form captures more of them, even after hours.";return "There's some friction in how visitors get in touch. Smoothing the path to contact you turns more visits into calls.";},
-    booking:()=>"There's no easy way to request a quote or book online, so you're relying on people to pick up the phone during business hours.",
+    booking:(ctx)=>ctx==='desktop'?"Make booking effortless for desktop visitors. They are your highest-intent leads, ready to act, so a short in-built quote form captures them in seconds, instead of waiting on a phone call during business hours.":"Make booking effortless on a phone. One-tap calling and a short in-built quote form they can complete in a couple of taps let visitors reach you in the moment.",
     trust:()=>{
       if(rating&&reviews)return `You have <strong>${rating} stars from ${reviews} reviews</strong>. Making sure it appears on every key page builds trust even faster.`;
       return "Reviews and credentials aren't visible early, so people decide before they ever see your reputation.";
