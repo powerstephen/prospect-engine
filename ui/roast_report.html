@@ -416,7 +416,7 @@ function populate(biz){
   }).join('');
 
   console.log('dims data:', JSON.stringify(dims));
-  const mk=['speed','mobile','cta','trust','booking','social'],dk=['seo','visual','tech','ssl'];
+  const mk=['speed','mobile','cta','trust','booking','social'],dk=['social','seo','visual','tech','ssl'];
   const ms=Math.round(mk.reduce((s,k)=>s+(dims[k]?dims[k].score/dims[k].max*10:5),0)/mk.length*10);
   const ds=Math.round(dk.reduce((s,k)=>s+(dims[k]?dims[k].score/dims[k].max*10:5),0)/dk.length*10);
   setArc('r-mobile-arc','r-mobile-num','r-mobile-grade',ms,46);
