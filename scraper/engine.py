@@ -549,6 +549,7 @@ async def audit_url(url: str) -> dict:
         result = score_site(html, text, load_time, is_ssl)
         # Add image-weight data (best-effort; never blocks scoring)
         try:
+            result["heavy_images"] = [{"diag": "reached call site"}]
             img_data = await scan_image_weight(html, url)
             result["total_image_kb"] = img_data.get("total_image_kb")
             result["heavy_images"] = img_data.get("heavy_images")
