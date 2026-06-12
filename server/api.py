@@ -280,7 +280,8 @@ async def _write_ai_fields(contact_id: int, result: dict, log):
               "phone_above_fold", "ai_scored_at",
               "psi_mobile_lcp", "psi_desktop_lcp",
               "psi_mobile_fcp", "psi_desktop_fcp",
-              "psi_mobile_perf", "psi_desktop_perf", "dimensions"]:
+              "psi_mobile_perf", "psi_desktop_perf", "dimensions",
+              "total_image_kb", "heavy_images"]:
         if result.get(k) is not None:
             ai_fields[k] = result[k]
     if not ai_fields:
