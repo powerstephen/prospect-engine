@@ -5,6 +5,7 @@ caller keeps using the httpx load_time estimate.
 """
 import os
 import asyncio
+import statistics
 import httpx
 
 PSI_KEY = os.environ.get("PSI_KEY", "")
@@ -46,6 +47,25 @@ async def _run_with_retry(url: str, strategy: str, attempts: int = 2) -> dict:
     return {}
 
 
+async def _run_median(url: str, strategy: str, runs: int = 3) -> dict:
+    """Run PSI several times and return the median of each metric.
+    Smooths out PSI run-to-run variance (LCP especially can swing a lot).
+    Medians each metric independently over whatever runs succeeded; if all
+    runs fail, returns an empty dict so the caller falls back gracefully."""
+    lcps, fcps, perfs = [], [], []
+    for i in range(runs):
+        res = await _run_with_retry(url, strategy)
+        if res.get("lcp") is not None:  lcps.append(res["lcp"])
+        if res.get("fcp") is not None:  fcps.append(res["fcp"])
+        if res.get("perf") is not None: perfs.append(res["perf"])
+        if i < runs - 1:
+            await asyncio.sleep(1)  # brief gap between runs
+    return {
+        "lcp":  round(statistics.median(lcps), 1) if lcps else None,
+        "fcp":  round(statistics.median(fcps), 1) if fcps else None,
+        "perf": round(statistics.median(perfs)) if perfs else None,
+    }
+
 async def measure_speed(url: str) -> dict:
     """
     Returns real measured numbers when PSI succeeds, else {} so the
@@ -61,8 +81,8 @@ async def measure_speed(url: str) -> dict:
     if not PSI_KEY:
         return {}
     try:
-        mobile = await _run_with_retry(url, "mobile")
-        desktop = await _run_with_retry(url, "desktop")
+        mobile = await _run_median(url, "mobile")
+        desktop = await _run_median(url, "desktop")
         out = {}
         if isinstance(mobile, dict):
             out["psi_mobile_lcp"] = mobile.get("lcp")
