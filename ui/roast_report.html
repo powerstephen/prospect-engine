@@ -353,7 +353,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const DM={speed:'Speed',mobile:'Mobile',ssl:'SSL',cta:'CTA',trust:'Trust',booking:'Booking',social:'Social Proof',seo:'SEO',visual:'Visual Layout',tech:'Tech & Tracking'};
 
 function sc(s){if(s<=30)return'#ef4444';if(s<=50)return'#f97316';if(s<=65)return'#f59e0b';if(s<=80)return'#84cc16';return'#10b981';}
-function gl(s){if(s<=30)return'Critical';if(s<=50)return'Poor';if(s<=65)return'Average';if(s<=80)return'Decent';return'Strong';}
+function gl(s){if(s<=30)return'Huge Potential';if(s<=50)return'Big Potential';if(s<=65)return'Underperforming';if(s<=80)return'Room to Refine';return'Strong';}
 function dc(s,m){const p=s/m;if(p>=0.75)return'#10b981';if(p>=0.5)return'#f59e0b';return'#ef4444';}
 
 function setArc(aid,nid,gid,score,r){
@@ -551,6 +551,7 @@ function populate(biz){
       </div>`;
     }
     // Up to 2 flagged warnings (exclude speed, which now has its own row)
+    let imgShown=false;
     // Image weight as a mobile issue: heavy images reinforcing the slow full-load
     (function(){
       const kb=biz.total_image_kb;
@@ -561,11 +562,11 @@ function populate(biz){
         if(lcp&&lcp>=4){ desc+=` That is the main reason it takes almost ${Math.round(lcp)} seconds to fully load the page. Compressing them is the single biggest speed win available.`; }
         else { desc+=` Compressing them is one of the fastest ways to speed the page up.`; }
         rows+=`<div class="metric-row"><div class="metric-icon">${triangle("#ef4444")}</div><div><div class="metric-title" style="font-size:17px;">Image weight slowing the page</div><div class="metric-body">${desc}</div><div class="metric-point">Compress large images to load faster</div></div></div>`;
+        imgShown=true;
       }
     })();
     let flagged=[...mk.filter(k=>k!=='speed'&&dims[k]&&dims[k].flag==='Critical'),...mk.filter(k=>k!=='speed'&&dims[k]&&dims[k].flag==='Needs Work')];
-    if(biz.phone_above_fold===true)flagged=flagged.filter(k=>k!=='booking');
-    flagged=flagged.slice(0,2);
+    flagged=flagged.slice(0, imgShown?1:2);
     flagged.forEach(k=>{
       const crit=dims[k].flag==='Critical';
       const col=crit?'#ef4444':'#f59e0b';
