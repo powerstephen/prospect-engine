@@ -1,9 +1,9 @@
 """
-Roaster Bot â€” Core Engine v4
+Roaster Bot Ã¢â‚¬â€ Core Engine v4
 10 dimensions x 10 points = 100 total score.
 Low score = high opportunity.
-Mobile scoring overhauled â€” page builders, image overflow, real mobile signals.
-Combined score weighted toward website/mobile quality â€” ICP is a modifier not a gate.
+Mobile scoring overhauled Ã¢â‚¬â€ page builders, image overflow, real mobile signals.
+Combined score weighted toward website/mobile quality Ã¢â‚¬â€ ICP is a modifier not a gate.
 """
 
 import asyncio
@@ -84,7 +84,7 @@ async def fetch_page(url: str, mobile: bool = False) -> tuple[str, str, float, b
 
 
 def score_mobile(html: str, load_time: float) -> dict:
-    """Deep mobile scoring â€” detects broken page builders, image overflow, real mobile signals."""
+    """Deep mobile scoring Ã¢â‚¬â€ detects broken page builders, image overflow, real mobile signals."""
     h = html.lower()
     issues = []
     positives = []
@@ -93,17 +93,17 @@ def score_mobile(html: str, load_time: float) -> dict:
     # Broken page builder detection
     if "revslider" in h or "slider-revolution" in h or "rev_slider" in h:
         score -= 4
-        issues.append("Slider Revolution ðŸš© â€” notorious mobile killer")
+        issues.append("Slider Revolution Ã°Å¸Å¡Â© Ã¢â‚¬â€ notorious mobile killer")
     if "wpbakery" in h or "vc_row" in h or "vc_column" in h:
         score -= 3
-        issues.append("WPBakery page builder â€” poor mobile rendering")
+        issues.append("WPBakery page builder Ã¢â‚¬â€ poor mobile rendering")
     if "et_pb_" in h or ("divi" in h and "divi-builder" in h):
         score -= 2
-        issues.append("Divi builder â€” heavy mobile load")
+        issues.append("Divi builder Ã¢â‚¬â€ heavy mobile load")
     if "elementor" in h:
         if load_time > 3:
             score -= 2
-            issues.append("Elementor + slow load â€” mobile users leaving")
+            issues.append("Elementor + slow load Ã¢â‚¬â€ mobile users leaving")
         else:
             positives.append("Elementor (ok)")
 
@@ -119,7 +119,7 @@ def score_mobile(html: str, load_time: float) -> dict:
             overflow_imgs += 1
     if overflow_imgs >= 3:
         score -= 3
-        issues.append(f"{overflow_imgs} images likely overflowing on mobile ðŸš©")
+        issues.append(f"{overflow_imgs} images likely overflowing on mobile Ã°Å¸Å¡Â©")
     elif overflow_imgs >= 1:
         score -= 1
         issues.append(f"{overflow_imgs} image(s) may overflow on mobile")
@@ -133,7 +133,7 @@ def score_mobile(html: str, load_time: float) -> dict:
 
     if not has_viewport:
         score -= 4
-        issues.append("No viewport meta tag ðŸš©")
+        issues.append("No viewport meta tag Ã°Å¸Å¡Â©")
     else:
         viewport_match = re.search(r'name=["\']viewport["\'][^>]*content=["\']([^"\']+)["\']', h)
         if viewport_match and "user-scalable=no" in viewport_match.group(1):
@@ -150,15 +150,10 @@ def score_mobile(html: str, load_time: float) -> dict:
     mobile_est = load_time * 2.5
     if mobile_est > 8:
         score -= 3
-        issues.append(f"Est. mobile load ~{mobile_est:.0f}s â€” 80%+ bounce ðŸš©")
     elif mobile_est > 5:
         score -= 2
-        issues.append(f"Est. mobile load ~{mobile_est:.0f}s â€” slow")
     elif mobile_est > 3:
         score -= 1
-        issues.append(f"Est. mobile load ~{mobile_est:.0f}s â€” borderline")
-    else:
-        positives.append(f"Est. mobile load ~{mobile_est:.0f}s")
 
     # Tap-to-call
     has_tel_links = 'href="tel:' in h or "href='tel:" in h
@@ -180,7 +175,7 @@ def score_mobile(html: str, load_time: float) -> dict:
 
     return {
         "score": score, "max": 10,
-        "label": "Mobile", "icon": "ðŸ“±",
+        "label": "Mobile", "icon": "Ã°Å¸â€œÂ±",
         "status": status, "flag": flag,
         "mobile_issues": issues,
         "mobile_positives": positives,
@@ -197,8 +192,8 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     if load_time < 2:     sv, st, sf = 10, f"Fast ({load_time}s)", "Good"
     elif load_time < 3:   sv, st, sf = 7,  f"Moderate ({load_time}s)", "Needs Work"
     elif load_time < 4:   sv, st, sf = 4,  f"Slow ({load_time}s)", "Needs Work"
-    else:                 sv, st, sf = 0,  f"Very slow ({load_time}s) â€” 40%+ bounce", "Critical"
-    dims["speed"] = {"score": sv, "max": 10, "label": "Speed", "icon": "âš¡", "status": st, "flag": sf}
+    else:                 sv, st, sf = 0,  f"Very slow ({load_time}s) Ã¢â‚¬â€ 40%+ bounce", "Critical"
+    dims["speed"] = {"score": sv, "max": 10, "label": "Speed", "icon": "Ã¢Å¡Â¡", "status": st, "flag": sf}
 
     # 2. Mobile (deep scoring)
     dims["mobile"] = score_mobile(html, load_time)
@@ -206,12 +201,12 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     # 3. SSL
     dims["ssl"] = {
         "score": 10 if is_ssl else 0, "max": 10,
-        "label": "SSL", "icon": "ðŸ”’",
-        "status": "Secure HTTPS" if is_ssl else "No SSL â€” browsers flag as unsafe",
+        "label": "SSL", "icon": "Ã°Å¸â€â€™",
+        "status": "Secure HTTPS" if is_ssl else "No SSL Ã¢â‚¬â€ browsers flag as unsafe",
         "flag": "Good" if is_ssl else "Critical"
     }
 
-    # 4. CTA â€” including UX quality checks
+    # 4. CTA Ã¢â‚¬â€ including UX quality checks
     cta_strong = [
         "schedule now", "book now", "book appointment", "book online",
         "schedule appointment", "schedule online", "request appointment",
@@ -239,27 +234,27 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     cta_issues = []
     if has_mailto and not has_form and not has_booking:
         cv = max(0, cv - 4)
-        cta_issues.append("mailto: only â€” opens email client ðŸš©")
+        cta_issues.append("mailto: only Ã¢â‚¬â€ opens email client Ã°Å¸Å¡Â©")
         cf = "Critical"
     if has_tel and not has_form and not has_booking and not has_mailto:
         cv = max(0, cv - 2)
-        cta_issues.append("phone-only CTA â€” no online form ðŸš©")
+        cta_issues.append("phone-only CTA Ã¢â‚¬â€ no online form Ã°Å¸Å¡Â©")
         if cf == "Good": cf = "Needs Work"
     if not has_form and not has_booking:
         cv = max(0, cv - 2)
-        cta_issues.append("no contact form detected ðŸš©")
+        cta_issues.append("no contact form detected Ã°Å¸Å¡Â©")
         if cf == "Good": cf = "Needs Work"
     if has_booking:
         cv = min(10, cv + 2)
-        ct = "Online booking tool detected âœ“"
+        ct = "Online booking tool detected Ã¢Å“â€œ"
     if cta_issues:
         ct = ct + " | " + " | ".join(cta_issues)
 
-    dims["cta"] = {"score": cv, "max": 10, "label": "CTA", "icon": "ðŸŽ¯", "status": ct, "flag": cf,
+    dims["cta"] = {"score": cv, "max": 10, "label": "CTA", "icon": "Ã°Å¸Å½Â¯", "status": ct, "flag": cf,
                    "has_form": has_form, "has_mailto_only": has_mailto and not has_form,
                    "has_booking": has_booking}
 
-    # 5. Trust â€” with modernity and social proof signals
+    # 5. Trust Ã¢â‚¬â€ with modernity and social proof signals
     trust = 0
     trust_found = []
     trust_issues = []
@@ -271,10 +266,10 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     elif any(x in t for x in ["testimonial", "what our clients say", "customer review", "reviews"]):
         trust += 2; trust_found.append("testimonials")
     else:
-        trust_issues.append("no reviews visible ðŸš©")
+        trust_issues.append("no reviews visible Ã°Å¸Å¡Â©")
 
     # Star rating displayed
-    if re.search(r'\d\.\d\s*(?:stars?|â˜…|out of 5|/5)', t):
+    if re.search(r'\d\.\d\s*(?:stars?|Ã¢Ëœâ€¦|out of 5|/5)', t):
         trust += 2; trust_found.append("star rating")
 
     # Team / owner profiles
@@ -301,14 +296,14 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     if any(x in h for x in ["trustpilot", "birdeye", "podium", "grade.us", "reviews.io"]):
         trust += 1; trust_found.append("review platform")
 
-    # Modernity penalty â€” old copyright
-    copyright_match = re.search(r'Â©\s*(\d{4})|copyright\s*Â©?\s*(\d{4})', t)
+    # Modernity penalty Ã¢â‚¬â€ old copyright
+    copyright_match = re.search(r'Ã‚Â©\s*(\d{4})|copyright\s*Ã‚Â©?\s*(\d{4})', t)
     if copyright_match:
         year = int(copyright_match.group(1) or copyright_match.group(2))
         age = 2026 - year
         if age >= 4:
             trust = max(0, trust - 2)
-            trust_issues.append(f"Â© {year} â€” site looks dated ðŸš©")
+            trust_issues.append(f"Ã‚Â© {year} Ã¢â‚¬â€ site looks dated Ã°Å¸Å¡Â©")
 
     # DIY builder penalty
     if any(x in h for x in ["wix.com", "squarespace.com", "weebly.com"]):
@@ -320,7 +315,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     tt = f"Trust: {chr(44).join(trust_found)}" if trust_found else "No trust signals"
     if trust_issues:
         tt += " | Issues: " + ", ".join(trust_issues)
-    dims["trust"] = {"score": trust, "max": 10, "label": "Trust", "icon": "ðŸ›¡ï¸", "status": tt, "flag": tf,
+    dims["trust"] = {"score": trust, "max": 10, "label": "Trust", "icon": "Ã°Å¸â€ºÂ¡Ã¯Â¸Â", "status": tt, "flag": tf,
                      "has_google_reviews": has_google_reviews, "trust_issues": trust_issues}
 
     # 6. Booking
@@ -333,8 +328,8 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     if strong_b >= 2 or platform_b >= 1:  bv, bst, bf = 10, "Strong online booking", "Good"
     elif strong_b == 1:                   bv, bst, bf = 7,  "Basic online booking", "Needs Work"
     elif basic_b >= 1:                    bv, bst, bf = 3,  "Contact form only", "Needs Work"
-    else:                                 bv, bst, bf = 0,  "No booking â€” phone only", "Critical"
-    dims["booking"] = {"score": bv, "max": 10, "label": "Booking", "icon": "ðŸ“…", "status": bst, "flag": bf}
+    else:                                 bv, bst, bf = 0,  "No booking Ã¢â‚¬â€ phone only", "Critical"
+    dims["booking"] = {"score": bv, "max": 10, "label": "Booking", "icon": "Ã°Å¸â€œâ€¦", "status": bst, "flag": bf}
 
     # 7. Social Proof
     sp = 0
@@ -350,7 +345,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     sp = min(sp, 10)
     spf = "Good" if sp >= 7 else ("Needs Work" if sp >= 3 else "Critical")
     spt = f"Social: {', '.join(sp_found)}" if sp_found else "No social proof"
-    dims["social"] = {"score": sp, "max": 10, "label": "Social Proof", "icon": "â­", "status": spt, "flag": spf}
+    dims["social"] = {"score": sp, "max": 10, "label": "Social Proof", "icon": "Ã¢Â­Â", "status": spt, "flag": spf}
 
     # 8. SEO
     seo = 0
@@ -366,7 +361,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     seo = min(seo, 10)
     sf2 = "Good" if seo >= 7 else ("Needs Work" if seo >= 4 else "Critical")
     st2 = f"SEO: {', '.join(seo_found)}" if seo_found else "Missing SEO elements"
-    dims["seo"] = {"score": seo, "max": 10, "label": "SEO", "icon": "ðŸ”", "status": st2, "flag": sf2}
+    dims["seo"] = {"score": seo, "max": 10, "label": "SEO", "icon": "Ã°Å¸â€Â", "status": st2, "flag": sf2}
 
     # 9. Visual Layout
     visual = 0
@@ -385,7 +380,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
         avg_len = sum(len(re.sub(r'<[^>]+>', '', p)) for p in paragraphs) / len(paragraphs)
         if avg_len < 200:   visual += 2; visual_found.append("structured content")
         elif avg_len < 500: visual += 1; visual_issues.append("long text blocks")
-        else:               visual_issues.append("wall of text ðŸš©")
+        else:               visual_issues.append("wall of text Ã°Å¸Å¡Â©")
     section_count = len(re.findall(r'<section[\s>]', html, re.IGNORECASE))
     div_classes = len(re.findall(r'class=["\'][^"\']*(?:section|hero|banner|card|feature|block|row|container)[^"\']*["\']', html, re.IGNORECASE))
     if section_count >= 3 or div_classes >= 4:
@@ -398,7 +393,7 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     visual = min(visual, 10)
     vf = "Good" if visual >= 7 else ("Needs Work" if visual >= 4 else "Critical")
     vt = f"Issues: {', '.join(visual_issues)}" if visual_issues else f"Layout: {', '.join(visual_found)}"
-    dims["visual"] = {"score": visual, "max": 10, "label": "Visual Layout", "icon": "ðŸŽ¨", "status": vt, "flag": vf}
+    dims["visual"] = {"score": visual, "max": 10, "label": "Visual Layout", "icon": "Ã°Å¸Å½Â¨", "status": vt, "flag": vf}
 
     # 10. Tech & Conversion
     tech = 0
@@ -412,28 +407,28 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
         tech += 3; tech_found.append("live chat")
     if re.search(r'popup|exit.intent|optinmonster|sumo|hello.bar', h):
         tech += 2; tech_found.append("lead capture")
-    copyright_match = re.search(r'Â©\s*(\d{4})|copyright\s*Â©?\s*(\d{4})', t)
+    copyright_match = re.search(r'Ã‚Â©\s*(\d{4})|copyright\s*Ã‚Â©?\s*(\d{4})', t)
     if copyright_match:
         year = int(copyright_match.group(1) or copyright_match.group(2))
         age = 2026 - year
-        if age >= 4:   staleness.append(f"Â© {year} â€” {age} years old ðŸš©")
-        elif age >= 2: staleness.append(f"Â© {year} â€” may be dated")
+        if age >= 4:   staleness.append(f"Ã‚Â© {year} Ã¢â‚¬â€ {age} years old Ã°Å¸Å¡Â©")
+        elif age >= 2: staleness.append(f"Ã‚Â© {year} Ã¢â‚¬â€ may be dated")
     if any(x in h for x in ["wix.com", "squarespace.com", "weebly.com", "godaddy website builder", "jimdo"]):
-        staleness.append("DIY builder ðŸš©")
+        staleness.append("DIY builder Ã°Å¸Å¡Â©")
     tech = min(tech, 10)
     tf3 = "Good" if tech >= 7 else ("Needs Work" if tech >= 3 else "Critical")
     tt3 = f"Tools: {', '.join(tech_found)}" if tech_found else "No tracking tools"
     if staleness:
         tt3 += " | " + " | ".join(staleness)
-    dims["tech"] = {"score": tech, "max": 10, "label": "Tech & Conversion", "icon": "ðŸ“Š", "status": tt3, "flag": tf3}
+    dims["tech"] = {"score": tech, "max": 10, "label": "Tech & Conversion", "icon": "Ã°Å¸â€œÅ ", "status": tt3, "flag": tf3}
 
     total = sum(v["score"] for v in dims.values())
-    if total <= 30:   grade, grade_color = "F â€” Urgent", "#dc2626"
-    elif total <= 45: grade, grade_color = "D â€” Poor", "#ef4444"
-    elif total <= 60: grade, grade_color = "C â€” Average", "#f97316"
-    elif total <= 75: grade, grade_color = "B â€” Decent", "#f59e0b"
-    elif total <= 88: grade, grade_color = "A â€” Good", "#84cc16"
-    else:             grade, grade_color = "A+ â€” Strong", "#10b981"
+    if total <= 30:   grade, grade_color = "F Ã¢â‚¬â€ Urgent", "#dc2626"
+    elif total <= 45: grade, grade_color = "D Ã¢â‚¬â€ Poor", "#ef4444"
+    elif total <= 60: grade, grade_color = "C Ã¢â‚¬â€ Average", "#f97316"
+    elif total <= 75: grade, grade_color = "B Ã¢â‚¬â€ Decent", "#f59e0b"
+    elif total <= 88: grade, grade_color = "A Ã¢â‚¬â€ Good", "#84cc16"
+    else:             grade, grade_color = "A+ Ã¢â‚¬â€ Strong", "#10b981"
 
     return {
         "website_score": total,
@@ -528,7 +523,7 @@ async def audit_url(url: str) -> dict:
     if not url:
         return {
             "error": "No website", "website_score": 0, "opportunity_score": 100,
-            "grade": "F â€” Urgent", "grade_color": "#dc2626",
+            "grade": "F Ã¢â‚¬â€ Urgent", "grade_color": "#dc2626",
             "dimensions": {}, "load_time": 0, "is_ssl": False,
             "critical_count": 10, "needs_work_count": 0,
             "staleness_flags": [], "signal_count": 62,
@@ -538,7 +533,7 @@ async def audit_url(url: str) -> dict:
         if not html:
             return {
                 "error": "Could not load", "website_score": 5, "opportunity_score": 95,
-                "grade": "F â€” Urgent", "grade_color": "#dc2626",
+                "grade": "F Ã¢â‚¬â€ Urgent", "grade_color": "#dc2626",
                 "dimensions": {}, "load_time": load_time, "is_ssl": is_ssl,
                 "critical_count": 8, "needs_work_count": 0,
                 "staleness_flags": [], "signal_count": 62,
@@ -556,7 +551,7 @@ async def audit_url(url: str) -> dict:
     except Exception as e:
         return {
             "error": str(e)[:80], "website_score": 10, "opportunity_score": 90,
-            "grade": "F â€” Urgent", "grade_color": "#dc2626",
+            "grade": "F Ã¢â‚¬â€ Urgent", "grade_color": "#dc2626",
             "dimensions": {}, "load_time": 0, "is_ssl": False,
             "critical_count": 6, "needs_work_count": 0,
             "staleness_flags": [], "signal_count": 62,
@@ -576,73 +571,73 @@ async def detect_intelligence_signals(html: str, website_score: int) -> dict:
 
     if any(x in h for x in ["googleadservices.com", "google_conversion", "gtag('event'", "aw-", "adwords"]):
         running_ads.append("Google Ads"); signals["google_ads"] = True
-        pills.append({"label": "Google Ads", "color": "blue", "icon": "ðŸ“¢"})
+        pills.append({"label": "Google Ads", "color": "blue", "icon": "Ã°Å¸â€œÂ¢"})
     if any(x in h for x in ["connect.facebook.net/en_us/fbevents", "fbq('init'", "facebook pixel", "facebook-domain-verification"]):
         running_ads.append("Meta Ads"); signals["meta_ads"] = True
-        pills.append({"label": "Meta Ads", "color": "blue", "icon": "ðŸ“¢"})
+        pills.append({"label": "Meta Ads", "color": "blue", "icon": "Ã°Å¸â€œÂ¢"})
     if "bat.bing.com" in h or "uetq" in h:
         running_ads.append("Bing Ads"); signals["bing_ads"] = True
-        pills.append({"label": "Bing Ads", "color": "blue", "icon": "ðŸ“¢"})
+        pills.append({"label": "Bing Ads", "color": "blue", "icon": "Ã°Å¸â€œÂ¢"})
     if "tiktok" in h and ("ttq" in h or "analytics.tiktok" in h):
         running_ads.append("TikTok Ads"); signals["tiktok_ads"] = True
-        pills.append({"label": "TikTok Ads", "color": "blue", "icon": "ðŸ“¢"})
+        pills.append({"label": "TikTok Ads", "color": "blue", "icon": "Ã°Å¸â€œÂ¢"})
 
     if running_ads and website_score < 70:
         revenue_leak = True
         revenue_leak_reasons.append(f"Running {' + '.join(running_ads)} with weak website")
-        pills.append({"label": "ðŸ’¸ Revenue Leak", "color": "red", "icon": "ðŸ’¸"})
+        pills.append({"label": "Ã°Å¸â€™Â¸ Revenue Leak", "color": "red", "icon": "Ã°Å¸â€™Â¸"})
 
     if any(x in h for x in ["gtag('config', 'g-", "ga4", "googletagmanager.com/gtm"]):
-        signals["ga4"] = True; pills.append({"label": "GA4", "color": "green", "icon": "ðŸ“Š"})
+        signals["ga4"] = True; pills.append({"label": "GA4", "color": "green", "icon": "Ã°Å¸â€œÅ "})
     elif any(x in h for x in ["google-analytics.com/analytics.js", "ua-"]):
-        signals["ga_ua"] = True; pills.append({"label": "GA (old)", "color": "amber", "icon": "ðŸ“Š"})
+        signals["ga_ua"] = True; pills.append({"label": "GA (old)", "color": "amber", "icon": "Ã°Å¸â€œÅ "})
     if "googletagmanager.com" in h:
-        signals["gtm"] = True; pills.append({"label": "Tag Manager", "color": "green", "icon": "ðŸ·"})
+        signals["gtm"] = True; pills.append({"label": "Tag Manager", "color": "green", "icon": "Ã°Å¸ÂÂ·"})
     if any(x in h for x in ["hotjar.com", "_hjSettings"]):
-        signals["hotjar"] = True; pills.append({"label": "Hotjar", "color": "green", "icon": "ðŸ”¥"})
+        signals["hotjar"] = True; pills.append({"label": "Hotjar", "color": "green", "icon": "Ã°Å¸â€Â¥"})
     if any(x in h for x in ["hubspot.com", "hs-scripts.com", "_hsq"]):
-        signals["hubspot"] = True; pills.append({"label": "HubSpot", "color": "orange", "icon": "ðŸ”§"})
+        signals["hubspot"] = True; pills.append({"label": "HubSpot", "color": "orange", "icon": "Ã°Å¸â€Â§"})
     if "salesforce" in h and ("force.com" in h or "pardot" in h):
-        signals["salesforce"] = True; pills.append({"label": "Salesforce", "color": "blue", "icon": "â˜ï¸"})
+        signals["salesforce"] = True; pills.append({"label": "Salesforce", "color": "blue", "icon": "Ã¢ËœÂÃ¯Â¸Â"})
     if any(x in h for x in ["intercom.io", "intercomcdn"]):
-        signals["intercom"] = True; pills.append({"label": "Intercom", "color": "purple", "icon": "ðŸ’¬"})
+        signals["intercom"] = True; pills.append({"label": "Intercom", "color": "purple", "icon": "Ã°Å¸â€™Â¬"})
     if any(x in h for x in ["drift.com", "driftt.com"]):
-        signals["drift"] = True; pills.append({"label": "Drift", "color": "purple", "icon": "ðŸ’¬"})
+        signals["drift"] = True; pills.append({"label": "Drift", "color": "purple", "icon": "Ã°Å¸â€™Â¬"})
     if any(x in h for x in ["mailchimp.com", "chimpified"]):
-        signals["mailchimp"] = True; pills.append({"label": "Mailchimp", "color": "amber", "icon": "ðŸ“§"})
+        signals["mailchimp"] = True; pills.append({"label": "Mailchimp", "color": "amber", "icon": "Ã°Å¸â€œÂ§"})
     if any(x in h for x in ["calendly.com", "acuityscheduling"]):
-        signals["booking_tool"] = True; pills.append({"label": "Online Booking", "color": "green", "icon": "ðŸ“…"})
+        signals["booking_tool"] = True; pills.append({"label": "Online Booking", "color": "green", "icon": "Ã°Å¸â€œâ€¦"})
     if any(x in h for x in ["callrail.com", "calltracking"]):
-        signals["call_tracking"] = True; pills.append({"label": "Call Tracking", "color": "green", "icon": "ðŸ“ž"})
+        signals["call_tracking"] = True; pills.append({"label": "Call Tracking", "color": "green", "icon": "Ã°Å¸â€œÅ¾"})
     if any(x in h for x in ["trustpilot.com/widget", "reviews.io", "birdeye"]):
-        signals["review_widget"] = True; pills.append({"label": "Review Widget", "color": "green", "icon": "â­"})
+        signals["review_widget"] = True; pills.append({"label": "Review Widget", "color": "green", "icon": "Ã¢Â­Â"})
 
     # CMS detection
     if "wp-content" in h or "wp-includes" in h:
-        signals["cms_wordpress"] = True; pills.append({"label": "WordPress", "color": "blue", "icon": "ðŸŒ"})
+        signals["cms_wordpress"] = True; pills.append({"label": "WordPress", "color": "blue", "icon": "Ã°Å¸Å’Â"})
     if "revslider" in h or "slider-revolution" in h:
-        signals["slider_revolution"] = True; pills.append({"label": "Slider Revolution âš ", "color": "red", "icon": "ðŸ“µ"})
+        signals["slider_revolution"] = True; pills.append({"label": "Slider Revolution Ã¢Å¡Â ", "color": "red", "icon": "Ã°Å¸â€œÂµ"})
     if "elementor" in h:
-        signals["cms_elementor"] = True; pills.append({"label": "Elementor", "color": "blue", "icon": "ðŸŽ¨"})
+        signals["cms_elementor"] = True; pills.append({"label": "Elementor", "color": "blue", "icon": "Ã°Å¸Å½Â¨"})
     if "wix.com" in h:
-        signals["cms_wix"] = True; pills.append({"label": "Wix", "color": "amber", "icon": "âš "})
+        signals["cms_wix"] = True; pills.append({"label": "Wix", "color": "amber", "icon": "Ã¢Å¡Â "})
     if "squarespace.com" in h:
-        signals["cms_squarespace"] = True; pills.append({"label": "Squarespace", "color": "amber", "icon": "âš "})
+        signals["cms_squarespace"] = True; pills.append({"label": "Squarespace", "color": "amber", "icon": "Ã¢Å¡Â "})
     if "vc_row" in h or "wpbakery" in h:
-        signals["cms_wpbakery"] = True; pills.append({"label": "WPBakery âš ", "color": "red", "icon": "ðŸ“µ"})
+        signals["cms_wpbakery"] = True; pills.append({"label": "WPBakery Ã¢Å¡Â ", "color": "red", "icon": "Ã°Å¸â€œÂµ"})
 
     has_any_tracking = signals.get("ga4") or signals.get("ga_ua") or signals.get("gtm") or running_ads
     if not has_any_tracking:
         signals["no_tracking"] = True
-        pills.append({"label": "No Analytics", "color": "red", "icon": "ðŸ”´"})
-        revenue_leak_reasons.append("No tracking â€” flying blind")
+        pills.append({"label": "No Analytics", "color": "red", "icon": "Ã°Å¸â€Â´"})
+        revenue_leak_reasons.append("No tracking Ã¢â‚¬â€ flying blind")
 
     return {
         "intel_pills": pills,
         "intel_signals": signals,
         "running_ads": running_ads,
         "revenue_leak": revenue_leak,
-        "revenue_leak_reason": " Â· ".join(revenue_leak_reasons),
+        "revenue_leak_reason": " Ã‚Â· ".join(revenue_leak_reasons),
     }
 
 
@@ -716,7 +711,7 @@ async def detect_size_signals(website: str, company_name: str) -> dict:
 def calculate_icp_score(audit: dict, biz: dict) -> dict:
     """
     Score against ideal customer profile.
-    Website + mobile are primary signals â€” ICP is a modifier not a gate.
+    Website + mobile are primary signals Ã¢â‚¬â€ ICP is a modifier not a gate.
     Any business with a bad website and/or bad mobile is an opportunity.
     """
     score = 0
@@ -740,7 +735,7 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     elif rv >= 20:   review_pts = 14
     elif rv >= 10:   review_pts = 10
     elif rv > 0:     review_pts = 6
-    else:            review_pts = 10  # Unknown â€” assume established
+    else:            review_pts = 10  # Unknown Ã¢â‚¬â€ assume established
 
     if r >= 4.5:     review_pts = min(25, review_pts + 4)
     elif r >= 4.0:   review_pts = min(25, review_pts + 2)
@@ -749,7 +744,7 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     score += review_pts
     breakdown["business_quality"] = review_pts
 
-    # 2. Mobile opportunity (25 pts) â€” major factor
+    # 2. Mobile opportunity (25 pts) Ã¢â‚¬â€ major factor
     if mobile_score <= 2:    mobile_pts = 25
     elif mobile_score <= 4:  mobile_pts = 22
     elif mobile_score <= 6:  mobile_pts = 16
@@ -781,7 +776,7 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
     score += gap_pts
     breakdown["digital_gap"] = gap_pts
 
-    # 4. Size fit (15 pts) â€” size no longer penalises heavily
+    # 4. Size fit (15 pts) Ã¢â‚¬â€ size no longer penalises heavily
     if size_tier == "smb":          size_pts = 15
     elif size_tier == "micro":      size_pts = 10
     elif size_tier == "mid":        size_pts = 13  # Mid-market still good
@@ -794,7 +789,7 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
 
     has_marketing_team = any("marketing" in s.lower() for s in size_signals)
     if has_marketing_team:
-        size_pts = max(0, size_pts - 4)  # Reduced penalty â€” still worth trying
+        size_pts = max(0, size_pts - 4)  # Reduced penalty Ã¢â‚¬â€ still worth trying
     score += size_pts
     breakdown["size_fit"] = size_pts
 
@@ -818,12 +813,12 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
         breakdown["revenue_leak_bonus"] = 8
 
     # ICP tier
-    if score >= 80:    icp_tier, icp_label = "A", "ðŸŽ¯ Perfect ICP"
-    elif score >= 65:  icp_tier, icp_label = "B", "âœ… Good ICP"
-    elif score >= 45:  icp_tier, icp_label = "C", "âš¡ Possible"
-    else:              icp_tier, icp_label = "D", "âœ— Poor fit"
+    if score >= 80:    icp_tier, icp_label = "A", "Ã°Å¸Å½Â¯ Perfect ICP"
+    elif score >= 65:  icp_tier, icp_label = "B", "Ã¢Å“â€¦ Good ICP"
+    elif score >= 45:  icp_tier, icp_label = "C", "Ã¢Å¡Â¡ Possible"
+    else:              icp_tier, icp_label = "D", "Ã¢Å“â€” Poor fit"
 
-    # â”€â”€ Combined opportunity score â”€â”€
+    # Ã¢â€â‚¬Ã¢â€â‚¬ Combined opportunity score Ã¢â€â‚¬Ã¢â€â‚¬
     # Website + mobile are primary. ICP is a modifier.
     # Bad website = high opportunity regardless of ICP
     website_bonus = 0
@@ -841,19 +836,19 @@ def calculate_icp_score(audit: dict, biz: dict) -> dict:
 
     # Pills
     pills = []
-    if rv >= 100:           pills.append(f"â­ {rv}+ reviews")
-    elif rv >= 20:          pills.append(f"â­ {rv} reviews")
-    if mobile_score <= 4:   pills.append(f"ðŸ“µ Broken mobile ({mobile_score}/10)")
-    elif mobile_score <= 6: pills.append(f"ðŸ“± Poor mobile ({mobile_score}/10)")
-    if running_ads:         pills.append(f"ðŸ“¢ Running {' + '.join(running_ads)}")
-    if revenue_leak:        pills.append("ðŸ’¸ Revenue leak")
-    if not has_crm and not has_tracking: pills.append("ðŸ”´ No marketing tools")
+    if rv >= 100:           pills.append(f"Ã¢Â­Â {rv}+ reviews")
+    elif rv >= 20:          pills.append(f"Ã¢Â­Â {rv} reviews")
+    if mobile_score <= 4:   pills.append(f"Ã°Å¸â€œÂµ Broken mobile ({mobile_score}/10)")
+    elif mobile_score <= 6: pills.append(f"Ã°Å¸â€œÂ± Poor mobile ({mobile_score}/10)")
+    if running_ads:         pills.append(f"Ã°Å¸â€œÂ¢ Running {' + '.join(running_ads)}")
+    if revenue_leak:        pills.append("Ã°Å¸â€™Â¸ Revenue leak")
+    if not has_crm and not has_tracking: pills.append("Ã°Å¸â€Â´ No marketing tools")
     if not has_crm:         pills.append("No CRM")
-    if owner_signals:       pills.append("ðŸ‘¤ Owner operated")
+    if owner_signals:       pills.append("Ã°Å¸â€˜Â¤ Owner operated")
     if has_marketing_team:  pills.append("Has marketing team")
-    if ws <= 45:            pills.append("âš  Weak website")
-    elif ws >= 75:          pills.append("âœ“ Decent website")
-    if size_tier == "smb":  pills.append("SMB size âœ“")
+    if ws <= 45:            pills.append("Ã¢Å¡Â  Weak website")
+    elif ws >= 75:          pills.append("Ã¢Å“â€œ Decent website")
+    if size_tier == "smb":  pills.append("SMB size Ã¢Å“â€œ")
     elif size_tier == "mid": pills.append("Mid-market")
 
     return {
@@ -883,7 +878,7 @@ async def run_roaster(industry: str, location: str, limit: int, api_key: str, lo
         await log("No businesses found")
         return []
 
-    await log(f"Found {len(businesses)} businesses â€” running audit...")
+    await log(f"Found {len(businesses)} businesses Ã¢â‚¬â€ running audit...")
     results = []
 
     for i, biz in enumerate(businesses, 1):
@@ -926,5 +921,5 @@ async def run_roaster(industry: str, location: str, limit: int, api_key: str, lo
         await asyncio.sleep(0.3)
 
     results.sort(key=lambda x: x.get("combined_score", 0), reverse=True)
-    await log(f"Done â€” {len(results)} businesses scored")
+    await log(f"Done Ã¢â‚¬â€ {len(results)} businesses scored")
     return results
