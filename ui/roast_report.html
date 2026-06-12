@@ -460,7 +460,7 @@ function populate(biz){
       return "Your site is slow to show content, and every extra second loses visitors before they see a word.";
     },
     mobile:()=>"The site is hard to use on a phone. Tap targets, sizing and layout work against the visitor instead of helping them.",
-    cta:()=>"There's no clear next step above the fold, so visitors don't know how to get in touch.",
+    cta:(ctx,d)=>{if(d&&d.has_mailto_only===true)return "Right now getting in touch means copying out an email address by hand. A simple contact form would let visitors message you in a couple of taps.";if(d&&d.has_form===false)return "There's no quick contact form on the page, so visitors have to phone or email manually. A simple form captures more of them, even after hours.";return "There's some friction in how visitors get in touch. Smoothing the path to contact you turns more visits into calls.";},
     booking:()=>"There's no easy way to request a quote or book online, so you're relying on people to pick up the phone during business hours.",
     trust:()=>{
       if(rating&&reviews)return `You have <strong>${rating} stars from ${reviews} reviews</strong>. Making sure it appears on every key page builds trust even faster.`;
@@ -479,13 +479,12 @@ function populate(biz){
     const el=document.getElementById(elId);if(!el)return;
     let flagged=[...keys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...keys.filter(k=>dims[k]&&dims[k].flag==='Needs Work')];
     // AI vision guard: don't claim "no CTA" or "no phone" if the AI saw one in the screenshot
-    if(biz.cta_above_fold===true)flagged=flagged.filter(k=>k!=='cta');
     if(biz.phone_above_fold===true)flagged=flagged.filter(k=>k!=='booking');
     flagged=flagged.slice(0,3);
     if(!flagged.length){el.innerHTML=`<li><span class="issue-dot needs-work">+</span><div>This area is in good shape. No major issues flagged.</div></li>`;return;}
     el.innerHTML=flagged.map(k=>{
       const fc=dims[k].flag==='Critical'?'critical':'needs-work';
-      const body=typeof ISSUE[k]==='function'?ISSUE[k](ctx):(ISSUE[k]||'');
+      const body=typeof ISSUE[k]==='function'?ISSUE[k](ctx,dims[k]):(ISSUE[k]||'');
       return `<li><span class="issue-dot ${fc}">${fc==='critical'?'!':'~'}</span><div><strong>${(typeof DM!=='undefined'&&DM[k])||k}.</strong> ${body}</div></li>`;
     }).join('');
   }
@@ -550,7 +549,6 @@ function populate(biz){
     }
     // Up to 2 flagged warnings (exclude speed, which now has its own row)
     let flagged=[...mk.filter(k=>k!=='speed'&&dims[k]&&dims[k].flag==='Critical'),...mk.filter(k=>k!=='speed'&&dims[k]&&dims[k].flag==='Needs Work')];
-    if(biz.cta_above_fold===true)flagged=flagged.filter(k=>k!=='cta');
     if(biz.phone_above_fold===true)flagged=flagged.filter(k=>k!=='booking');
     flagged=flagged.slice(0,2);
     flagged.forEach(k=>{
