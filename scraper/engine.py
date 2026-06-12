@@ -559,6 +559,7 @@ async def audit_url(url: str) -> dict:
         return result
     except Exception as e:
         return {
+            "heavy_images": [{"diag": f"audit_url crash {type(e).__name__}: {str(e)[:120]}"}],
             "error": str(e)[:80], "website_score": 10, "opportunity_score": 90,
             "grade": "F — Urgent", "grade_color": "#dc2626",
             "dimensions": {}, "load_time": 0, "is_ssl": False,
