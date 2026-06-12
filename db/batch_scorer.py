@@ -433,6 +433,39 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         audit.update(intel)
         audit["mobile_issues"] = audit.get("dimensions", {}).get("mobile", {}).get("mobile_issues", [])
 
+        # 3b. Real-PSI speed dimension (overrides the load_time estimate when PSI succeeded)
+        m_fcp = psi.get("psi_mobile_fcp")
+        m_lcp = psi.get("psi_mobile_lcp")
+        if m_fcp is not None or m_lcp is not None:
+            # Severity from whichever metric is the real problem
+            def _fcp_sev(v):
+                if v is None: return (10, "")
+                if v < 1.8:  return (10, f"content appears in {v}s")
+                if v < 3.0:  return (6,  f"content starts in {v}s")
+                return (2, f"slow first paint ({v}s)")
+            def _lcp_sev(v):
+                if v is None: return (10, "")
+                if v < 2.5:  return (10, f"full load {v}s")
+                if v < 4.0:  return (6,  f"full load ~{v}s, could be sharper")
+                return (2, f"full load ~{v}s, well over the limit")
+            fcp_score, fcp_msg = _fcp_sev(m_fcp)
+            lcp_score, lcp_msg = _lcp_sev(m_lcp)
+            # Worse metric drives the dimension
+            if lcp_score <= fcp_score:
+                sv, lead_msg = lcp_score, lcp_msg
+            else:
+                sv, lead_msg = fcp_score, fcp_msg
+            sf = "Good" if sv >= 8 else ("Needs Work" if sv >= 5 else "Critical")
+            parts = [p for p in [fcp_msg, lcp_msg] if p]
+            st = " | ".join(parts) if parts else lead_msg
+            audit.setdefault("dimensions", {})["speed"] = {
+                "score": sv, "max": 10, "label": "Speed", "icon": "\u26a1",
+                "status": st, "flag": sf,
+                "psi_mobile_fcp": m_fcp, "psi_mobile_lcp": m_lcp,
+                "psi_desktop_fcp": psi.get("psi_desktop_fcp"),
+                "psi_desktop_lcp": psi.get("psi_desktop_lcp"),
+            }
+
         # 4. ICP score
         icp = calculate_icp_score(audit, contact)
         combined = icp.get("combined_score", icp["icp_score"])
