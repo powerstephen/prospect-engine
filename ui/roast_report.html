@@ -459,7 +459,7 @@ function populate(biz){
       if(f)return `Tested on Google PageSpeed Insights, your ${ctx} site shows a blank screen for around <strong>${Math.round(f)} seconds</strong> before any content appears. Most visitors leave before that.`;
       return "Your site is slow to show content, and every extra second loses visitors before they see a word.";
     },
-    mobile:()=>"The site is hard to use on a phone. Tap targets, sizing and layout work against the visitor instead of helping them.",
+    mobile:(ctx,d)=>{if(d&&Array.isArray(d.mobile_issues)&&d.mobile_issues.length){const raw=d.mobile_issues.join(' ').toLowerCase();const parts=[];if(raw.indexOf('viewport')>-1)parts.push("your site does not tell phones it is mobile friendly, so it can load at desktop size on a phone");const ov=(d.overflow_images||0);if(ov>0)parts.push(ov+" image"+(ov>1?"s":"")+" spill outside the screen on phones, which makes the layout feel broken");if(raw.indexOf('zoom')>-1)parts.push("pinch to zoom is blocked, which frustrates visitors trying to read");if(raw.indexOf('tap-to-call')>-1||raw.indexOf('tap to call')>-1)parts.push("your phone number is not tap to call, so mobile visitors have to copy it out by hand");if(parts.length)return parts.slice(0,2).join('. ').replace(/^./,c=>c.toUpperCase())+'.';}return "A few things make the site harder to use on a phone than it needs to be. Smoothing these keeps mobile visitors engaged.";},
     cta:(ctx,d)=>{if(d&&d.has_mailto_only===true)return "Right now getting in touch means copying out an email address by hand. A simple contact form would let visitors message you in a couple of taps.";if(d&&d.has_form===false)return "There's no quick contact form on the page, so visitors have to phone or email manually. A simple form captures more of them, even after hours.";return "There's some friction in how visitors get in touch. Smoothing the path to contact you turns more visits into calls.";},
     booking:()=>"There's no easy way to request a quote or book online, so you're relying on people to pick up the phone during business hours.",
     trust:()=>{
@@ -468,7 +468,8 @@ function populate(biz){
     },
     social:()=>{
       if(rating&&reviews)return `A <strong>${rating} star (${reviews} reviews)</strong> reputation worth showing off. Featuring it prominently on more pages turns trust into calls.`;
-      return "Social proof is thin or buried, and testimonials and ratings aren't pulling their weight.";
+      if(dims.trust&&dims.trust.has_google_reviews===true)return "You have Google reviews, but they are not featured prominently enough. Pulling your rating and recent reviews higher up turns existing trust into more calls.";
+      return "There is little visible social proof on the page. Adding your Google rating, reviews and testimonials gives new visitors confidence before they decide.";
     },
     ssl:()=>"The site isn't fully secure, so browsers may warn visitors before they even land.",
     seo:()=>"You're hard to find in local search, so competitors are showing up first.",
@@ -573,7 +574,7 @@ function populate(biz){
     if(!wrap)return;
     const triangle=(col)=>`<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.2 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
     // Rank desktop dims by score ascending (lowest = most broken = most important)
-    const ranked=dk.filter(k=>dims[k]).sort((a,b)=>(dims[a].score/dims[a].max)-(dims[b].score/dims[b].max));
+    const ranked=dk.filter(k=>dims[k]&&(dims[k].flag==='Critical'||dims[k].flag==='Needs Work')).sort((a,b)=>(dims[a].score/dims[a].max)-(dims[b].score/dims[b].max));
     const top2=ranked.slice(0,2);
     wrap.innerHTML=top2.map(k=>{
       const dim=dims[k];
