@@ -467,9 +467,12 @@ function populate(biz){
       return "Reviews and credentials aren't visible early, so people decide before they ever see your reputation.";
     },
     social:()=>{
-      if(rating&&reviews)return `A <strong>${rating} star (${reviews} reviews)</strong> reputation worth showing off. Featuring it prominently on more pages turns trust into calls.`;
-      if(dims.trust&&dims.trust.has_google_reviews===true)return "You have Google reviews, but they are not featured prominently enough. Pulling your rating and recent reviews higher up turns existing trust into more calls.";
-      return "There is little visible social proof on the page. Adding your Google rating, reviews and testimonials gives new visitors confidence before they decide.";
+      const onSite = !!(dims.trust && dims.trust.has_google_reviews===true);
+      if(rating && reviews && rating>=4.5 && reviews>=20 && !onSite){ return `You have a strong <strong>${rating}-star rating from ${reviews} Google reviews</strong>, but it is not shown anywhere on your site. Featuring it prominently is one of the fastest trust wins available.`; }
+      if(rating && reviews && onSite){ return `Your <strong>${rating}-star rating from ${reviews} reviews</strong> is a real asset. Make sure it is featured on every key page, not just one.`; }
+      if(rating && reviews){ return `You have a <strong>${rating}-star rating from ${reviews} Google reviews</strong>. Making it more prominent on the page builds trust faster for new visitors.`; }
+      if(onSite) return `You have Google reviews, but they can work harder for you. Making your recent ratings and reviews more prominent builds trust, which turns into more calls.`;
+      return `There is little visible social proof on the page. Adding your Google rating, reviews and testimonials gives new visitors confidence before they decide.`;
     },
     ssl:()=>"The site isn't fully secure, so browsers may warn visitors before they even land.",
     seo:()=>"You're hard to find in local search, so competitors are showing up first.",
