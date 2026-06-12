@@ -552,9 +552,9 @@ async def audit_url(url: str) -> dict:
             img_data = await scan_image_weight(html, url)
             result["total_image_kb"] = img_data.get("total_image_kb")
             result["heavy_images"] = img_data.get("heavy_images")
-        except Exception:
+        except Exception as call_err:
             result["total_image_kb"] = None
-            result["heavy_images"] = None
+            result["heavy_images"] = [{"diag": f"call-site crash {type(call_err).__name__}: {call_err}"}]
         return result
     except Exception as e:
         return {
