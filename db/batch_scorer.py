@@ -505,8 +505,11 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
 
     except Exception as e:
         await log(f"  PARTIAL: vision/audit failed ({e}) - saving PSI anyway")
+        globals()["_LAST_PARTIAL"] = f"{type(e).__name__}: {str(e)[:160]}"
+        _partial_diag = [{"diag": f"PARTIAL {type(e).__name__}: {str(e)[:120]}"}]
         return {
             "status": "scored",
+            "heavy_images":     _partial_diag,
             "psi_mobile_lcp":   psi.get("psi_mobile_lcp"),
             "psi_desktop_lcp":  psi.get("psi_desktop_lcp"),
             "psi_mobile_fcp":   psi.get("psi_mobile_fcp"),
