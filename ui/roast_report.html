@@ -483,7 +483,6 @@ function populate(biz){
     const el=document.getElementById(elId);if(!el)return;
     let flagged=[...keys.filter(k=>dims[k]&&dims[k].flag==='Critical'),...keys.filter(k=>dims[k]&&dims[k].flag==='Needs Work')];
     // AI vision guard: don't claim "no CTA" or "no phone" if the AI saw one in the screenshot
-    if(biz.phone_above_fold===true)flagged=flagged.filter(k=>k!=='booking');
     flagged=flagged.slice(0,3);
     if(!flagged.length){el.innerHTML=`<li><span class="issue-dot needs-work">+</span><div>This area is in good shape. No major issues flagged.</div></li>`;return;}
     el.innerHTML=flagged.map(k=>{
@@ -552,6 +551,18 @@ function populate(biz){
       </div>`;
     }
     // Up to 2 flagged warnings (exclude speed, which now has its own row)
+    // Image weight as a mobile issue: heavy images reinforcing the slow full-load
+    (function(){
+      const kb=biz.total_image_kb;
+      if(kb && kb>=1536){
+        const mb=(kb/1024).toFixed(1);
+        const lcp=(dims.speed&&dims.speed.psi_mobile_lcp)?dims.speed.psi_mobile_lcp:null;
+        let desc=`Your homepage loads about ${mb}MB of images.`;
+        if(lcp&&lcp>=4){ desc+=` That is the main reason it takes almost ${Math.round(lcp)} seconds to fully load the page. Compressing them is the single biggest speed win available.`; }
+        else { desc+=` Compressing them is one of the fastest ways to speed the page up.`; }
+        rows+=`<div class="metric-row"><div class="metric-icon">${triangle("#ef4444")}</div><div><div class="metric-title" style="font-size:17px;">Image weight slowing the page</div><div class="metric-body">${desc}</div><div class="metric-point">Compress large images to load faster</div></div></div>`;
+      }
+    })();
     let flagged=[...mk.filter(k=>k!=='speed'&&dims[k]&&dims[k].flag==='Critical'),...mk.filter(k=>k!=='speed'&&dims[k]&&dims[k].flag==='Needs Work')];
     if(biz.phone_above_fold===true)flagged=flagged.filter(k=>k!=='booking');
     flagged=flagged.slice(0,2);
