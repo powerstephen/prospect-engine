@@ -581,7 +581,7 @@ function populate(biz){
       const col=crit?'#ef4444':(dim.flag==='Needs Work'?'#f59e0b':'#00c4d4');
       const body=typeof ISSUE[k]==='function'?ISSUE[k]('desktop'):(ISSUE[k]||'');
       const point=POINT[k]||'';
-      return `<div class="metric-row" style="grid-template-columns:240px 1fr 220px;gap:24px;align-items:center;"><div style="display:flex;align-items:center;gap:12px;"><div class="metric-icon">`+triangle(col)+`</div><div class="metric-title" style="font-size:17px;">`+(MOBLABEL[k]||DM[k]||k)+`</div></div><div class="metric-body">`+body+`</div>`+(point?(`<div class="metric-point" style="text-align:right;">`+point+`</div>`):`<div></div>`)+`</div>`;
+      return `<div class="metric-row" style="grid-template-columns:240px 1fr 240px;gap:40px;align-items:center;"><div style="display:flex;align-items:center;gap:12px;"><div class="metric-icon">`+triangle(col)+`</div><div class="metric-title" style="font-size:17px;">`+(MOBLABEL[k]||DM[k]||k)+`</div></div><div class="metric-body">`+body+`</div>`+(point?(`<div class="metric-point">`+point+`</div>`):`<div></div>`)+`</div>`;
     }).join('');
   })();
 
