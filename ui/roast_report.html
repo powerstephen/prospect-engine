@@ -633,7 +633,7 @@ function buildRecsFromDims(dims,ctx){
       if(noReviews)return {title:"Put your Google reviews front and centre",description:"Your reviews aren't surfaced where people decide. Showing your rating and recent reviews early builds trust before a visitor even reads your services.",impact:"More calls, more customers"};
       return {title:"Surface your reputation earlier",description:"Your credentials and testimonials are there, but they aren't visible where people decide. Bringing them up front builds trust faster.",impact:"More calls, more customers"};
     },
-    social:()=>({title:"Show off your reputation",description:"Feature your star rating and recent reviews prominently so new visitors trust you straight away.",impact:"Higher visitor confidence"}),
+    social:(d)=>{if(d&&d.has_google_reviews===false)return {title:"Add visible social proof",description:"There's no visible star rating or reviews on the page yet. Adding them gives new visitors confidence before they decide.",impact:"Higher visitor confidence"};return {title:"Feature your reviews more prominently",description:"You have reviews. Featuring your star rating and recent ones higher up the page builds trust faster for new visitors.",impact:"Higher visitor confidence"};},
     speed:()=>buildSpeedRec(),
     mobile:(d)=>{
       const overflow=d.overflow_images>0;
@@ -684,7 +684,7 @@ function buildRecsFromDims(dims,ctx){
   // 2b) Merge Trust + Social into one "reputation" theme when BOTH are weak (they overlap on reviews)
   let mergedReputation=null;
   if(isWeak('trust')&&isWeak('social')){
-    mergedReputation={title:"Put your reviews front and centre",description:"Your reviews and credentials aren't surfaced where people decide. Featuring your star rating and recent reviews early builds trust before a visitor even reads your services.",impact:"More calls, more customers"};
+    if(dims.trust&&dims.trust.has_google_reviews===false){mergedReputation={title:"Put your reviews front and centre",description:"There's no visible Google rating or reviews on your site yet. Adding your star rating and recent reviews builds trust before a visitor even reads your services.",impact:"More calls, more customers"};}else{mergedReputation={title:"Strengthen your reputation signals",description:"You have reviews and credentials, but they could work harder. Featuring your star rating and recent reviews on every key page builds trust faster.",impact:"More calls, more customers"};}
     ranked=ranked.filter(k=>k!=='trust'&&k!=='social');
   }
 
