@@ -24,7 +24,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .hero-grid{display:grid;grid-template-columns:1fr 200px;gap:48px;align-items:center}
 .hero-eyebrow{font-size:14px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--teal);margin-bottom:14px}
 .hero-url-display{font-size:22px;font-weight:600;color:var(--text);margin-bottom:22px;letter-spacing:-0.3px}
-.hero-summary{font-size:14px;color:var(--muted);line-height:1.7;max-width:460px}
+.hero-summary{font-size:14px;color:var(--muted);line-height:1.7;max-width:640px}
 .hero-summary strong{color:var(--text)}
 .hero-flags{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .flag-pill{font-size:11px;font-weight:700;padding:5px 12px;border-radius:4px;letter-spacing:0.5px;text-transform:uppercase}
@@ -380,9 +380,9 @@ function populate(biz){
   const sub=document.getElementById('r-sub');
   if(sub){
     if(opps===0){
-      sub.innerHTML=`We've taken a close look at <strong>${name}</strong> across site speed, mobile experience, how easy it is to get in touch, and how your reputation shows up online. The good news: your site is already in great shape. Inside are a few insights worth knowing to keep the calls coming in.`;
+      sub.innerHTML=`<p style="margin:0;">We've taken a close look at <strong>${name}</strong> the way a potential customer would, across the things that decide whether a visit turns into a call: how fast your site loads, how it feels on a phone, how easy it is to get in touch, and how your reputation shows up online.</p><p style="margin:14px 0 0;">The good news: your site is already in strong shape. Below is a snapshot across mobile and desktop, plus a few insights worth knowing to keep the calls coming in.</p>`;
     } else {
-      sub.innerHTML=`We've taken a close look at <strong>${name}</strong> across site speed, mobile experience, how easy it is to get in touch, and how your reputation shows up online. Inside are a few things worth knowing about your site, and some small changes that could make a real difference to how many leads it brings in.`;
+      sub.innerHTML=`<p style="margin:0;">We've taken a close look at <strong>${name}</strong> the way a potential customer would, across the things that decide whether a visit turns into a call: how fast your site loads, how it feels on a phone, how easy it is to get in touch, and how your reputation shows up online.</p><p style="margin:14px 0 0;">Below is a quick, honest snapshot of what's holding you back, broken down across mobile and desktop. We also give 3 quick win recommendations of items you can fix that can make a real difference to the number of leads your website brings in each month.</p>`;
     }
   }
 
