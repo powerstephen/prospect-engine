@@ -596,6 +596,30 @@ function populate(biz){
     }).join('');
   })();
 
+  // Image weight: factual desktop issue when homepage images are heavy (>=3MB)
+  (function(){
+    const wrap=document.getElementById(
+'
+r-desktop-metrics
+'
+);
+    if(!wrap)return;
+    const _imgKb=biz.total_image_kb;
+    if(_imgKb && _imgKb>=3072){
+      const _mb=(_imgKb/1024).toFixed(1);
+      const triangle=(col)=>
+`
+<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="
+$
+{col}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.2 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+`
+;
+      const _row=
+`<div class="metric-row" style="grid-template-columns:1fr;gap:12px;align-items:start;"><div style="display:flex;align-items:center;gap:12px;"><div class="metric-icon">${triangle('#f59e0b')}</div><div class="metric-title" style="font-size:17px;">Image Weight</div></div><div><div class="metric-body">Your homepage loads about ${_mb}MB of images. That is a lot to download, and it slows the experience even for visitors on fast connections. Compressing these is one of the most effective speed wins available.</div><div class="metric-point">Compress large images to load faster</div></div></div>`
+;
+      wrap.innerHTML += _row;
+    }
+  })();
   // Load screenshots into device overlays
   const mUrl=biz.mobile_screenshot_url||biz.mobile_mockup_url||'';
   const dUrl=biz.desktop_screenshot_url||biz.desktop_mockup_url||'';
