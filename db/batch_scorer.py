@@ -1,9 +1,9 @@
 """
-Batch scorer v4 — full pipeline:
+Batch scorer v4 â€” full pipeline:
 1. Website audit (HTML, mobile, tech stack)
 2. Size + intelligence signals  
 3. ICP scoring
-4. AI Vision — Playwright mobile + desktop screenshots + GPT-4o analysis
+4. AI Vision â€” Playwright mobile + desktop screenshots + GPT-4o analysis
 5. Phone mockup composite + upload to Supabase Storage
 6. All results written back to Supabase in one shot
 """
@@ -41,7 +41,7 @@ async def upload_screenshot(contact_id: int, image_bytes: bytes, suffix: str = "
         async with httpx.AsyncClient(timeout=30) as c:
             r = await c.post(upload_url, content=image_bytes, headers=headers)
             if r.status_code not in (200, 201):
-                print(f"Upload failed {suffix}: {r.status_code} — {r.text[:200]}")
+                print(f"Upload failed {suffix}: {r.status_code} â€” {r.text[:200]}")
                 return None
         public_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{filename}"
         print(f"Upload success {suffix}: {public_url}")
@@ -195,11 +195,11 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
 
     openai_key = os.environ.get("OPENAI_API_KEY", "")
     if not openai_key:
-        await log("  ↳ No OpenAI key — skipping AI vision")
+        await log("  â†³ No OpenAI key â€” skipping AI vision")
         return {}
 
-    # ── Screenshots (mobile + desktop in one browser session) ──
-    await log(f"  📸 Screenshotting {contact.get('company','?')} — mobile + desktop...")
+    # â”€â”€ Screenshots (mobile + desktop in one browser session) â”€â”€
+    await log(f"  ðŸ“¸ Screenshotting {contact.get('company','?')} â€” mobile + desktop...")
     mobile_screenshot = None
     desktop_screenshot = None
 
@@ -211,7 +211,7 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                 args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
             )
 
-            # ── Mobile screenshot ──
+            # â”€â”€ Mobile screenshot â”€â”€
             mobile_ctx = await browser.new_context(
                 viewport={"width": 375, "height": 812},
                 user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
@@ -226,9 +226,9 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                     await mobile_page.goto(website, wait_until="commit", timeout=10000)
                     await mobile_page.wait_for_timeout(2000)
                 except Exception as e:
-                    await log(f"  ✗ Mobile page load failed: {e}")
+                    await log(f"  âœ— Mobile page load failed: {e}")
 
-            # ── Bot-protection / Cloudflare challenge detection ──
+            # â”€â”€ Bot-protection / Cloudflare challenge detection â”€â”€
             # If the page is a security interstitial, screenshots and speed
             # numbers are meaningless (we'd capture a robot, not the site).
             # Flag the lead so the caller can archive it instead of scoring.
@@ -251,17 +251,17 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
             ]
             blob = page_title + " " + page_text
             if any(m in blob for m in CHALLENGE_MARKERS):
-                await log(f"  ⚠ Bot protection detected (Cloudflare/challenge) - flagging as bot_protected")
+                await log(f"  âš  Bot protection detected (Cloudflare/challenge) - flagging as bot_protected")
                 await mobile_ctx.close()
                 await browser.close()
                 return {"bot_protected": True}
 
             if mobile_page:
                 mobile_screenshot = await mobile_page.screenshot(full_page=False, type="jpeg", quality=75)
-                await log(f"  ✓ Mobile screenshot ({len(mobile_screenshot)} bytes)")
+                await log(f"  âœ“ Mobile screenshot ({len(mobile_screenshot)} bytes)")
             await mobile_ctx.close()
 
-            # ── Desktop screenshot ──
+            # â”€â”€ Desktop screenshot â”€â”€
             desktop_ctx = await browser.new_context(
                 viewport={"width": 1440, "height": 900},
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
@@ -275,23 +275,23 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
                     await desktop_page.goto(website, wait_until="commit", timeout=10000)
                     await desktop_page.wait_for_timeout(1500)
                 except Exception as e:
-                    await log(f"  ✗ Desktop page load failed: {e}")
+                    await log(f"  âœ— Desktop page load failed: {e}")
 
             if desktop_page:
                 desktop_screenshot = await desktop_page.screenshot(full_page=False, type="jpeg", quality=75)
-                await log(f"  ✓ Desktop screenshot ({len(desktop_screenshot)} bytes)")
+                await log(f"  âœ“ Desktop screenshot ({len(desktop_screenshot)} bytes)")
             await desktop_ctx.close()
 
             await browser.close()
 
     except Exception as e:
-        await log(f"  ✗ Screenshot failed: {e}")
+        await log(f"  âœ— Screenshot failed: {e}")
         return {}
 
-    # ── GPT-4o Vision analysis (using mobile screenshot) ──
+    # â”€â”€ GPT-4o Vision analysis (using mobile screenshot) â”€â”€
     vision_result = {}
     if mobile_screenshot:
-        await log(f"  🤖 Analysing with GPT-4o Vision...")
+        await log(f"  ðŸ¤– Analysing with GPT-4o Vision...")
         try:
             from openai import AsyncOpenAI
             import json
@@ -309,7 +309,7 @@ Be brutally honest. Analyse what a real customer experiences. Return ONLY valid 
   "design_quality": <1-10, consider: modern=8-10, dated/basic=4-6, broken/ugly=1-3>,
   "images_rendering": <true if images display correctly and fit the screen>,
   "has_real_form": <true if there is an actual contact/quote form visible, false if CTA only opens phone dialler or email>,
-  "cta_quality": <"excellent", "good", "poor", or "broken" — broken means opens email/phone only>,
+  "cta_quality": <"excellent", "good", "poor", or "broken" â€” broken means opens email/phone only>,
   "trust_signals_visible": <true if reviews, star rating, badges, or credentials visible without scrolling>,
   "looks_modern": <true if design looks professional and modern, false if it looks dated or amateur>,
   "biggest_problem": <one sentence, the single worst UX issue a customer would experience>,
@@ -338,20 +338,20 @@ Be brutally honest. Analyse what a real customer experiences. Return ONLY valid 
 
             vision_result = json.loads(raw)
             await log(
-                f"  ✓ AI — Mobile: {vision_result.get('ai_mobile_score')}/10 | "
+                f"  âœ“ AI â€” Mobile: {vision_result.get('ai_mobile_score')}/10 | "
                 f"Design: {vision_result.get('design_quality')}/10 | "
                 f"Urgency: {vision_result.get('urgency')} | "
                 f"{vision_result.get('biggest_problem','')}"
             )
         except Exception as e:
-            await log(f"  ✗ GPT-4o failed: {e}")
+            await log(f"  âœ— GPT-4o failed: {e}")
 
-    # ── Mockups ──
-    await log(f"  📱 Creating mockups...")
+    # â”€â”€ Mockups â”€â”€
+    await log(f"  ðŸ“± Creating mockups...")
     mobile_mockup = await create_phone_mockup(mobile_screenshot) if mobile_screenshot else None
     desktop_mockup = await create_desktop_mockup(desktop_screenshot) if desktop_screenshot else None
 
-    # ── Upload all to Supabase Storage ──
+    # â”€â”€ Upload all to Supabase Storage â”€â”€
     contact_id = contact.get("id")
     screenshot_url = None
     mockup_url = None
@@ -359,7 +359,7 @@ Be brutally honest. Analyse what a real customer experiences. Return ONLY valid 
     desktop_mockup_url = None
 
     if contact_id:
-        await log(f"  ☁ Uploading to Supabase Storage...")
+        await log(f"  â˜ Uploading to Supabase Storage...")
         if mobile_screenshot:
             screenshot_url = await upload_screenshot(contact_id, mobile_screenshot, "mobile")
         if mobile_mockup:
@@ -368,8 +368,8 @@ Be brutally honest. Analyse what a real customer experiences. Return ONLY valid 
             desktop_screenshot_url = await upload_screenshot(contact_id, desktop_screenshot, "desktop")
         if desktop_mockup:
             desktop_mockup_url = await upload_screenshot(contact_id, desktop_mockup, "desktop_mockup")
-        await log(f"  ✓ Mobile: {mockup_url}")
-        await log(f"  ✓ Desktop: {desktop_mockup_url}")
+        await log(f"  âœ“ Mobile: {mockup_url}")
+        await log(f"  âœ“ Desktop: {desktop_mockup_url}")
 
     return {
         **vision_result,
@@ -381,7 +381,7 @@ Be brutally honest. Analyse what a real customer experiences. Return ONLY valid 
 
 
 async def score_contact(contact: dict, log_cb=None) -> dict:
-    """Full scoring pipeline — website audit + AI vision (mobile + desktop)."""
+    """Full scoring pipeline â€” website audit + AI vision (mobile + desktop)."""
 
     async def log(msg):
         if log_cb:
@@ -390,7 +390,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
 
     website = (contact.get("website") or "").strip()
     if not website:
-        await log(f"  ↳ {contact.get('company','?')} — no website, skipping")
+        await log(f"  â†³ {contact.get('company','?')} â€” no website, skipping")
         return {"error": "no website", "status": "new"}
 
     if not website.startswith("http"):
@@ -443,7 +443,7 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         # If the site is behind a bot/Cloudflare challenge, the screenshot and
         # speed numbers are junk. Archive the lead instead of scoring it.
         if vision.get("bot_protected"):
-            await log(f"  ⚠ {contact.get('company','?')} - bot-protected site, archiving (not scoring)")
+            await log(f"  âš  {contact.get('company','?')} - bot-protected site, archiving (not scoring)")
             return {
                 "status": "bot_protected",
                 "ai_scored_at": "now()",
@@ -462,15 +462,15 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
 
         combined = min(99, combined + ai_boost)
 
-        # Everything with a website goes to scored — manual archive only
+        # Everything with a website goes to scored â€” manual archive only
         status = "scored"
 
         await log(
-            f"  ✓ {contact.get('company','?')} — "
+            f"  âœ“ {contact.get('company','?')} â€” "
             f"Opp: {combined} | ICP: {icp['icp_score']} | "
             f"Web: {audit.get('website_score',0)} | "
-            f"AI Mobile: {vision.get('ai_mobile_score','—')}/10 | "
-            f"Tier: {icp['icp_tier']} → {status.upper()}"
+            f"AI Mobile: {vision.get('ai_mobile_score','â€”')}/10 | "
+            f"Tier: {icp['icp_tier']} â†’ {status.upper()}"
         )
 
         return {
@@ -505,11 +505,8 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
 
     except Exception as e:
         await log(f"  PARTIAL: vision/audit failed ({e}) - saving PSI anyway")
-        globals()["_LAST_PARTIAL"] = f"{type(e).__name__}: {str(e)[:160]}"
-        _partial_diag = [{"diag": f"PARTIAL {type(e).__name__}: {str(e)[:120]}"}]
         return {
             "status": "scored",
-            "heavy_images":     _partial_diag,
             "psi_mobile_lcp":   psi.get("psi_mobile_lcp"),
             "psi_desktop_lcp":  psi.get("psi_desktop_lcp"),
             "psi_mobile_fcp":   psi.get("psi_mobile_fcp"),
@@ -534,7 +531,7 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
         await log("No new contacts to score.")
         return {"scored": 0, "hot": 0, "warm": 0, "archived": 0, "errors": 0}
 
-    await log(f"Starting batch score — {len(contacts)} contacts queued...")
+    await log(f"Starting batch score â€” {len(contacts)} contacts queued...")
     results = {"scored": 0, "hot": 0, "warm": 0, "archived": 0, "bot_protected": 0, "errors": 0}
 
     for contact in contacts:
@@ -585,7 +582,7 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                             headers=h,
                         )
                         if r.status_code not in (200, 201, 204):
-                            print(f"AI PATCH failed: {r.status_code} — {r.text[:200]}")
+                            print(f"AI PATCH failed: {r.status_code} â€” {r.text[:200]}")
                 except Exception as e:
                     print(f"AI fields save error: {e}")
 
@@ -599,11 +596,11 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
             await asyncio.sleep(1)
 
         except Exception as e:
-            await log(f"  ✗ Unexpected error: {e}")
+            await log(f"  âœ— Unexpected error: {e}")
             results["errors"] += 1
 
     await log(
-        f"\nBatch complete — {results['scored']} scored | "
+        f"\nBatch complete â€” {results['scored']} scored | "
         f"{results['hot']} hot | {results['warm']} warm | "
         f"{results['archived']} archived | {results['errors']} errors"
     )
