@@ -55,7 +55,7 @@ def get_contact_stats() -> dict:
 
 
 def update_contact_score(contact_id, opportunity_score, icp_score, website_score,
-                          icp_tier, intel_pills, size_signals, revenue_leak, status):
+                          icp_tier, intel_pills, size_signals, revenue_leak, status, **extra):
     payload = {
         "opportunity_score": opportunity_score,
         "icp_score": icp_score,
@@ -66,6 +66,7 @@ def update_contact_score(contact_id, opportunity_score, icp_score, website_score
         "revenue_leak": revenue_leak,
         "status": status,
         "scored_at": "now()",
+        **extra,
     }
     r = httpx.patch(f"{_url('contacts')}?id=eq.{contact_id}", json=payload, headers=_headers(), timeout=30)
     r.raise_for_status()
