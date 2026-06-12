@@ -484,7 +484,7 @@ async def scan_image_weight(html: str, base_url: str) -> dict:
             urls.append(full)
         urls = urls[:15]  # cap so we do not hammer slow sites
         if not urls:
-            print("  image scan: no image urls found in html")
+            result["heavy_images"] = [{"diag": "no image urls found in html"}]
             return result
 
         headers = {**HEADERS}
@@ -512,7 +512,7 @@ async def scan_image_weight(html: str, base_url: str) -> dict:
 
         sizes = [s for s in sizes if s and s[1] > 0]
         if not sizes:
-            print(f"  image scan: found {len(urls)} urls but no readable sizes")
+            result["heavy_images"] = [{"diag": f"{len(urls)} urls but no readable sizes"}]
             return result
 
         total_bytes = sum(b for _, b in sizes)
@@ -523,7 +523,7 @@ async def scan_image_weight(html: str, base_url: str) -> dict:
         result["heavy_images"] = heavy
         print(f"  image scan: {result['total_image_kb']} kb across {len(sizes)} imgs")
     except Exception as scan_err:
-        print(f"  image scan crashed: {type(scan_err).__name__}: {scan_err}")
+        result["heavy_images"] = [{"diag": f"crash {type(scan_err).__name__}: {scan_err}"}]
     return result
 
 
