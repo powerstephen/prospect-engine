@@ -661,10 +661,11 @@ function buildRecsFromDims(dims,ctx){
   }
 
   // 1) Build the ranked candidate list (lowest score first, lead-impact tiebreak)
-  const PRIORITY={cta:1,booking:2,trust:3,social:4,speed:5,mobile:6,visual:7,seo:8,tech:9,ssl:10};
+  const PRIORITY={speed:1,mobile:2,cta:3,booking:4,trust:5,social:6,seo:7,tech:8,visual:9,ssl:10};
   let ranked=Object.entries(dims)
     .filter(([k,d])=>REC[k]&&d&&typeof d.score==='number')
     .sort((a,b)=>{
+      const fa=(a[1].flag==="Critical"||a[1].flag==="Needs Work")?0:1, fb=(b[1].flag==="Critical"||b[1].flag==="Needs Work")?0:1; if(fa!==fb)return fa-fb;
       const ra=a[1].score/a[1].max, rb=b[1].score/b[1].max;
       if(ra!==rb)return ra-rb;
       return (PRIORITY[a[0]]||99)-(PRIORITY[b[0]]||99);
