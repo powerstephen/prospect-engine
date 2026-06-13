@@ -503,7 +503,7 @@ function populate(biz){
     // Speed hero row: lead with whichever metric is actually the problem.
     // FCP under ~3s is fine; if LCP is slow, THAT is the story, so lead with it.
     const mlcp=parseFloat(biz.psi_mobile_lcp)||null;
-    const fcpOk=mFcp&&mFcp<3;
+    const fcpOk=mFcp&&mFcp<3.5;
     const lcpSlow=mlcp&&mlcp>=4;
     const lcpMiddle=mlcp&&mlcp>=2.5&&mlcp<4;
     if(mFcp&&fcpOk&&lcpSlow){
