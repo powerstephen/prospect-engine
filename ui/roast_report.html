@@ -238,22 +238,10 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     <!-- below: phone screenshot + three metric rows -->
     <div class="mobile-grid">
       <div style="display:flex;justify-content:center;">
-                            <div style="filter:drop-shadow(0 24px 48px rgba(0,0,0,0.7));">
-                            <!-- CSS phone: bezel clips a clean stack of header + screenshot + footer -->
-                            <div style="width:300px;padding:10px;background:#0a0d14;border:2px solid #2a2f3a;border-radius:36px;box-shadow:inset 0 0 0 2px #11151d;">
-                              <div style="border-radius:26px;overflow:hidden;background:#0b0f17;display:flex;flex-direction:column;">
-                                <div style="height:30px;flex:0 0 30px;background:#1c2230;display:flex;align-items:center;gap:6px;padding:0 12px;">
-                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7d8694" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                                  <div id="r-mobile-urlbar" style="font-size:10px;color:#9aa3b2;font-family:sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.2px;">site</div>
-                                </div>
-                                <img id="r-mobile-img" src="" style="display:none;width:100%;height:392px;object-fit:cover;object-position:top;">
-                                <div style="height:26px;flex:0 0 26px;background:#1c2230;display:flex;align-items:center;justify-content:center;gap:16px;">
-                                  <div style="width:6px;height:6px;border-radius:50%;background:#3a4252;"></div>
-                                  <div style="width:6px;height:6px;border-radius:50%;background:#3a4252;"></div>
-                                  <div style="width:6px;height:6px;border-radius:50%;background:#3a4252;"></div>
-                                </div>
-                              </div>
-                            </div>
+                            <!-- Phone: frame image with screenshot overlaid on the white screen area (measured: left 25.97% top 14.26% w 47.95% h 68.57%) -->
+                            <div style="position:relative;width:300px;">
+                              <img id="r-mobile-img" src="" style="display:none;position:absolute;left:25.97%;top:14.26%;width:47.95%;height:68.57%;object-fit:cover;object-position:top;z-index:2;">
+                              <img src="/static/phone-frame.png" alt="phone" style="position:relative;width:100%;display:block;z-index:1;pointer-events:none;">
                             </div>
       </div>
       <div class="metric-rows" id="r-mobile-metrics"></div>
