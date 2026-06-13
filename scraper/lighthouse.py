@@ -47,11 +47,18 @@ async def _run_with_retry(url: str, strategy: str, attempts: int = 2) -> dict:
     return {}
 
 
-async def _run_median(url: str, strategy: str, runs: int = 3) -> dict:
+async def _run_median(url: str, strategy: str, runs: int = 5) -> dict:
     """Run PSI several times and return the median of each metric.
-    Smooths out PSI run-to-run variance (LCP especially can swing a lot).
-    Medians each metric independently over whatever runs succeeded; if all
-    runs fail, returns an empty dict so the caller falls back gracefully."""
+    Smooths out PSI run-to-run variance (FCP especially can swing a lot).
+
+    Robustness rules (added after a 1-survivor median produced a 5x-wrong
+    number that nearly shipped to a prospect):
+      - Wider spacing between runs to avoid self-inflicted 429 rate limits.
+      - A metric is only returned if at least MIN_SAMPLES runs succeeded for it.
+        A 'median' of one sample is just that one fluke, so we refuse it and
+        return None, letting the caller fall back gracefully.
+      - We attach 'samples' so the caller/report knows the confidence."""
+    MIN_SAMPLES = 2
     lcps, fcps, perfs = [], [], []
     for i in range(runs):
         res = await _run_with_retry(url, strategy)
@@ -59,11 +66,16 @@ async def _run_median(url: str, strategy: str, runs: int = 3) -> dict:
         if res.get("fcp") is not None:  fcps.append(res["fcp"])
         if res.get("perf") is not None: perfs.append(res["perf"])
         if i < runs - 1:
-            await asyncio.sleep(1)  # brief gap between runs
+            await asyncio.sleep(3)  # wider gap between runs to dodge rate limits
+
+    def safe_median(vals):
+        return round(statistics.median(vals), 1) if len(vals) >= MIN_SAMPLES else None
+
     return {
-        "lcp":  round(statistics.median(lcps), 1) if lcps else None,
-        "fcp":  round(statistics.median(fcps), 1) if fcps else None,
-        "perf": round(statistics.median(perfs)) if perfs else None,
+        "lcp":  safe_median(lcps),
+        "fcp":  safe_median(fcps),
+        "perf": round(statistics.median(perfs)) if len(perfs) >= MIN_SAMPLES else None,
+        "samples": max(len(lcps), len(fcps)),
     }
 
 async def measure_speed(url: str) -> dict:
