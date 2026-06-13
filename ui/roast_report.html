@@ -238,12 +238,10 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     <!-- below: phone screenshot + three metric rows -->
     <div class="mobile-grid">
       <div style="display:flex;justify-content:center;">
-                            <!-- Phone: cropped window zooms into the phone (hero), clips wrist. Frame+screenshot scale together. -->
-                            <div style="position:relative;width:340px;height:430px;overflow:hidden;">
-                              <div style="position:absolute;top:-6%;left:-8%;width:128%;">
-                                <img id="r-mobile-img" src="" style="display:none;position:absolute;left:27.7%;top:18.49%;width:44.43%;height:51.5%;object-fit:cover;object-position:top;z-index:2;">
-                                <img src="/static/phone-frame-new.png" alt="phone" style="position:relative;width:100%;display:block;z-index:1;pointer-events:none;">
-                              </div>
+                            <!-- Phone: final frame (hand from left, phone hero) with screenshot overlaid on screen area -->
+                            <div style="position:relative;width:360px;">
+                              <img id="r-mobile-img" src="" style="display:none;position:absolute;left:30.7%;top:13.5%;width:51.5%;height:63.5%;object-fit:cover;object-position:top;z-index:2;">
+                              <img src="/static/phone-final.png" alt="phone" style="position:relative;width:100%;display:block;z-index:1;pointer-events:none;">
                             </div>
       </div>
       <div class="metric-rows" id="r-mobile-metrics"></div>
