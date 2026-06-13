@@ -470,7 +470,7 @@ function populate(biz){
     },
     social:()=>{
       const onSite = !!(dims.trust && dims.trust.has_google_reviews===true);
-      if(rating && reviews && rating>=4.5 && reviews>=20 && !onSite){ return `You have a strong <strong>${rating}-star rating from ${reviews} Google reviews</strong>, but it is not shown anywhere on your site. Featuring it prominently is one of the fastest trust wins available.`; }
+      if(rating && reviews && rating>=4.5 && reviews>=20 && !onSite){ return `You have a strong <strong>${rating}-star rating from ${reviews} Google reviews</strong>, but it is not shown anywhere on your site. Featuring it prominently is a fast trust building win.`; }
       if(rating && reviews && onSite){ return `Your <strong>${rating}-star rating from ${reviews} reviews</strong> is a real asset. Make sure it is featured on every key page, not just one.`; }
       if(rating && reviews){ return `You have a <strong>${rating}-star rating from ${reviews} Google reviews</strong>. Making it more prominent on the page builds trust faster for new visitors.`; }
       if(onSite) return `You have Google reviews, but they can work harder for you. Making your recent ratings and reviews more prominent builds trust, which turns into more calls.`;
