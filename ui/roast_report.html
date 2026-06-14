@@ -591,13 +591,15 @@ function populate(biz){
     const triangle=(col)=>`<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.2 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
     // Rank desktop dims by score ascending (lowest = most broken = most important)
     const ranked=dk.filter(k=>dims[k]&&(dims[k].flag==='Critical'||dims[k].flag==='Needs Work')).sort((a,b)=>(dims[a].score/dims[a].max)-(dims[b].score/dims[b].max));
-    const top2=ranked.slice(0,3);
+    let top2=ranked.slice(0,2);
+    if(!top2.includes("seo")) top2=top2.concat("seo");
+    top2=top2.slice(0,3);
     wrap.innerHTML=top2.map(k=>{
       const dim=dims[k];
       const crit=dim.flag==='Critical';
       const col=crit?'#ef4444':(dim.flag==='Needs Work'?'#f59e0b':'#00c4d4');
-      const body=typeof ISSUE[k]==='function'?ISSUE[k]('desktop'):(ISSUE[k]||'');
-      const point=POINT[k]||'';
+      const body=k==='seo'?'Your site is missing location keywords that help you get found in local searches.':(typeof ISSUE[k]==='function'?ISSUE[k]('desktop'):(ISSUE[k]||''));
+      const point=k==='seo'?'Get found by local customers':(POINT[k]||'');
       return `<div class="metric-row desktop-issue-row"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><div class="metric-icon">`+triangle(col)+`</div><div class="metric-title" style="font-size:16px;">`+(MOBLABEL[k]||DM[k]||k)+`</div></div><div class="metric-body">`+body+`</div>`+(point?(`<div class="metric-point">`+point+`</div>`):``)+`</div>`;
     }).join('');
   })();
