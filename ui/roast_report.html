@@ -135,7 +135,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   .desktop-top-grid > div:last-child{width:128%;margin-left:-14%}
   .mobile-grid{grid-template-columns:1fr !important}
   .mobile-grid > *{min-width:0;max-width:100%}
-  .metric-rows{min-width:0;overflow-x:hidden}
+  .metric-rows{min-width:0;width:100%}
   .desktop-issues-grid{grid-template-columns:1fr;gap:28px;width:100%;max-width:none;transform:none;margin:32px 0 0}
   .desktop-issues-grid .metric-row{padding:0;border-left:none}
   .desktop-issues-grid .metric-row:not(:first-child){border-left:none;border-top:1px solid var(--border2);padding-top:28px}
@@ -158,9 +158,9 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   /* Bigger laptop scale removed on phone, screenshot centered */
   .mobile-grid>div:first-child{transform:none !important;margin-bottom:36px}
   /* Metric rows: smaller icon column so text has room */
-  .metric-row{grid-template-columns:auto 1fr;column-gap:14px;row-gap:6px;align-items:center;padding:18px 0}
+  .metric-row{grid-template-columns:1fr;gap:8px;padding:18px 0;width:100%}
   .metric-row > *{min-width:0}
-  .metric-row > div:last-child{grid-column:1 / -1}
+  .metric-row > .metric-icon{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px}
   .metric-row > *{min-width:0}
   .metric-body{overflow-wrap:break-word}
   .desktop-issue-row{grid-template-columns:1fr;gap:10px}
