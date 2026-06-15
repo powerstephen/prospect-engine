@@ -158,11 +158,16 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
   /* Bigger laptop scale removed on phone, screenshot centered */
   .mobile-grid>div:first-child{transform:none !important;margin-bottom:36px}
   /* Metric rows: smaller icon column so text has room */
-  .metric-row{grid-template-columns:48px 1fr;gap:14px;padding:18px 0}
+  .metric-row{grid-template-columns:auto 1fr;column-gap:14px;row-gap:6px;align-items:center;padding:18px 0}
+  .metric-row > *{min-width:0}
+  .metric-row > div:last-child{grid-column:1 / -1}
   .metric-row > *{min-width:0}
   .metric-body{overflow-wrap:break-word}
   .desktop-issue-row{grid-template-columns:1fr;gap:10px}
-  .metric-icon svg{width:32px;height:32px}
+  .metric-icon{flex-direction:row;gap:8px;align-items:center}
+  .metric-icon svg{width:30px;height:30px}
+  .metric-bignum{font-size:18px}
+  .metric-sub{display:none}
   .metric-bignum{font-size:20px}
   .metric-title{font-size:16px !important}
   .metric-body{font-size:12.5px}
