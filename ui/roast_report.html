@@ -60,7 +60,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .desktop-top-grid .mobile-top{grid-template-columns:1fr;gap:24px;margin-bottom:0}
 .desktop-top-grid .mobile-top-heading{padding-left:0;border-left:none}
 .metric-rows{display:flex;flex-direction:column;gap:4px;margin-left:-38px}
-.desktop-issues-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;width:100%;max-width:none;margin:48px 0 0}
+.desktop-issues-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:48px;width:100%;max-width:none;margin:80px 0 0}
 .desktop-issues-grid .metric-row{border-top:none;display:block;padding:0 48px}
 .desktop-issues-grid .metric-row:not(:first-child){border-left:1px solid var(--border2)}
 .desktop-issues-grid .metric-row:first-child{padding-left:0}
@@ -75,7 +75,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .metric-body{font-size:13px;color:var(--muted);line-height:1.65}
 .metric-point{margin-top:11px;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--teal);line-height:1.4}
 .metric-point::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0}
-.desktop-top-grid{display:grid;grid-template-columns:0.5fr 2.5fr;gap:28px;align-items:start;margin-bottom:28px}
+.desktop-top-grid{display:grid;grid-template-columns:0.5fr 2.5fr;gap:28px;align-items:start;margin-bottom:48px}
 .dim-pills{display:flex;flex-wrap:wrap;gap:8px}
 .dim-pill{display:inline-flex;align-items:center;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;padding:5px 12px;border-radius:4px}
 .dim-pill.critical{background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.28)}
@@ -331,7 +331,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
       <div style="font-family:'Montserrat',sans-serif;font-size:30px;font-weight:800;line-height:1.18;margin-bottom:18px;">We hope this was useful</div>
       <div style="font-size:14.5px;color:var(--muted);line-height:1.8;margin-bottom:10px;text-align:left;">This is just a quick snapshot of your site, and we hope you find the information useful. If you would like us to provide a full <strong style="color:var(--text);">100-point review</strong> of your site, we are more than happy to do that for you, for free, at a time of your choosing. Just fill out the form to book in your free review.</div>
       <div style="font-size:14.5px;color:var(--muted);line-height:1.8;margin-bottom:32px;text-align:left;"><strong style="color:var(--text);">Websites that turn local searches into booked jobs.</strong> We have spent 25 years helping small and medium home services businesses get found and win more work.</div>
-      <div style="text-align:center;padding-top:8px;">
+      <div style="text-align:center;padding-top:0;margin-top:-8px;">
         <a href="https://eversite.com/joe" class="cta-btn" id="r-cta">Book My Free Review &rarr;</a>
         <div style="margin-top:16px;font-size:13px;color:var(--muted);">or call our Dallas office on <a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a> and ask for Joe or Rob</div>
         <div class="gbadge" style="margin-top:48px;">
@@ -404,7 +404,7 @@ function populate(biz){
     if(opps===0){
       sub.innerHTML=`<p style="margin:0;">We looked at <strong>${name}</strong> the way a potential customer would: speed, mobile experience, ease of contact, and how your reputation shows up online.</p><p style="margin:14px 0 0;">The good news, your site is already in strong shape. Below is a snapshot across mobile and desktop, plus a few changes worth making to keep the leads coming in.</p>`;
     } else {
-      sub.innerHTML=`<p style="margin:0;">We looked at <strong>${name}</strong> the way a potential customer would: speed, mobile experience, ease of contact, and how your reputation shows up online.</p><p style="margin:14px 0 0;">Below is an honest snapshot across mobile and desktop, plus the 3 changes we'd make first to turn more of your website visitors into booked jobs.</p>`;
+      sub.innerHTML=`<p style="margin:0;">We looked at <strong>${name}</strong> the way a potential customer would: speed, mobile experience, ease of contact, and how your reputation shows up online.</p><p style="margin:14px 0 0;">Below is an honest snapshot across mobile and desktop, plus the 3 changes we'd suggest to turn more of your website visitors into booked jobs.</p>`;
     }
   }
 
@@ -525,7 +525,7 @@ function populate(biz){
     const mlcp=parseFloat(biz.psi_mobile_lcp)||null;
     const fcpOk=mFcp&&mFcp<3.5;
     const lcpSlow=mlcp&&mlcp>=4;
-    const lcpMiddle=mlcp&&mlcp>=2.5&&mlcp<4;
+    const lcpMiddle=mlcp&&mlcp>=3&&mlcp<4;
     if(mFcp&&fcpOk&&lcpSlow){
       // FCP is fine but the full page is slow to finish - lead with LCP (the real problem)
       const ls=mlcp.toFixed(1);
@@ -657,23 +657,23 @@ function buildRecsFromDims(dims,ctx){
       if(mailtoOnly||noForm)return {title:"Make it easier to get in touch",description:"Your main button opens an email client rather than a quick contact form. Adding a simple form lets visitors request a quote in a couple of taps, without leaving your site.",impact:"More quote requests"};
       return {title:"Make the next step obvious",description:"Give visitors one clear action the moment they land, so they always know how to get in touch.",impact:"Better CTAs, more leads"};
     },
-    booking:()=>({title:"Add online quote requests",description:"Right now the only way to reach you is by phone. A simple request-a-quote option captures leads even outside business hours, when a lot of roofing searches happen.",impact:"More leads, day and night"}),
+    booking:()=>({title:"Add online quote requests",description:"Right now visitors have to call or email manually, so you only hear from the most determined ones. A request-a-quote option captures the rest in a couple of taps, day or night, when most roofing searches happen, turning quiet traffic into booked jobs.",impact:"More leads, day and night"}),
     trust:(d)=>{
       const noReviews=d.has_google_reviews===false;
-      if(noReviews)return {title:"Put your Google reviews front and centre",description:"Your reviews aren't surfaced where people decide. Showing your rating and recent reviews early builds trust before a visitor even reads your services.",impact:"More calls, more customers"};
-      return {title:"Surface your reputation earlier",description:"Your credentials and testimonials are there, but they aren't visible where people decide. Bringing them up front builds trust faster.",impact:"More calls, more customers"};
+      if(noReviews)return {title:"Put your Google reviews front and centre",description:"Your reviews aren't shown where people decide. Putting your rating and recent reviews up front wins trust before a visitor reads a word, and trust is what turns a visit into a call.",impact:"More calls, more customers"};
+      return {title:"Surface your reputation earlier",description:"Your credentials and testimonials exist but sit where people miss them. Bringing them up front builds trust faster, so more visitors pick up the phone.",impact:"More calls, more customers"};
     },
-    social:(d)=>{if(d&&d.has_google_reviews===false)return {title:"Add visible social proof",description:"There's no visible star rating or reviews on the page yet. Adding them gives new visitors confidence before they decide.",impact:"Higher visitor confidence"};return {title:"Feature your reviews more prominently",description:"You have reviews. Featuring your star rating and recent ones higher up the page builds trust faster for new visitors.",impact:"Higher visitor confidence"};},
+    social:(d)=>{if(d&&d.has_google_reviews===false)return {title:"Add visible social proof",description:"There's no visible star rating on the page yet. Adding it gives new visitors the confidence to choose you over a competitor they're also looking at.",impact:"More quote requests"};return {title:"Feature your reviews more prominently",description:"You have reviews, but they're buried. Featuring your rating and recent ones higher up wins trust faster and pulls more visitors into enquiries.",impact:"More quote requests"};},
     speed:()=>buildSpeedRec(),
     mobile:(d)=>{
       const overflow=d.overflow_images>0;
       if(overflow)return {title:"Fix the mobile layout",description:`Some images (${d.overflow_images}) spill outside the screen on phones, which makes the site feel broken. Tidying the mobile layout keeps visitors engaged.`,impact:"More calls from mobile"};
-      return {title:"Make the mobile experience effortless",description:"Most visitors arrive on a phone. Making the layout, buttons and text effortless on mobile turns more of them into calls.",impact:"More calls from mobile"};
+      return {title:"Make the mobile experience effortless",description:"Most visitors arrive on a phone. Making the layout, buttons and text effortless on mobile turns more of that traffic into calls instead of bounces.",impact:"More calls from mobile"};
     },
-    seo:()=>({title:"Strengthen your on-page basics",description:"A few of the on-page signals search engines look for could be stronger, like a clear page title, a meta description, and your location and services in the content. Tightening these gives search engines a better understanding of who you are and where you work.",impact:"A stronger search foundation"}),
-    visual:()=>({title:"Freshen up the design",description:"A cleaner, more modern look builds trust faster and keeps visitors reading instead of bouncing.",impact:"Stronger first impression"}),
-    tech:()=>({title:"Track where your leads come from",description:"Your tracking is incomplete, so you can't see which channels actually drive calls. Completing it shows you what's working.",impact:"Know what's working"}),
-    ssl:()=>({title:"Secure your site",description:"Your site isn't fully secure, so browsers may warn visitors away before they ever land. Fixing this removes that barrier.",impact:"Fewer drop-offs"})
+    seo:()=>({title:"Strengthen your on-page basics",description:"Some on-page basics search engines look for are weak, like a clear title, meta description, and your location and services in the copy. Tightening these helps local homeowners find you when they're ready to hire.",impact:"More local enquiries"}),
+    visual:()=>({title:"Freshen up the design",description:"A cleaner, more modern look builds trust in seconds and keeps visitors reading instead of leaving for a competitor.",impact:"Stronger first impression"}),
+    tech:()=>({title:"Track where your leads come from",description:"Your tracking is incomplete, so you can't see which channels actually drive calls, which means budget gets wasted on ones that don't. Completing it shows you what's working and where to put your money.",impact:"Stop wasting budget"}),
+    ssl:()=>({title:"Secure your site",description:"Your site isn't fully secure, so browsers may warn visitors away before they land, losing you leads you never even knew about. Fixing it removes that barrier.",impact:"Fewer drop-offs"})
   };
   // Speed rec built from real LCP (full load time) + image weight if available
   function buildSpeedRec(){
