@@ -204,7 +204,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     </div>
     <div class="hero-grid">
       <div>
-        <div class="hero-eyebrow">Website Growth Recommendations</div>
+        <div class="hero-eyebrow">Website Lead Growth Report</div>
         <div class="hero-url-display" id="r-url">—</div>
         <div class="hero-summary" id="r-sub">—</div>
         <div class="hero-flags" id="r-flags"></div>
@@ -295,7 +295,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
         </div>
       </div>
       <div class="mobile-top-heading" style="font-family:'Montserrat',sans-serif;font-size:25px;font-weight:800;color:var(--text);line-height:1.3;letter-spacing:-0.3px;">
-        Homeowners research on desktop. Convert more high-intent traffic into <span style="color:var(--teal);">qualified leads</span>.
+        Homeowners often compare contractors on desktop. Turn <span style="color:var(--teal);">more visitors into leads</span>.
       </div>
     </div>
     <!-- right column: laptop -->
@@ -375,7 +375,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const DM={speed:'Speed',mobile:'Mobile',ssl:'SSL',cta:'CTA',trust:'Trust',booking:'Booking',social:'Social Proof',seo:'SEO',visual:'Visual Layout',tech:'Tech & Tracking'};
 
 function sc(s){if(s<=30)return'#ef4444';if(s<=50)return'#f97316';if(s<=65)return'#f59e0b';if(s<=80)return'#84cc16';return'#10b981';}
-function gl(s){if(s<=30)return'Huge Potential';if(s<=50)return'Big Potential';if(s<=65)return'Needs Work';if(s<=80)return'Room to Refine';return'Strong';}
+function gl(s){if(s<=30)return'Huge Potential';if(s<=50)return'Big Potential';if(s<=65)return'Needs Improvement';if(s<=80)return'Room to Grow';return'Strong';}
 function dc(s,m){const p=s/m;if(p>=0.75)return'#10b981';if(p>=0.5)return'#f59e0b';return'#ef4444';}
 
 function setArc(aid,nid,gid,score,r){
@@ -465,15 +465,15 @@ function populate(biz){
   const MOBLABEL={booking:'Booking / Call to Action',social:'Social Proof from Google Reviews',cta:'Call to Action',trust:'Trust & Reputation',mobile:'Mobile Experience'};
   // Short teal takeaway for each issue, shown like the FCP call-out
   const POINT={
-    cta:'A clear next step turns more visitors into calls.',
-    booking:'Less friction, more booked jobs.',
-    trust:'Show your reviews where people decide.',
-    social:'Put your Google rating front and centre.',
-    mobile:'Make every tap effortless on a phone.',
-    ssl:'A secure site keeps visitors from bouncing at the warning.',
-    seo:'Show up when locals search for a roofer.',
-    visual:'A clean layout builds trust in seconds.',
-    tech:'Track where your leads actually come from.'
+    cta:'A clear next step turns more visitors into booked jobs.',
+    booking:'Less friction means more quote requests you can win.',
+    trust:'Reviews at the point of decision win more jobs.',
+    social:'A visible rating turns browsers into quote requests.',
+    mobile:'An effortless phone experience captures more leads.',
+    ssl:'A secure site stops visitors bouncing before they convert.',
+    seo:'Get found by local customers ready to hire.',
+    visual:'A clean layout builds the trust that drives enquiries.',
+    tech:'Track leads to focus budget on the channels that drive revenue.'
   };
   const ISSUE={
     speed:(ctx)=>{
