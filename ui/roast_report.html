@@ -131,9 +131,15 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 .error-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:40px;text-align:center}
 @media(max-width:680px){
   .hero-grid,.desktop-top-grid,.recs-grid{grid-template-columns:1fr}
+  .desktop-top-grid > div:last-child > div{transform:scale(1.0) !important;transform-origin:center !important}
+  .desktop-top-grid > div:last-child{width:112%;margin-left:-6%}
   .mobile-grid{grid-template-columns:1fr !important}
-  .desktop-issues-grid{grid-template-columns:1fr;gap:28px}
-  .rec-card{border-left:none;border-top:1px solid var(--border);padding:24px 0}
+  .desktop-issues-grid{grid-template-columns:1fr;gap:28px;width:100%;max-width:none;transform:none;margin:32px 0 0}
+  .desktop-issues-grid .metric-row{padding:0;border-left:none}
+  .desktop-issues-grid .metric-row:not(:first-child){border-left:none;border-top:1px solid var(--border2);padding-top:28px}
+  .rec-card{display:block;border:1px solid var(--border);border-radius:14px;padding:24px;gap:0}
+  .rec-text{margin:14px 0}
+  .rec-impact{margin-left:0;margin-top:4px}
   .rec-card:first-child{border-top:none}
   .dims-grid{grid-template-columns:repeat(2,1fr)}
   .section{padding:40px 24px}
