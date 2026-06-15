@@ -132,8 +132,10 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
 @media(max-width:680px){
   .hero-grid,.desktop-top-grid,.recs-grid{grid-template-columns:1fr}
   .desktop-top-grid > div:last-child > div{transform:scale(1.0) !important;transform-origin:center !important}
-  .desktop-top-grid > div:last-child{width:112%;margin-left:-6%}
+  .desktop-top-grid > div:last-child{width:128%;margin-left:-14%}
   .mobile-grid{grid-template-columns:1fr !important}
+  .mobile-grid > *{min-width:0;max-width:100%}
+  .metric-rows{min-width:0;overflow-x:hidden}
   .desktop-issues-grid{grid-template-columns:1fr;gap:28px;width:100%;max-width:none;transform:none;margin:32px 0 0}
   .desktop-issues-grid .metric-row{padding:0;border-left:none}
   .desktop-issues-grid .metric-row:not(:first-child){border-left:none;border-top:1px solid var(--border2);padding-top:28px}
