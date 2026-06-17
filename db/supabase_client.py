@@ -91,3 +91,14 @@ def get_contacts_for_instantly(threshold=70, limit=100) -> list[dict]:
     r = httpx.get(_url("contacts"), params=params, headers=_headers(), timeout=30)
     r.raise_for_status()
     return r.json() or []
+
+def get_contact_by_slug(slug: str) -> dict | None:
+    """Fetch a single contact by its report_slug, all fields. Returns None if not found.
+    Used to render reports live from current Supabase data (no stale snapshots)."""
+    if not slug:
+        return None
+    params = {"report_slug": f"eq.{slug}", "select": "*", "limit": 1}
+    r = httpx.get(_url("contacts"), params=params, headers=_headers(), timeout=30)
+    r.raise_for_status()
+    rows = r.json() or []
+    return rows[0] if rows else None

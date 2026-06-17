@@ -558,7 +558,17 @@ if UI_DIR.exists():
 
 @app.get("/report/{slug}", response_class=HTMLResponse)
 async def contact_report(slug: str):
+    from db.supabase_client import get_contact_by_slug
     html = (UI_DIR / "roast_report.html").read_text(encoding="utf-8")
+    try:
+        biz = get_contact_by_slug(slug)
+    except Exception:
+        biz = None
+    if biz:
+        biz["mobile_screenshot_url"] = biz.get("mobile_screenshot_url") or biz.get("mobile_mockup_url") or ""
+        biz["desktop_screenshot_url"] = biz.get("desktop_screenshot_url") or biz.get("desktop_mockup_url") or ""
+        data_js = "<script>window.REPORT_DATA = " + _json2.dumps(biz) + ";</script>"
+        html = html.replace("<script>", data_js + "<script>", 1)
     return HTMLResponse(html, headers={
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Pragma": "no-cache",
