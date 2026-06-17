@@ -529,7 +529,7 @@ function populate(biz){
     const fcpOk=mFcp&&mFcp<3.5;
     const lcpSlow=mlcp&&mlcp>=4;
     const lcpMiddle=mlcp&&mlcp>=3&&mlcp<4;
-    if(mFcp&&fcpOk&&lcpSlow){
+    if(mFcp&&lcpSlow){
       // FCP is fine but the full page is slow to finish - lead with LCP (the real problem)
       const ls=mlcp.toFixed(1);
       rows+=`<div class="metric-row">
