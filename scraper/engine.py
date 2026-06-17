@@ -425,7 +425,16 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     total = sum(v["score"] for v in dims.values())
     # Critical speed caps the headline: a catastrophically slow site cannot score "good"
     if dims.get("speed", {}).get("score", 10) <= 2:
-        total = min(total, 55)
+        lcp = dims.get("speed", {}).get("psi_mobile_lcp")
+        if lcp is not None:
+            if lcp >= 20:
+                total = min(total, 35)
+            elif lcp >= 10:
+                total = min(total, 45)
+            elif lcp >= 4:
+                total = min(total, 55)
+        else:
+            total = min(total, 55)
     if total <= 30:   grade, grade_color = "F Ã¢â‚¬â€ Urgent", "#dc2626"
     elif total <= 45: grade, grade_color = "D Ã¢â‚¬â€ Poor", "#ef4444"
     elif total <= 60: grade, grade_color = "C Ã¢â‚¬â€ Average", "#f97316"
