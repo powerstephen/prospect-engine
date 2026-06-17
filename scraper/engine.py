@@ -423,6 +423,9 @@ def score_site(html: str, text: str, load_time: float, is_ssl: bool) -> dict:
     dims["tech"] = {"score": tech, "max": 10, "label": "Tech & Conversion", "icon": "Ã°Å¸â€œÅ ", "status": tt3, "flag": tf3}
 
     total = sum(v["score"] for v in dims.values())
+    # Critical speed caps the headline: a catastrophically slow site cannot score "good"
+    if dims.get("speed", {}).get("score", 10) <= 2:
+        total = min(total, 55)
     if total <= 30:   grade, grade_color = "F Ã¢â‚¬â€ Urgent", "#dc2626"
     elif total <= 45: grade, grade_color = "D Ã¢â‚¬â€ Poor", "#ef4444"
     elif total <= 60: grade, grade_color = "C Ã¢â‚¬â€ Average", "#f97316"
