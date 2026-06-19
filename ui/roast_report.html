@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations · Eversite v54</title>
+<title>Website Growth Recommendations Â· Eversite v54</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -198,7 +198,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
         <div style="width:1px;height:24px;background:rgba(255,255,255,0.1);"></div>
         <div style="font-size:12px;color:var(--muted2);">
           <a href="https://www.google.com/maps/place//data=!4m2!3m1!1s0x864e998699b2acd5:0xf5dc57c4d2600934" target="_blank" style="color:var(--muted2);text-decoration:none;">325 North St. Paul Street, Dallas TX 75201</a>
-          &nbsp;·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
+          &nbsp;Â·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
         </div>
       </div>
       <div class="report-meta">
@@ -208,8 +208,8 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     <div class="hero-grid">
       <div>
         <div class="hero-eyebrow">Website Lead Growth Report</div>
-        <div class="hero-url-display" id="r-url">—</div>
-        <div class="hero-summary" id="r-sub">—</div>
+        <div class="hero-url-display" id="r-url">â€”</div>
+        <div class="hero-summary" id="r-sub">â€”</div>
         <div class="hero-flags" id="r-flags"></div>
       </div>
       <div>
@@ -355,7 +355,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.1);"></div>
     <div style="font-size:12px;color:var(--muted2);">
       <a href="https://www.google.com/maps/place//data=!4m2!3m1!1s0x864e998699b2acd5:0xf5dc57c4d2600934" target="_blank" style="color:var(--muted2);text-decoration:none;">325 North St. Paul Street, Dallas TX 75201</a>
-      &nbsp;·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
+      &nbsp;Â·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
     </div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
@@ -396,7 +396,7 @@ function populate(biz){
 
   const url=(biz.website||biz.company||'').replace(/^https?:\/\//,'').split('?')[0].split('/')[0];
   const name=biz.company||biz.name||url;
-  document.getElementById('r-url').textContent=url||'—';
+  document.getElementById('r-url').textContent=url||'â€”';
   const fb=document.getElementById('r-footer-biz');if(fb)fb.textContent=name;
   if(name){const rh=document.getElementById('r-recs-heading');if(rh)rh.textContent=`3 quick wins for ${name} to generate more leads`;}
 
@@ -620,6 +620,7 @@ function populate(biz){
     top2=top2.slice(0,3);
     wrap.innerHTML=top2.map(k=>{
       const dim=dims[k];
+      if(!dim) return '';
       const crit=dim.flag==='Critical';
       const col=crit?'#ef4444':(dim.flag==='Needs Work'?'#f59e0b':'#00c4d4');
       const body=k==='seo'?'Your site is missing location keywords that help you get found in local searches.':(typeof ISSUE[k]==='function'?ISSUE[k]('desktop'):(ISSUE[k]||''));
@@ -643,7 +644,7 @@ function populate(biz){
   renderRecs(buildRecsFromDims(dims,{mFcp,mLcp,dLcp,biz}));
 }
 
-// Vetted recommendation copy per dimension — grounded, defensible, outcome-focused.
+// Vetted recommendation copy per dimension â€” grounded, defensible, outcome-focused.
 function buildRecsFromDims(dims,ctx){
   ctx=ctx||{};
   const mLcp=ctx.mLcp||null, mFcp=ctx.mFcp||null, dLcp=ctx.dLcp||null;
@@ -790,7 +791,6 @@ init();
 </script>
 </body>
 </html>
-
 
 
 
