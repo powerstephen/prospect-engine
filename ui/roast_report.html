@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations Â· Eversite v54</title>
+<title>Website Growth Recommendations Ãƒâ€šÃ‚Â· Eversite v54</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -198,7 +198,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
         <div style="width:1px;height:24px;background:rgba(255,255,255,0.1);"></div>
         <div style="font-size:12px;color:var(--muted2);">
           <a href="https://www.google.com/maps/place//data=!4m2!3m1!1s0x864e998699b2acd5:0xf5dc57c4d2600934" target="_blank" style="color:var(--muted2);text-decoration:none;">325 North St. Paul Street, Dallas TX 75201</a>
-          &nbsp;Â·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
+          &nbsp;Ãƒâ€šÃ‚Â·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
         </div>
       </div>
       <div class="report-meta">
@@ -208,8 +208,8 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     <div class="hero-grid">
       <div>
         <div class="hero-eyebrow">Website Lead Growth Report</div>
-        <div class="hero-url-display" id="r-url">â€”</div>
-        <div class="hero-summary" id="r-sub">â€”</div>
+        <div class="hero-url-display" id="r-url">ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â</div>
+        <div class="hero-summary" id="r-sub">ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â</div>
         <div class="hero-flags" id="r-flags"></div>
       </div>
       <div>
@@ -355,7 +355,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.1);"></div>
     <div style="font-size:12px;color:var(--muted2);">
       <a href="https://www.google.com/maps/place//data=!4m2!3m1!1s0x864e998699b2acd5:0xf5dc57c4d2600934" target="_blank" style="color:var(--muted2);text-decoration:none;">325 North St. Paul Street, Dallas TX 75201</a>
-      &nbsp;Â·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
+      &nbsp;Ãƒâ€šÃ‚Â·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
     </div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
@@ -396,7 +396,7 @@ function populate(biz){
 
   const url=(biz.website||biz.company||'').replace(/^https?:\/\//,'').split('?')[0].split('/')[0];
   const name=biz.company||biz.name||url;
-  document.getElementById('r-url').textContent=url||'â€”';
+  document.getElementById('r-url').textContent=url||'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â';
   const fb=document.getElementById('r-footer-biz');if(fb)fb.textContent=name;
   if(name){const rh=document.getElementById('r-recs-heading');if(rh)rh.textContent=`3 quick wins for ${name} to generate more leads`;}
 
@@ -615,10 +615,18 @@ function populate(biz){
     const triangle=(col)=>`<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.2 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
     // Rank desktop dims by score ascending (lowest = most broken = most important)
     const ranked=dk.filter(k=>dims[k]&&(dims[k].flag==='Critical'||dims[k].flag==='Needs Work')).sort((a,b)=>(dims[a].score/dims[a].max)-(dims[b].score/dims[b].max));
-    let top2=ranked.slice(0,2);
-    if(!top2.includes("seo")) top2=top2.concat("seo");
-    top2=top2.slice(0,3);
-    wrap.innerHTML=top2.map(k=>{
+    const speedCritical = dims.speed && dims.speed.flag === 'Critical';
+    const dlcp = parseFloat(biz.psi_desktop_lcp) || parseFloat(biz.psi_mobile_lcp) || null;
+    let speedRowHtml = '';
+    if(speedCritical && dlcp){
+      const ls = dlcp.toFixed(1);
+      speedRowHtml = `<div class="metric-row desktop-issue-row"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><div class="metric-icon">`+triangle('#ef4444')+`</div><div class="metric-title" style="font-size:16px;">Page speed</div></div><div class="metric-body">Your full page takes around ${ls} seconds to load on desktop, so visitors stare at a half-built page before they can do anything.</div><div class="metric-point">Most visitors won't wait this long before leaving.</div></div>`;
+    }
+    const slots = speedRowHtml ? 2 : 3;
+    let top2=ranked.slice(0,slots);
+    if(slots===3 && !top2.includes("seo")) top2=top2.concat("seo");
+    top2=top2.slice(0,slots);
+    wrap.innerHTML = speedRowHtml + top2.map(k=>{
       const dim=dims[k];
       if(!dim) return '';
       const crit=dim.flag==='Critical';
@@ -644,7 +652,7 @@ function populate(biz){
   renderRecs(buildRecsFromDims(dims,{mFcp,mLcp,dLcp,biz}));
 }
 
-// Vetted recommendation copy per dimension â€” grounded, defensible, outcome-focused.
+// Vetted recommendation copy per dimension ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â grounded, defensible, outcome-focused.
 function buildRecsFromDims(dims,ctx){
   ctx=ctx||{};
   const mLcp=ctx.mLcp||null, mFcp=ctx.mFcp||null, dLcp=ctx.dLcp||null;
@@ -791,7 +799,5 @@ init();
 </script>
 </body>
 </html>
-
-
 
 

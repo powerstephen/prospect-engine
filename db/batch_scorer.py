@@ -279,7 +279,7 @@ async def run_ai_vision(contact: dict, log_cb=None) -> dict:
             desktop_page = await desktop_ctx.new_page()
             try:
                 await desktop_page.goto(website, wait_until="domcontentloaded", timeout=15000)
-                await desktop_page.wait_for_timeout(2500)
+                await desktop_page.wait_for_timeout(3000)
             except Exception:
                 try:
                     await desktop_page.goto(website, wait_until="commit", timeout=10000)
