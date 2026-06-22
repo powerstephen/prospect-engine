@@ -615,6 +615,28 @@ async def generate_report_url(contact_id: int):
         )
     return {"slug": slug, "report_url": report_url}
 
+@app.post("/api/track/view")
+async def track_view(request: Request):
+    import os as _os, httpx as _httpx
+    data = await request.json()
+    contact_id = data.get("contact_id")
+    slug = data.get("slug", "")
+    event = data.get("event", "")
+    if event not in ("loaded", "engaged"):
+        return {"ok": False}
+    ua = request.headers.get("user-agent", "")
+    ip = request.headers.get("x-forwarded-for", "") or (request.client.host if request.client else "")
+    supabase_key = _os.environ.get("SUPABASE_SERVICE_KEY", "")
+    supabase_url = "https://neonmrgszujadgfidlbj.supabase.co"
+    headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}", "Content-Type": "application/json", "Prefer": "return=minimal"}
+    row = {"contact_id": contact_id, "slug": slug, "event": event, "user_agent": ua, "ip": ip}
+    try:
+        async with _httpx.AsyncClient(timeout=10) as c:
+            await c.post(f"{supabase_url}/rest/v1/report_views", json=row, headers=headers)
+    except Exception:
+        pass
+    return {"ok": True}
+
 
 @app.get("/api/contacts/{contact_id}/generate-recommendations")
 async def generate_recommendations(contact_id: int):
