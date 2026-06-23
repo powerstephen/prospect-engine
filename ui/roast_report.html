@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Website Growth Recommendations Ãƒâ€šÃ‚Â· Eversite v54</title>
+<title>Website Growth Recommendations Ãƒâ€šÃ‚Â&middot; Eversite v54</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -198,7 +198,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
         <div style="width:1px;height:24px;background:rgba(255,255,255,0.1);"></div>
         <div style="font-size:12px;color:var(--muted2);">
           <a href="https://www.google.com/maps/place//data=!4m2!3m1!1s0x864e998699b2acd5:0xf5dc57c4d2600934" target="_blank" style="color:var(--muted2);text-decoration:none;">325 North St. Paul Street, Dallas TX 75201</a>
-          &nbsp;Ãƒâ€šÃ‚Â·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
+          &nbsp;Ãƒâ€šÃ‚Â&middot;&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
         </div>
       </div>
       <div class="report-meta">
@@ -355,7 +355,7 @@ body{font-family:'Inter',sans-serif;background:#060c18;color:#f0f4ff;-webkit-fon
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.1);"></div>
     <div style="font-size:12px;color:var(--muted2);">
       <a href="https://www.google.com/maps/place//data=!4m2!3m1!1s0x864e998699b2acd5:0xf5dc57c4d2600934" target="_blank" style="color:var(--muted2);text-decoration:none;">325 North St. Paul Street, Dallas TX 75201</a>
-      &nbsp;Ãƒâ€šÃ‚Â·&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
+      &nbsp;Ãƒâ€šÃ‚Â&middot;&nbsp;<a href="tel:+19857181900" style="color:var(--teal);text-decoration:none;font-weight:600;">(985) 718-1900</a>
     </div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
@@ -614,7 +614,8 @@ function populate(biz){
     if(!wrap)return;
     const triangle=(col)=>`<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.2 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
     // Rank desktop dims by score ascending (lowest = most broken = most important)
-    const ranked=dk.filter(k=>dims[k]&&(dims[k].flag==='Critical'||dims[k].flag==='Needs Work')).sort((a,b)=>(dims[a].score/dims[a].max)-(dims[b].score/dims[b].max));
+    const dSlow=(dLcp&&dLcp>=4)||(dFcp&&dFcp>=4);
+    const ranked=dk.filter(k=>dims[k]&&(dims[k].flag==='Critical'||dims[k].flag==='Needs Work')&&!(k==='speed'&&!dSlow)).sort((a,b)=>(dims[a].score/dims[a].max)-(dims[b].score/dims[b].max));
     const speedCritical = dims.speed && dims.speed.flag === 'Critical';
     const dlcp = parseFloat(biz.psi_desktop_lcp) || parseFloat(biz.psi_mobile_lcp) || null;
     let speedRowHtml = '';
@@ -640,10 +641,11 @@ function populate(biz){
   // Load screenshots into device overlays
   const mUrl=biz.mobile_screenshot_url||biz.mobile_mockup_url||'';
   const dUrl=biz.desktop_screenshot_url||biz.desktop_mockup_url||'';
+  const dUrlSafe=(dUrl && dUrl!==(biz.mobile_screenshot_url||'') && dUrl!==(biz.mobile_mockup_url||''))?dUrl:'';
   console.log('Screenshot URLs:', {mUrl, dUrl, raw_biz_keys: Object.keys(biz)});
   (function(){var ub=document.getElementById('r-mobile-urlbar');if(ub){var u=(biz.website||'').replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'');ub.textContent=u||'website';}})();
   if(mUrl){const img=document.getElementById('r-mobile-img');img.src=mUrl;img.style.display='block';}
-  if(dUrl){const img=document.getElementById('r-desktop-img');img.src=dUrl;img.style.display='block';}
+  if(dUrlSafe){const img=document.getElementById('r-desktop-img');img.src=dUrlSafe;img.style.display='block';}
 
   document.getElementById('loading').style.display='none';
   document.getElementById('report').style.display='block';
