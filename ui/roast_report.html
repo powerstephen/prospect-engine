@@ -820,6 +820,10 @@ init();
     setTimeout(function () {
       if (!document.hidden) track("engaged");
     }, 10000);
+    var ctaBtn = document.getElementById("r-cta");
+    if (ctaBtn) {
+      ctaBtn.addEventListener("click", function () { track("cta_click"); });
+    }
   } catch (e) {}
 })();
 </script>
