@@ -638,6 +638,21 @@ async def track_view(request: Request):
     return {"ok": True}
 
 
+@app.get("/api/hot-leads")
+async def hot_leads():
+    import os as _os, httpx as _httpx
+    supabase_key = _os.environ.get("SUPABASE_SERVICE_KEY", "")
+    supabase_url = "https://neonmrgszujadgfidlbj.supabase.co"
+    headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"}
+    try:
+        async with _httpx.AsyncClient(timeout=10) as c:
+            r = await c.get(f"{supabase_url}/rest/v1/hot_leads?select=*", headers=headers)
+            rows = r.json()
+    except Exception:
+        rows = []
+    return {"leads": rows}
+
+
 @app.get("/api/contacts/{contact_id}/generate-recommendations")
 async def generate_recommendations(contact_id: int):
     import os as _os, httpx as _httpx, json as _json
