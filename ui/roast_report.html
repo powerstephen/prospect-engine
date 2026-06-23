@@ -715,6 +715,9 @@ function buildRecsFromDims(dims,ctx){
       return (PRIORITY[a[0]]||99)-(PRIORITY[b[0]]||99);
     })
     .map(([k])=>k);
+  // Gate: never recommend speed on a site whose speed is fine. Only keep speed as a
+  // recommendation candidate when it is genuinely weak (Critical/Needs Work).
+  ranked=ranked.filter(k=>k!=='speed'||(dims.speed&&(dims.speed.flag==='Critical'||dims.speed.flag==='Needs Work')));
 
   // 2) Merge CTA + Booking into one "get in touch" theme when BOTH are genuinely weak (avoid contradiction)
   const isWeak=(k)=>dims[k]&&(dims[k].flag==='Critical'||dims[k].flag==='Needs Work');
