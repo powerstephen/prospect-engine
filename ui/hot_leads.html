@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hot Leads &middot; Moneyball</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel-2: #1c232d;
+    --line: #2a323d;
+    --ink: #e8edf3;
+    --muted: #8b97a6;
+    --hot: #ff6a3d;
+    --warm: #f0b429;
+    --cool: #3fb98f;
+    --accent: #4aa8ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 28px clamp(16px, 4vw, 48px) 64px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 18px;
+    margin-bottom: 6px;
+  }
+  .title {
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .title b { color: var(--ink); }
+  .meta {
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .pulse {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--cool);
+    box-shadow: 0 0 0 0 rgba(63,185,143,0.6);
+    animation: pulse 2.4s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(63,185,143,0.5); }
+    70% { box-shadow: 0 0 0 7px rgba(63,185,143,0); }
+    100% { box-shadow: 0 0 0 0 rgba(63,185,143,0); }
+  }
+  .lead-in {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 16px 0 22px;
+    max-width: 70ch;
+  }
+  .grid { display: flex; flex-direction: column; gap: 10px; }
+  .row {
+    display: grid;
+    grid-template-columns: 56px 1.6fr 1.4fr 1fr 150px;
+    align-items: center;
+    gap: 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 18px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .row:hover { background: var(--panel-2); }
+  .row.hot { border-left-color: var(--hot); }
+  .row.warm { border-left-color: var(--warm); }
+  .row.head {
+    background: transparent;
+    border: none;
+    padding: 4px 18px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+  .score {
+    font-variant-numeric: tabular-nums;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+  }
+  .score.hot { color: var(--hot); }
+  .score.warm { color: var(--warm); }
+  .score.cool { color: var(--cool); }
+  .score small {
+    display: block;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .co { font-weight: 650; font-size: 15px; }
+  .co .name { color: var(--muted); font-weight: 500; font-size: 12.5px; margin-top: 3px; }
+  .contact { font-size: 13px; }
+  .contact a { color: var(--accent); text-decoration: none; }
+  .contact a:hover { text-decoration: underline; }
+  .contact .phone { color: var(--ink); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .when { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    background: var(--panel-2);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .empty {
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 48px 28px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .empty h2 { color: var(--ink); font-size: 17px; font-weight: 650; margin-bottom: 8px; }
+  .empty p { font-size: 13.5px; max-width: 48ch; margin: 0 auto; }
+  @media (max-width: 720px) {
+    .row, .row.head { grid-template-columns: 48px 1fr; }
+    .row .contact, .row .when, .row .actions, .row.head span:nth-child(n+3) { display: none; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">Moneyball &middot; <b>Hot Leads</b></div>
+    <div class="meta">
+      <span id="count">&mdash;</span>
+      <span class="pulse"><span class="dot"></span> live</span>
+    </div>
+  </header>
+  <p class="lead-in">People who opened their report and stayed at least 10 seconds in the last 48 hours. Sorted by how many times they came back. Repeat readers are the ones to call first.</p>
+
+  <div id="board" class="grid"></div>
+
+  <script>
+    function timeAgo(iso) {
+      if (!iso) return "";
+      var then = new Date(iso).getTime();
+      var mins = Math.round((Date.now() - then) / 60000);
+      if (mins < 1) return "just now";
+      if (mins < 60) return mins + "m ago";
+      var hrs = Math.round(mins / 60);
+      if (hrs < 24) return hrs + "h ago";
+      return Math.round(hrs / 24) + "d ago";
+    }
+
+    function tier(views) {
+      if (views >= 3) return "hot";
+      if (views === 2) return "warm";
+      return "cool";
+    }
+
+    function render(leads) {
+      var board = document.getElementById("board");
+      var count = document.getElementById("count");
+      count.textContent = leads.length + (leads.length === 1 ? " lead" : " leads");
+
+      if (!leads.length) {
+        board.innerHTML =
+          '<div class="empty"><h2>No engaged opens yet</h2>' +
+          '<p>When a prospect opens their report and reads it for 10 seconds or more, they show up here ranked by interest. Send a batch and check back.</p></div>';
+        return;
+      }
+
+      var head =
+        '<div class="row head"><span>Heat</span><span>Company</span>' +
+        '<span>Contact</span><span>Last opened</span><span></span></div>';
+
+      var rows = leads.map(function (l) {
+        var v = l.engaged_views || 0;
+        var t = tier(v);
+        var name = (l.first_name || "").trim();
+        var report = l.report_url || "#";
+        var email = l.email || "";
+        var phone = l.phone || "";
+        return (
+          '<div class="row ' + t + '">' +
+            '<div class="score ' + t + '">' + v + '<small>opens</small></div>' +
+            '<div class="co">' + (l.company || "Unknown") +
+              (name ? '<div class="name">' + name + '</div>' : '') + '</div>' +
+            '<div class="contact">' +
+              (email ? '<a href="mailto:' + email + '">' + email + '</a>' : '<span style="color:var(--muted)">no email</span>') +
+              (phone ? '<div class="phone">' + phone + '</div>' : '') +
+            '</div>' +
+            '<div class="when">' + timeAgo(l.last_viewed) + '</div>' +
+            '<div class="actions">' +
+              '<a class="btn" href="' + report + '" target="_blank">Report</a>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join("");
+
+      board.innerHTML = head + rows;
+    }
+
+    function load() {
+      fetch("/api/hot-leads")
+        .then(function (r) { return r.json(); })
+        .then(function (d) { render(d.leads || []); })
+        .catch(function () {
+          document.getElementById("board").innerHTML =
+            '<div class="empty"><h2>Could not load leads</h2>' +
+            '<p>The list will retry automatically in a few seconds.</p></div>';
+        });
+    }
+
+    load();
+    setInterval(load, 45000);
+  </script>
+</body>
+</html>

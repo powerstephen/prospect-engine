@@ -653,6 +653,11 @@ async def hot_leads():
     return {"leads": rows}
 
 
+@app.get("/hot-leads", response_class=HTMLResponse)
+async def hot_leads_page():
+    return HTMLResponse((UI_DIR / "hot_leads.html").read_text(encoding="utf-8"))
+
+
 @app.get("/api/contacts/{contact_id}/generate-recommendations")
 async def generate_recommendations(contact_id: int):
     import os as _os, httpx as _httpx, json as _json
