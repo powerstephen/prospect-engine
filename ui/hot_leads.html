@@ -150,6 +150,12 @@
     .row .contact, .row .when, .row .actions, .row.head span:nth-child(n+3) { display: none; }
   }
 </style>
+<style>
+.row.cta{border-left:4px solid #ff4d4d;background:rgba(255,77,77,0.06);}
+.score.cta{color:#ff4d4d;font-weight:800;}
+.score.cta small{color:#ff4d4d;}
+.cta-badge{display:inline-block;background:#ff4d4d;color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:4px;letter-spacing:0.5px;margin-left:8px;vertical-align:middle;}
+</style>
 </head>
 <body>
   <header>
@@ -199,14 +205,16 @@
 
       var rows = leads.map(function (l) {
         var v = l.engaged_views || 0;
-        var t = tier(v);
+        var cta = l.cta_clicks || 0;
+        var isCta = cta > 0;
+        var t = isCta ? "cta" : tier(v);
         var name = (l.first_name || "").trim();
         var report = l.report_url || "#";
         var email = l.email || "";
         var phone = l.phone || "";
         return (
           '<div class="row ' + t + '">' +
-            '<div class="score ' + t + '">' + v + '<small>opens</small></div>' +
+            (isCta ? '<div class="score cta">' + cta + '<small>CTA CLICK</small></div>' : '<div class="score ' + t + '">' + v + '<small>opens</small></div>') +
             '<div class="co">' + (l.company || "Unknown") +
               (name ? '<div class="name">' + name + '</div>' : '') + '</div>' +
             '<div class="contact">' +
