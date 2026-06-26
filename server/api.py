@@ -222,7 +222,7 @@ def _render_report(biz: dict) -> HTMLResponse:
     return HTMLResponse(report_html)
 
 
-# ── Contacts & Pipeline ───────────────────────────────────────────────────────
+# Ã¢â€â‚¬Ã¢â€â‚¬ Contacts & Pipeline Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 import csv as _csv
 import io as _io
@@ -277,7 +277,7 @@ async def export_contacts(status: str = None, industry: str = None):
     return StreamingResponse(_io.BytesIO(buf.getvalue().encode("utf-8")), media_type="text/csv", headers={"Content-Disposition":f'attachment; filename="contacts_{status or "all"}.csv"'})
 
 
-# ── Batch & Bulk Scoring ──────────────────────────────────────────────────────
+# Ã¢â€â‚¬Ã¢â€â‚¬ Batch & Bulk Scoring Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 _batch_running = False
 _batch_log = []
@@ -302,7 +302,7 @@ async def _write_ai_fields(contact_id: int, result: dict, log):
     if not ai_fields:
         return
     try:
-        await log(f"  💾 Saving AI fields: {list(ai_fields.keys())}")
+        await log(f"  Ã°Å¸â€™Â¾ Saving AI fields: {list(ai_fields.keys())}")
         h = {
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}",
@@ -316,11 +316,11 @@ async def _write_ai_fields(contact_id: int, result: dict, log):
                 headers=h,
             )
             if r.status_code not in (200, 201, 204):
-                await log(f"  ✗ AI PATCH failed: {r.status_code} — {r.text[:200]}")
+                await log(f"  Ã¢Å“â€” AI PATCH failed: {r.status_code} Ã¢â‚¬â€ {r.text[:200]}")
             else:
-                await log(f"  ✓ AI fields saved")
+                await log(f"  Ã¢Å“â€œ AI fields saved")
     except Exception as e:
-        await log(f"  ✗ AI fields error: {e}")
+        await log(f"  Ã¢Å“â€” AI fields error: {e}")
 
 
 @app.post("/api/batch/score")
@@ -385,9 +385,9 @@ async def _run_bulk_score(ids: list[int]):
                 scored += 1
                 await asyncio.sleep(1)
             except Exception as e:
-                await log(f"  ✗ Error: {e}")
+                await log(f"  Ã¢Å“â€” Error: {e}")
                 errors += 1
-        await log(f"\n✓ Done — {scored} scored, {errors} errors")
+        await log(f"\nÃ¢Å“â€œ Done Ã¢â‚¬â€ {scored} scored, {errors} errors")
     finally:
         _batch_running = False
 
@@ -438,9 +438,9 @@ async def _run_find_and_score(ids: list[int]):
                 scored += 1
                 await asyncio.sleep(1)
             except Exception as e:
-                await log(f"  ✗ Score error: {e}")
+                await log(f"  Ã¢Å“â€” Score error: {e}")
                 errors += 1
-        await log(f"\n✓ All done — {scored} scored, {errors} errors")
+        await log(f"\nÃ¢Å“â€œ All done Ã¢â‚¬â€ {scored} scored, {errors} errors")
     finally:
         _batch_running = False
 
@@ -505,7 +505,7 @@ async def _run_enrich(ids: list[int]):
         _batch_running = False
 
 
-# ── Harvest ───────────────────────────────────────────────────────────────────
+# Ã¢â€â‚¬Ã¢â€â‚¬ Harvest Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 _harvest_running = False
 _harvest_log = []
@@ -622,7 +622,7 @@ async def track_view(request: Request):
     contact_id = data.get("contact_id")
     slug = data.get("slug", "")
     event = data.get("event", "")
-    if event not in ("loaded", "engaged"):
+    if event not in ("loaded", "engaged", "cta_click"):
         return {"ok": False}
     ua = request.headers.get("user-agent", "")
     ip = request.headers.get("x-forwarded-for", "") or (request.client.host if request.client else "")
@@ -690,7 +690,7 @@ Hero Broken: {contact.get('hero_broken')}
 Revenue Leak: {contact.get('revenue_leak')}
 AI Visual Summary: {contact.get('ai_visual_summary', 'Not available')}
 
-Write exactly 3 specific, actionable recommendations. Each should be specific to their site — not generic advice.
+Write exactly 3 specific, actionable recommendations. Each should be specific to their site Ã¢â‚¬â€ not generic advice.
 Write in plain English a roofing business owner understands.
 Focus on the direct impact on leads, calls, and revenue.
 
