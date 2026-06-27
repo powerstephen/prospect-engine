@@ -207,6 +207,8 @@
         var v = l.engaged_views || 0;
         var cta = l.cta_clicks || 0;
         var isCta = cta > 0;
+        var cta = l.cta_clicks || 0;
+        var isCta = cta > 0;
         var t = isCta ? "cta" : tier(v);
         var name = (l.first_name || "").trim();
         var report = l.report_url || "#";
@@ -215,7 +217,7 @@
         return (
           '<div class="row ' + t + '">' +
             (isCta ? '<div class="score cta">' + cta + '<small>CTA CLICK</small></div>' : '<div class="score ' + t + '">' + v + '<small>opens</small></div>') +
-            '<div class="co">' + (l.company || "Unknown") +
+            '<div class="co">' + (l.company || "Unknown") + (isCta ? ' <span class="cta-badge">BOOKED INTENT</span>' : '') +
               (name ? '<div class="name">' + name + '</div>' : '') + '</div>' +
             '<div class="contact">' +
               (email ? '<a href="mailto:' + email + '">' + email + '</a>' : '<span style="color:var(--muted)">no email</span>') +
