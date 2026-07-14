@@ -17,10 +17,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from db.supabase_client import get_contacts_for_batch_score, update_contact_score
+from db.supabase_client import get_contacts_for_batch_score, update_contact_score, update_contact_status
 
 SCORE_THRESHOLD_HOT  = int(os.environ.get("SCORE_THRESHOLD_HOT",  "50"))
 SCORE_THRESHOLD_WARM = int(os.environ.get("SCORE_THRESHOLD_WARM", "30"))
+PER_SITE_TIMEOUT = int(os.environ.get("SCORE_TIMEOUT_SECONDS", "240"))
 SUPABASE_URL = "https://neonmrgszujadgfidlbj.supabase.co"
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 BUCKET = "roast-screenshots"
@@ -441,6 +442,12 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
 
         intel = await detect_intelligence_signals(html, audit.get("website_score", 0))
         audit.update(intel)
+        try:
+            from db.site_health_check import check_site_health_html
+            _health = check_site_health_html(html)
+        except Exception as _he:
+            _health = {}
+            await log(f'   site-health skipped: {_he}')
         audit["mobile_issues"] = audit.get("dimensions", {}).get("mobile", {}).get("mobile_issues", [])
 
         # 3b. Real-PSI speed dimension (overrides the load_time estimate when PSI succeeded)
@@ -543,6 +550,13 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
                                 "psi_desktop_perf":       psi.get("psi_desktop_perf"),
             "total_image_kb":         audit.get("total_image_kb"),
             "heavy_images":           audit.get("heavy_images"),
+            "js_error_count":         (_health or {}).get("js_error_count"),
+            "dead_cta_count":         (_health or {}).get("dead_cta_count"),
+            "broken_image_count":     (_health or {}).get("broken_image_count"),
+            "jquery_dead":            (_health or {}).get("jquery_dead"),
+            "site_health_lead":       (_health or {}).get("site_health_lead"),
+            "site_health_detail":     (_health or {}).get("site_health_detail"),
+            "site_health_scanned_at": "now()" if _health else None,
             "ai_scored_at":           "now()",
         }
 
@@ -560,15 +574,15 @@ async def score_contact(contact: dict, log_cb=None) -> dict:
         }
 
 
-async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
-    """Score up to `limit` new contacts."""
+async def run_batch_score(limit: int = 50, log_cb=None, vertical=None, domains=None) -> dict:
+    """Score up to `limit` new contacts. vertical=None scores all status=new."""
 
     async def log(msg):
         if log_cb:
             try: await log_cb(msg)
             except Exception: pass
 
-    contacts = get_contacts_for_batch_score(limit=limit)
+    contacts = get_contacts_for_batch_score(limit=limit, vertical=vertical, domains=domains)
 
     if not contacts:
         await log("No new contacts to score.")
@@ -579,7 +593,19 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
 
     for contact in contacts:
         try:
-            result = await score_contact(contact, log_cb=log_cb)
+            try:
+                result = await asyncio.wait_for(
+                    score_contact(contact, log_cb=log_cb),
+                    timeout=PER_SITE_TIMEOUT,
+                )
+            except asyncio.TimeoutError:
+                await log(f"  TIMEOUT: {contact.get('company','?')} exceeded {PER_SITE_TIMEOUT}s, marked status=timeout")
+                results["timeouts"] = results.get("timeouts", 0) + 1
+                try:
+                    update_contact_status(contact["id"], "timeout")
+                except Exception as _te:
+                    await log(f"  (could not mark timeout: {_te})")
+                continue
 
             if result.get("error") and result.get("status") == "new":
                 results["errors"] += 1
@@ -605,7 +631,10 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
                       "hero_broken", "cta_above_fold", "phone_above_fold", "ai_scored_at",
                       "psi_mobile_lcp", "psi_desktop_lcp", "psi_mobile_fcp", "psi_desktop_fcp",
                       "psi_mobile_perf", "psi_desktop_perf", "dimensions",
-                      "total_image_kb", "heavy_images"]:
+                      "total_image_kb", "heavy_images",
+                      "js_error_count", "dead_cta_count", "broken_image_count",
+                      "jquery_dead", "site_health_lead", "site_health_detail",
+                      "site_health_scanned_at"]:
                 if result.get(k) is not None:
                     ai_fields[k] = result[k]
 
@@ -651,7 +680,19 @@ async def run_batch_score(limit: int = 50, log_cb=None) -> dict:
 
 
 if __name__ == "__main__":
+    import sys
+    _limit = 2
+    if "--limit" in sys.argv:
+        _limit = int(sys.argv[sys.argv.index("--limit") + 1])
+    _vertical = None
+    if "--vertical" in sys.argv:
+        _vertical = sys.argv[sys.argv.index("--vertical") + 1]
+    _domains = None
+    if "--domains-file" in sys.argv:
+        _df = sys.argv[sys.argv.index("--domains-file") + 1]
+        with open(_df, encoding="utf-8") as _fh:
+            _domains = [ln.strip() for ln in _fh if ln.strip()]
     async def _main():
         async def log(msg): print(msg)
-        await run_batch_score(limit=2, log_cb=log)
+        await run_batch_score(limit=_limit, log_cb=log, vertical=_vertical, domains=_domains)
     asyncio.run(_main())

@@ -6,3 +6,9 @@ __pycache__/
 venv/
 prospect.db
 *.log
+
+.env.local
+exports/
+error_log.txt
+serp_raw.txt
+*_backup_*.py

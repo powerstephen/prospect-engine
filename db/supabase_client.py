@@ -31,12 +31,17 @@ def upsert_contacts(contacts: list[dict]) -> int:
     return len(r.json() or [])
 
 
-def get_contacts(status=None, industry=None, limit=500, offset=0) -> list[dict]:
+def get_contacts(status=None, industry=None, limit=500, offset=0, source_like=None, domains=None) -> list[dict]:
     params = {"limit": limit, "offset": offset, "order": "created_at.desc"}
     if status:
         params["status"] = f"eq.{status}"
     if industry:
         params["industry"] = f"ilike.%{industry}%"
+    if source_like:
+        params["source"] = f"like.{source_like}"
+    if domains:
+        ors = ",".join(f"website.ilike.*{d.strip()}*" for d in domains if d.strip())
+        params["or"] = f"({ors})"
     r = httpx.get(_url("contacts"), params=params, headers=_headers(), timeout=30)
     r.raise_for_status()
     return r.json() or []
@@ -78,8 +83,12 @@ def update_contact_status(contact_id, status, **extra):
     r.raise_for_status()
 
 
-def get_contacts_for_batch_score(limit=50) -> list[dict]:
-    return get_contacts(status="new", limit=limit)
+def get_contacts_for_batch_score(limit=50, vertical=None, domains=None) -> list[dict]:
+    """Pool for the batch scorer. vertical=None keeps the original behaviour
+    (all status=new rows); vertical="roofers" restricts to that scrape source.
+    domains: optional list of website domains to target specific leads."""
+    source_like = f"google_maps:{vertical}*" if vertical else None
+    return get_contacts(status="new", limit=limit, source_like=source_like, domains=domains)
 
 
 def get_contacts_for_instantly(threshold=70, limit=100) -> list[dict]:

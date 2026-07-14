@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Operations Console</title>
+<style>
+  :root{--bg:#0f1a17;--panel:#16241f;--line:#26382f;--ink:#eaf3ee;--muted:#7c9488;
+        --accent:#3ddc84;--warn:#e0b341;--dim:#4a5f54;--card:#1a2b24;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+       padding:32px 20px;max-width:900px;margin:0 auto}
+  h1{font-size:15px;letter-spacing:3px;text-transform:uppercase}
+  .sub{color:var(--muted);font-size:12px;margin:6px 0 28px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:20px}
+  label{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  select,input[type=file]{width:100%;background:var(--card);border:1px solid var(--line);color:var(--ink);
+       font-family:inherit;font-size:14px;padding:12px;border-radius:8px;margin-bottom:20px}
+  .drop{border:2px dashed var(--line);border-radius:10px;padding:28px;text-align:center;color:var(--muted);
+        margin-bottom:20px;transition:border-color .2s}
+  .drop.over{border-color:var(--accent);color:var(--accent)}
+  .files{font-size:12px;color:var(--accent);margin-bottom:20px;min-height:16px}
+  button{background:var(--accent);color:#08130d;border:none;font-family:inherit;font-weight:700;
+         font-size:14px;padding:14px 28px;border-radius:8px;cursor:pointer;letter-spacing:1px}
+  button:disabled{background:var(--dim);cursor:not-allowed}
+  .steps{font-size:12px;color:var(--muted);margin-top:16px;min-height:20px}
+  .results{margin-top:24px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+  .rc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .rc .n{font-size:28px;font-weight:700;color:var(--accent)}
+  .rc .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+  .dl{display:inline-block;background:none;border:1px solid var(--line);color:var(--accent);
+      font-size:12px;padding:8px 16px;border-radius:6px;margin:4px 6px 4px 0;text-decoration:none;cursor:pointer}
+  .dl:hover{border-color:var(--accent)}
+  .note{color:var(--dim);font-size:11px;margin-top:12px;line-height:1.5}
+  .err{background:var(--panel);border:1px solid var(--warn);color:var(--warn);padding:16px;border-radius:10px;font-size:13px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+  <h1>Lead Operations Console</h1>
+  <div class="sub">Upload sources &middot; consolidate, dedupe, clean &middot; get campaign-ready leads</div>
+
+  <div class="panel">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
+      <div>
+        <label>Industry</label>
+        <select id="vertical" style="margin-bottom:0">
+          <option value="">All Industries</option>
+          <option value="roofer">Roofing</option>
+          <option value="hvac">HVAC</option>
+          <option value="plumber">Plumbing</option>
+          <option value="electrician">Electrical</option>
+          <option value="landscaping">Landscaping</option>
+          <option value="construction">Construction</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label>State</label>
+        <select id="state" onchange="loadMetros()" style="margin-bottom:0">
+          <option value="">All States</option>
+        </select>
+      </div>
+      <div>
+        <label>Metro</label>
+        <select id="metro" style="margin-bottom:0">
+          <option value="">All Metros</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Data sources (CSV) &mdash; contractor lists, enriched exports, scraper output</label>
+    <div class="drop" id="drop">Drag CSV files here, or click to choose</div>
+    <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
+    <div class="files" id="fileList"></div>
+
+    <button id="runBtn" onclick="run()">Run pipeline</button>
+    <div class="steps" id="steps"></div>
+  </div>
+
+  <div class="results" id="results"></div>
+
+<script>
+// populate all 50 states (common targets first)
+var US_STATES = ["FL","TX","GA","CA","NC","SC","AZ","TN","VA","OH",
+  "AL","AK","AR","CO","CT","DE","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","ND","OK","OR","PA","RI","SD","UT","VT","WA","WV","WI","WY","DC"];
+(function(){
+  var sel=document.getElementById("state");
+  US_STATES.forEach(function(s){ var o=document.createElement("option"); o.value=s; o.textContent=s; sel.appendChild(o); });
+})();
+async function loadMetros(){
+  var state=document.getElementById("state").value;
+  var m=document.getElementById("metro");
+  m.innerHTML='<option value="">All Metros</option>';
+  if(!state) return;
+  try{
+    var r=await fetch("/api/metros?state="+state);
+    var d=await r.json();
+    (d.metros||[]).forEach(function(city){ var o=document.createElement("option"); o.value=city; o.textContent=city; m.appendChild(o); });
+  }catch(e){}
+}
+
+var chosen = [];
+var drop=document.getElementById('drop'), fi=document.getElementById('fileInput'), fl=document.getElementById('fileList');
+drop.onclick=()=>fi.click();
+fi.onchange=()=>{ chosen=[...fi.files]; showFiles(); };
+['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',ev=>{ chosen=[...ev.dataTransfer.files].filter(f=>f.name.endsWith('.csv')); showFiles(); });
+function showFiles(){ fl.textContent = chosen.length ? chosen.map(f=>f.name).join(', ') : ''; }
+
+async function run(){
+  if(!chosen.length){ alert('Choose at least one CSV'); return; }
+  var btn=document.getElementById('runBtn'), steps=document.getElementById('steps'), res=document.getElementById('results');
+  btn.disabled=true; res.innerHTML='';
+  steps.textContent='Uploading and ingesting...';
+  var fd=new FormData();
+  fd.append('vertical', document.getElementById('vertical').value);
+  fd.append('state', document.getElementById('state').value);
+  fd.append('metro', document.getElementById('metro').value);
+  chosen.forEach(f=>fd.append('sources', f));
+  try{
+    steps.textContent='Consolidating, deduping against your DB, cleaning...';
+    var r=await fetch('/api/run',{method:'POST',body:fd});
+    var d=await r.json();
+    if(!r.ok){ throw new Error(d.error + (d.trace? '\n'+d.trace:'')); }
+    steps.textContent='Done.';
+    render(d);
+  }catch(e){
+    res.innerHTML='<div class="err">'+e.message+'</div>';
+    steps.textContent='';
+  }
+  btn.disabled=false;
+}
+
+function render(d){
+  var res=document.getElementById('results');
+  var s=d.segments;
+  var html='<div class="cards">'+
+    card(d.ingested_total,'Ingested')+
+    card(d.dedup.net_new,'Net-new')+
+    card(d.clean.clean,'Clean')+
+    card(d.clean.junk_dropped,'Junk dropped')+
+  '</div>';
+  html+='<div>'+
+    dl(s.clean_all.file, 'All clean ('+s.clean_all.n+')')+
+    dl(s.named.file, 'Named ('+s.named.n+')')+
+    dl(s.generic.file, 'Generic ('+s.generic.n+')')+
+  '</div>';
+  html+='<div class="note">'+d.db_note+'<br>'+d.note+'</div>';
+  // per source detail
+  html+='<div class="note">Sources: '+d.per_source.map(p=>p.file+' ('+p.rows+' rows, mapped: '+p.mapped_columns.join('/')+')').join(' &middot; ')+'</div>';
+  res.innerHTML=html;
+}
+function card(n,l){ return '<div class="rc"><div class="n">'+(n||0).toLocaleString()+'</div><div class="l">'+l+'</div></div>'; }
+function dl(file,label){ return '<a class="dl" href="/download/'+encodeURIComponent(file)+'">&#8595; '+label+'</a>'; }
+</script>
+</body>
+</html>
