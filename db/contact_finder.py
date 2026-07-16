@@ -201,16 +201,22 @@ async def find_contact(c, log):
         name = (c.get("first_name") or "") + " " + (c.get("last_name") or "")
         name = name.strip()
 
-    # Stage B: confirmation search, only meaningful if we need an email
+    # Stage B: confirmation search, only meaningful if we need an email.
+    # Natural phrasing (not quoted-exact-phrase) is what actually finds
+    # results: Google's own ranking beats forcing an exact-match query.
+    # Domain match is NOT required here, unlike the nameless fallback
+    # stages: a name+company pairing this specific is trustworthy even
+    # when the confirmed address turns out to be a personal Gmail (common
+    # for small contractors, proven on Aqua Werx Seamless Gutters).
     if name and not has_email:
-        q = '"' + name + '" "' + company + '" email'
+        q = "email for " + name + " of " + company
         texts = await serp_search(q)
         candidates = []
         for t in texts:
             candidates.extend(extract_emails(t, domain))
         await asyncio.sleep(SLEEP_BETWEEN)
         best = pick_best_email(candidates, domain)
-        if best and clean_domain(domain) in best:
+        if best:
             await log("    confirmed via search: " + best)
             if not has_name:
                 fields["first_name"] = name.split()[0]
@@ -221,7 +227,7 @@ async def find_contact(c, log):
             fields["email_confidence"] = "high"
             return fields
         else:
-            await log("    confirmation search found nothing on-domain, falling back")
+            await log("    confirmation search found nothing, falling back")
     elif not has_name and name is None:
         await log("    no owner found, falling back to enrich.py flow")
 
