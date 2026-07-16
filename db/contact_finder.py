@@ -51,6 +51,25 @@ from db.enrich import (
     pick_best_email,
 )
 
+FREEMAIL_DOMAINS = ("gmail.", "yahoo.", "hotmail.", "outlook.", "aol.",
+                    "icloud.", "live.", "msn.")
+PLACEHOLDER_LOCAL_PARTS = {"first", "last", "firstname", "lastname",
+                           "fname", "lname", "name"}
+
+
+def is_own_domain_or_freemail(email, domain):
+    """True if email is on the company's own domain, OR a personal
+    freemail address (both are trustworthy once confirmed by a
+    name+company search). False for a DIFFERENT custom domain, which
+    is the signature of a wrong-company match."""
+    local = email.split("@")[0].lower()
+    if local in PLACEHOLDER_LOCAL_PARTS:
+        return False
+    dom = email.split("@")[-1].lower()
+    if any(dom.startswith(f) for f in FREEMAIL_DOMAINS):
+        return True
+    return clean_domain(domain) in email
+
 SUPABASE_URL = (os.environ.get("SUPABASE_URL", "") or "https://neonmrgszujadgfidlbj.supabase.co").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 SERPAPI_KEY  = os.environ.get("SERPAPI_KEY", "")
@@ -216,7 +235,7 @@ async def find_contact(c, log):
             candidates.extend(extract_emails(t, domain))
         await asyncio.sleep(SLEEP_BETWEEN)
         best = pick_best_email(candidates, domain)
-        if best:
+        if best and is_own_domain_or_freemail(best, domain):
             await log("    confirmed via search: " + best)
             if not has_name:
                 fields["first_name"] = name.split()[0]
