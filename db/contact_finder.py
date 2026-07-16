@@ -86,7 +86,11 @@ P_ROLE_NAME = re.compile(
 STOPWORDS = {"roofing", "roof", "construction", "company", "contractor", "contractors",
              "llc", "inc", "texas", "the", "and", "general", "commercial", "residential",
              "google", "facebook", "yelp", "bbb", "linkedin", "reviews", "best", "top",
-             "defendant", "plaintiff", "attorney", "court"}
+             "defendant", "plaintiff", "attorney", "court",
+             "trusted", "quality", "premier", "elite", "pro", "solutions", "services",
+             "group", "team", "systems", "specialists", "experts", "masters", "remodeling",
+             "builders", "certified", "professional", "complete", "reliable", "affordable",
+             "premium", "advanced", "superior", "prime", "select", "custom"}
 
 
 def plausible_name(name, company):
