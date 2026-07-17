@@ -103,8 +103,8 @@ STOPWORDS = {"roofing", "roof", "construction", "company", "contractor", "contra
              "group", "team", "systems", "specialists", "experts", "masters", "remodeling",
              "builders", "certified", "professional", "complete", "reliable", "affordable",
              "premium", "advanced", "superior", "prime", "select", "custom",
-             "additional", "contact", "information", "business", "profile",
-             "primary", "executive"}
+             "additional", "contact", "contacts", "information", "business", "profile",
+             "primary", "executive", "mr", "mrs", "ms", "dr"}
 
 
 def plausible_name(name, company):
@@ -264,10 +264,12 @@ async def find_contact(c, log):
         best = pick_best_email(candidates, domain)
         if best and is_own_domain_or_freemail(best, domain):
             await log("    confirmed via name+company search: " + best)
-            if not has_name:
+            if not has_name and votes >= 2:
                 fields["first_name"] = name.split()[0]
                 fields["last_name"] = " ".join(name.split()[1:])
                 fields["owner_source"] = "contact_finder_owner_search"
+            elif not has_name:
+                await log("    (name held back: single-source, not writing as first_name)")
             fields["email"] = best
             fields["email_source"] = "name_and_email_confirmed"
             fields["email_confidence"] = "high"
@@ -319,7 +321,7 @@ async def find_contact(c, log):
                     fields["email_source"] = "stage3_pattern_guess"
                     fields["email_confidence"] = "low"
 
-    if name and not has_name and "first_name" not in fields:
+    if name and not has_name and votes >= 2 and "first_name" not in fields:
         fields["first_name"] = name.split()[0]
         fields["last_name"] = " ".join(name.split()[1:])
         fields["owner_source"] = "contact_finder_owner_search"
