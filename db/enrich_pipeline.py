@@ -133,7 +133,8 @@ async def main_async(args):
     print("=== enrich_pipeline :: " + mode + " :: vertical=" + args.vertical + scope +
           " :: " + str(len(pool)) + " leads ===\n")
 
-    stats = {"quickenrich": 0, "serp": 0, "none": 0, "errors": 0}
+    stats = {"quickenrich": 0, "serp": 0, "held_for_review": 0, "none": 0, "errors": 0}
+    held_candidates = []
 
     async def log(msg):
         print(msg)
@@ -153,12 +154,35 @@ async def main_async(args):
             print("    -> nothing found anywhere")
             continue
 
+        if "_held_candidate_name" in fields:
+            stats["held_for_review"] += 1
+            name = fields["_held_candidate_name"]
+            votes = fields["_held_candidate_votes"]
+            print("    -> single-source candidate held for review: " + name +
+                  " (votes=" + str(votes) + ")")
+            held_candidates.append({
+                "id": c.get("id"), "company": company, "website": c.get("website") or "",
+                "candidate_name": name, "votes": votes,
+            })
+            continue
+
         stats[via] += 1
         if args.live:
             save(c["id"], fields)
 
+    if held_candidates:
+        import csv
+        os.makedirs("exports", exist_ok=True)
+        review_path = os.path.join("exports", "enrich_pipeline_review.csv")
+        with open(review_path, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=list(held_candidates[0].keys()))
+            w.writeheader()
+            w.writerows(held_candidates)
+        print("\n" + str(len(held_candidates)) + " single-source candidates -> " + review_path)
+
     print("\n=== Done: quickenrich=" + str(stats["quickenrich"]) +
           " | serp_fallback=" + str(stats["serp"]) +
+          " | held for review=" + str(stats["held_for_review"]) +
           " | none=" + str(stats["none"]) +
           " | errors=" + str(stats["errors"]) + " ===")
     if not args.live:
