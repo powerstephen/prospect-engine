@@ -238,12 +238,12 @@ async def find_contact(c, log):
     votes = 0
 
     if not has_name:
-        texts = await serp_search('owner of "' + company + '" ' + city)
+        texts = await serp_search('owner of ' + company + ' ' + city)
         name, votes = extract_owner(texts, company)
         await asyncio.sleep(SLEEP_BETWEEN)
         if not name and state and state.lower() != city.lower():
             await log("    city-scoped owner search empty, retrying at state level...")
-            texts = await serp_search('owner of "' + company + '" ' + state)
+            texts = await serp_search('owner of ' + company + ' ' + state)
             name, votes = extract_owner(texts, company)
             await asyncio.sleep(SLEEP_BETWEEN)
         if name:
@@ -274,7 +274,7 @@ async def find_contact(c, log):
             await log("    name+company confirmation found nothing, trying company-only search")
 
     if not name and not has_email:
-        q2 = 'email for "' + company + '" ' + (state or city)
+        q2 = 'email for ' + company + ' ' + (state or city)
         texts2 = await serp_search(q2)
         candidates2 = []
         for t in texts2:
