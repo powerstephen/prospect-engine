@@ -120,7 +120,26 @@ def plausible_name(name, company):
     return all(re.fullmatch(r"[A-Z][a-z]+", p) for p in parts)
 
 
+def dedupe_similar_texts(texts, threshold=0.75):
+    """Small-business directory sites frequently mirror each other's exact
+    listing text. Two near-identical snippets are one source repeated,
+    not two independent confirmations, so they must not both count as
+    votes. Keeps the first occurrence of each distinct-enough snippet."""
+    from difflib import SequenceMatcher
+    kept = []
+    for t in texts:
+        is_dup = False
+        for k in kept:
+            if SequenceMatcher(None, t.lower(), k.lower()).ratio() > threshold:
+                is_dup = True
+                break
+        if not is_dup:
+            kept.append(t)
+    return kept
+
+
 def extract_owner(texts, company):
+    texts = dedupe_similar_texts(texts)
     votes = {}
     for t in texts:
         seen_here = set()
