@@ -102,7 +102,9 @@ STOPWORDS = {"roofing", "roof", "construction", "company", "contractor", "contra
              "trusted", "quality", "premier", "elite", "pro", "solutions", "services",
              "group", "team", "systems", "specialists", "experts", "masters", "remodeling",
              "builders", "certified", "professional", "complete", "reliable", "affordable",
-             "premium", "advanced", "superior", "prime", "select", "custom"}
+             "premium", "advanced", "superior", "prime", "select", "custom",
+             "additional", "contact", "information", "business", "profile",
+             "primary", "executive"}
 
 
 def plausible_name(name, company):
