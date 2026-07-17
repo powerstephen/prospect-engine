@@ -340,10 +340,18 @@ async def find_contact(c, log):
                     fields["email_source"] = "stage3_pattern_guess"
                     fields["email_confidence"] = "low"
 
-    if name and not has_name and votes >= 2 and "first_name" not in fields:
-        fields["first_name"] = name.split()[0]
-        fields["last_name"] = " ".join(name.split()[1:])
-        fields["owner_source"] = "contact_finder_owner_search"
+    if name and not has_name and "first_name" not in fields:
+        if votes >= 2:
+            fields["first_name"] = name.split()[0]
+            fields["last_name"] = " ".join(name.split()[1:])
+            fields["owner_source"] = "contact_finder_owner_search"
+        elif not fields:
+            # a real candidate was found but isn't confident enough to
+            # auto-write; hold it for review instead of silently
+            # discarding it (the old behaviour, which reported
+            # "nothing found" even though something genuinely was)
+            fields["_held_candidate_name"] = name
+            fields["_held_candidate_votes"] = votes
 
     return fields or None
 
@@ -360,7 +368,9 @@ async def main_async(args):
     mode = "LIVE" if args.live else "DRY RUN"
     print("=== contact_finder :: " + mode + " :: vertical=" + args.vertical + " :: " + str(len(pool)) + " leads ===\n")
 
-    stats = {"name_and_email": 0, "company_email": 0, "email_only": 0, "guess": 0, "none": 0, "errors": 0}
+    stats = {"name_and_email": 0, "company_email": 0, "email_only": 0, "guess": 0,
+             "held_for_review": 0, "none": 0, "errors": 0}
+    held_candidates = []
 
     async def log(msg):
         print(msg)
@@ -380,6 +390,18 @@ async def main_async(args):
             print("    -> nothing found")
             continue
 
+        if "_held_candidate_name" in result:
+            stats["held_for_review"] += 1
+            candidate_name = result["_held_candidate_name"]
+            candidate_votes = result["_held_candidate_votes"]
+            print("    -> single-source candidate held for review: " + candidate_name +
+                  " (votes=" + str(candidate_votes) + ")")
+            held_candidates.append({
+                "id": c.get("id"), "company": company, "website": c.get("website") or "",
+                "candidate_name": candidate_name, "votes": candidate_votes,
+            })
+            continue
+
         src = result.get("email_source", "")
         if src == "name_and_email_confirmed":
             stats["name_and_email"] += 1
@@ -394,10 +416,21 @@ async def main_async(args):
         if args.live:
             save(c["id"], result)
 
+    if held_candidates:
+        import csv
+        os.makedirs("exports", exist_ok=True)
+        review_path = os.path.join("exports", "contact_finder_review.csv")
+        with open(review_path, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=list(held_candidates[0].keys()))
+            w.writeheader()
+            w.writerows(held_candidates)
+        print("\n" + str(len(held_candidates)) + " single-source candidates -> " + review_path)
+
     print("\n=== Done: name+email confirmed=" + str(stats["name_and_email"]) +
           " | company-only confirmed=" + str(stats["company_email"]) +
           " | email only=" + str(stats["email_only"]) +
           " | low-conf guess=" + str(stats["guess"]) +
+          " | held for review=" + str(stats["held_for_review"]) +
           " | none=" + str(stats["none"]) +
           " | errors=" + str(stats["errors"]) + " ===")
     if not args.live:
