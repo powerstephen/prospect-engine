@@ -146,6 +146,11 @@ def save(contact_id, fields):
     return True
 
 
+PLACEHOLDER_DOMAINS = {"example.com", "domain.com", "email.com", "test.com", "sample.com"}
+GENERIC_NAME_WORDS = {"restoration", "construction", "roofing", "market", "marketplace",
+                      "solutions", "services", "group", "llc", "inc"}
+
+
 def build_fields(contact, employee, company_name):
     fields = {}
     has_name = bool((contact.get("first_name") or "").strip())
@@ -159,7 +164,7 @@ def build_fields(contact, employee, company_name):
         fields["owner_source"] = "quickenrich_dataset_search"
 
     em = clean_field(employee.get("email"))
-    if not has_email and em:
+    if not has_email and em and em.split("@")[-1].lower() not in PLACEHOLDER_DOMAINS:
         fields["email"] = em.lower()
         fields["email_source"] = "quickenrich_dataset_search"
         fields["email_confidence"] = "high"
