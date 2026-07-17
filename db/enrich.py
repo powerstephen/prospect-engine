@@ -61,7 +61,7 @@ PLACEHOLDER_EMAILS = {
 
 # Any address on these domains is placeholder boilerplate regardless of the
 # local part (info@example.com is exactly as fake as jane@example.com).
-PLACEHOLDER_DOMAINS = {"example.com", "domain.com", "email.com", "test.com", "sample.com"}
+PLACEHOLDER_DOMAINS = {"example.com", "domain.com", "email.com", "test.com", "sample.com", "doe.com"}
 
 # Asset-file extensions that a loose regex can mistake for a TLD (a URL
 # fragment like ".../2x.ck7nhwq8.webp" matches the email shape by accident).
