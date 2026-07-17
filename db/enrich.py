@@ -38,12 +38,14 @@ EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 EMAIL_FIND_RE = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', re.IGNORECASE)
 
 IGNORE_PATTERNS = [
-    "sentry.io", "sentry-next.wixpress.com", "google.com", "facebook.com",
+    "sentry.io", "wixpress.com", "google.com", "facebook.com",
     "schema.org", "w3.org", "wordpress.org", "wix.com", "squarespace.com",
     "noreply", "no-reply", "donotreply", "mailer", "bounce",
     "postmaster", "webmaster", "privacy", "support@wix",
     "support@webador.com", "support@townsquareinteractive.com",
     "clients@townsquareinteractive.com", "filler@godaddy.com",
+    "porkbun.com", "godaddy.com", "namecheap.com", "dan.com",
+    "sedo.com", "hugedomains.com", "afternic.com",
 ]
 
 KNOWN_NOISE_EMAILS = {
