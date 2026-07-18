@@ -175,18 +175,30 @@ async def run_lead(biz, vertical, subsource="", log=None, existing_contact=None)
 
 
 def save(contact_id_or_none, contact):
-    """Insert a new row, or PATCH an existing one if an id is given."""
+    """Insert a new row, or PATCH an existing one if an id is given.
+    Returns (ok, detail) so callers can surface the REAL reason on
+    failure, not just a bare "Save failed" with nothing useful in it.
+    """
     if contact_id_or_none:
         r = httpx.patch(SUPABASE_URL + "/rest/v1/contacts?id=eq." + str(contact_id_or_none),
                         json=contact, headers=sb_headers(), timeout=30)
     else:
-        r = httpx.post(SUPABASE_URL + "/rest/v1/contacts", json=contact,
-                       headers={**sb_headers(False), "Prefer": "resolution=merge-duplicates,return=minimal"},
-                       timeout=30)
+        # merge-duplicates needs on_conflict to name which columns
+        # define a duplicate, without it Postgres just tries a plain
+        # insert and fails outright the moment company+location already
+        # exists, which is exactly what "Save failed" mid-batch was.
+        r = httpx.post(
+            SUPABASE_URL + "/rest/v1/contacts",
+            params={"on_conflict": "company,location"},
+            json=contact,
+            headers={**sb_headers(False), "Prefer": "resolution=merge-duplicates,return=minimal"},
+            timeout=30,
+        )
     if r.status_code not in (200, 201, 204):
-        print("    SAVE FAILED: " + str(r.status_code) + " " + r.text[:200])
-        return False
-    return True
+        detail = str(r.status_code) + ": " + r.text[:200]
+        print("    SAVE FAILED: " + detail)
+        return False, detail
+    return True, ""
 
 
 def fetch_pending(vertical, limit):
@@ -254,7 +266,9 @@ async def main_async(args):
 
         print("    -> " + str({k: v for k, v in contact.items() if k not in ("website",)}))
         if args.live:
-            save(c["id"], contact)
+            ok, detail = save(c["id"], contact)
+            if not ok:
+                print("    SAVE FAILED: " + detail)
 
     print("\n=== Done: enriched=" + str(stats["enriched"]) +
           " | scored_only=" + str(stats["scored_only"]) +

@@ -122,13 +122,13 @@ async def harvest(
         if contact.get("email"):
             enriched += 1
 
-        ok = pipeline_save(None, contact)
+        ok, detail = pipeline_save(None, contact)
         if ok:
             saved += 1
             await log("  Saved to Leads")
         else:
             skipped += 1
-            await log("  Save failed")
+            await log("  Save failed: " + detail)
 
         await asyncio.sleep(0.3)
 
