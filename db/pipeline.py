@@ -182,23 +182,30 @@ def save(contact_id_or_none, contact):
     if contact_id_or_none:
         r = httpx.patch(SUPABASE_URL + "/rest/v1/contacts?id=eq." + str(contact_id_or_none),
                         json=contact, headers=sb_headers(), timeout=30)
-    else:
-        # merge-duplicates needs on_conflict to name which columns
-        # define a duplicate, without it Postgres just tries a plain
-        # insert and fails outright the moment company+location already
-        # exists, which is exactly what "Save failed" mid-batch was.
-        r = httpx.post(
-            SUPABASE_URL + "/rest/v1/contacts",
-            params={"on_conflict": "company,location"},
-            json=contact,
-            headers={**sb_headers(False), "Prefer": "resolution=merge-duplicates,return=minimal"},
-            timeout=30,
-        )
-    if r.status_code not in (200, 201, 204):
-        detail = str(r.status_code) + ": " + r.text[:200]
-        print("    SAVE FAILED: " + detail)
-        return False, detail
-    return True, ""
+        if r.status_code not in (200, 201, 204):
+            detail = str(r.status_code) + ": " + r.text[:200]
+            print("    SAVE FAILED: " + detail)
+            return False, detail
+        return True, ""
+
+    # Plain insert. The real unique constraint on this table is a
+    # FUNCTIONAL index on (lower(company), lower(location)), and
+    # PostgREST's on_conflict upsert can only target a literal column
+    # constraint, not an expression index, so on_conflict=company,location
+    # fails with "no unique or exclusion constraint matching the ON
+    # CONFLICT specification" on every single insert, not just genuine
+    # duplicates. Simpler and correct: just insert, and if it collides
+    # with an existing company+location, that is not a failure, it is
+    # the same business already being in the pool, treat it as skipped.
+    r = httpx.post(SUPABASE_URL + "/rest/v1/contacts", json=contact,
+                   headers={**sb_headers(False), "Prefer": "return=minimal"}, timeout=30)
+    if r.status_code in (200, 201, 204):
+        return True, ""
+    if r.status_code == 409 or "duplicate key" in r.text.lower() or "23505" in r.text:
+        return True, "already existed, skipped"
+    detail = str(r.status_code) + ": " + r.text[:200]
+    print("    SAVE FAILED: " + detail)
+    return False, detail
 
 
 def fetch_pending(vertical, limit):
