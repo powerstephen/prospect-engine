@@ -22,34 +22,87 @@ HEADERS = {
 MOBILE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
 
 
-async def find_businesses(industry: str, location: str, limit: int, api_key: str) -> list[dict]:
-    params = {
-        "api_key": api_key,
-        "engine": "google_maps",
-        "q": f"{industry} {location}",
-        "ll": "@25.7617,-80.1918,14z",
-        "type": "search",
-        "hl": "en",
-        "gl": "us",
-    }
-    async with httpx.AsyncClient(timeout=20) as c:
-        r = await c.get(SERPAPI_URL, params=params)
-        r.raise_for_status()
-        data = r.json()
+PLATFORM_DOMAINS = {
+    "instagram.com", "facebook.com", "google.com", "yelp.com",
+    "linktr.ee", "business.site", "godaddysites.com", "wixsite.com",
+    "square.site", "linkedin.com", "youtube.com", "tiktok.com",
+}
+JUNK_TLDS = (".top", ".site", ".online", ".best", ".homes", ".pro", ".xyz", ".icu", ".click")
 
+
+def _clean_domain(website):
+    url = (website or "").strip().lower()
+    for p in ["https://www.", "http://www.", "https://", "http://", "www."]:
+        if url.startswith(p):
+            url = url[len(p):]
+    return url.split("/")[0].split("?")[0]
+
+
+def is_junk_domain(dom):
+    for p in PLATFORM_DOMAINS:
+        if dom == p or dom.endswith("." + p):
+            return True, "platform (" + p + ")"
+    for tld in JUNK_TLDS:
+        if dom.endswith(tld):
+            return True, "junk TLD (" + tld + ")"
+    return False, ""
+
+
+async def _maps_page(query, start, api_key):
+    params = {
+        "api_key": api_key, "engine": "google_maps", "q": query,
+        "type": "search", "hl": "en", "gl": "us", "start": str(start),
+    }
+    for attempt in range(4):
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.get(SERPAPI_URL, params=params)
+        if r.status_code == 429:
+            await asyncio.sleep(10 * (2 ** attempt))
+            continue
+        r.raise_for_status()
+        return r.json().get("local_results") or []
+    raise RuntimeError("rate limited after retries")
+
+
+async def find_businesses(industry: str, location: str, limit: int, api_key: str) -> list:
+    """No hardcoded geo anchor (was silently biasing every search toward
+    Miami), real pagination up to limit, junk-domain results filtered
+    out before they ever reach enrichment."""
+    query = industry + " in " + location
     out = []
-    for p in data.get("local_results", [])[:limit]:
-        out.append({
-            "name": p.get("title", ""),
-            "website": p.get("website", ""),
-            "rating": p.get("rating") or 0,
-            "reviews": p.get("reviews") or 0,
-            "address": p.get("address", ""),
-            "phone": p.get("phone", ""),
-            "category": p.get("type", industry),
-            "google_url": p.get("link", ""),
-            "thumbnail": p.get("thumbnail", ""),
-        })
+    seen_domains = set()
+    page = 0
+    while len(out) < limit and page < 5:
+        try:
+            results = await _maps_page(query, page * 20, api_key)
+        except Exception:
+            break
+        if not results:
+            break
+        for p in results:
+            if len(out) >= limit:
+                break
+            website = (p.get("website") or "").strip()
+            if not website:
+                continue
+            dom = _clean_domain(website)
+            junk, _reason = is_junk_domain(dom)
+            if junk or dom in seen_domains:
+                continue
+            seen_domains.add(dom)
+            out.append({
+                "name": p.get("title", ""),
+                "website": website,
+                "rating": p.get("rating") or 0,
+                "reviews": p.get("reviews") or 0,
+                "address": p.get("address", ""),
+                "phone": p.get("phone", ""),
+                "category": p.get("type", industry),
+                "google_url": p.get("link", ""),
+                "thumbnail": p.get("thumbnail", ""),
+            })
+        page += 1
+        await asyncio.sleep(1.0)
     return out
 
 
