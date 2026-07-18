@@ -104,7 +104,8 @@ STOPWORDS = {"roofing", "roof", "construction", "company", "contractor", "contra
              "builders", "certified", "professional", "complete", "reliable", "affordable",
              "premium", "advanced", "superior", "prime", "select", "custom",
              "additional", "contact", "contacts", "information", "business", "profile",
-             "primary", "executive", "mr", "mrs", "ms", "dr"}
+             "primary", "executive", "mr", "mrs", "ms", "dr",
+             "at", "worth", "our", "meet", "testimonials", "roofers"}
 
 
 def plausible_name(name, company):
@@ -120,39 +121,56 @@ def plausible_name(name, company):
     return all(re.fullmatch(r"[A-Z][a-z]+", p) for p in parts)
 
 
-def dedupe_similar_texts(texts, threshold=0.75):
+def dedupe_similar_texts(items, threshold=0.75):
     """Small-business directory sites frequently mirror each other's exact
     listing text. Two near-identical snippets are one source repeated,
     not two independent confirmations, so they must not both count as
-    votes. Keeps the first occurrence of each distinct-enough snippet."""
+    votes. Keeps the first occurrence of each distinct-enough snippet.
+    items are (text, is_ai_answer) tuples; similarity is checked on the
+    text, the AI-answer flag rides along unchanged."""
     from difflib import SequenceMatcher
     kept = []
-    for t in texts:
+    for item in items:
+        t = item[0]
         is_dup = False
         for k in kept:
-            if SequenceMatcher(None, t.lower(), k.lower()).ratio() > threshold:
+            if SequenceMatcher(None, t.lower(), k[0].lower()).ratio() > threshold:
                 is_dup = True
                 break
         if not is_dup:
-            kept.append(t)
+            kept.append(item)
     return kept
 
 
-def extract_owner(texts, company):
-    texts = dedupe_similar_texts(texts)
+def extract_owner(items, company):
+    """items: list of (text, is_ai_answer) tuples from serp_search_owner().
+    Returns (name, votes, from_ai_answer). A name is trustworthy on a
+    single mention ONLY when that mention came from Google's own
+    synthesized AI Overview / answer box, not an arbitrary organic
+    snippet (proven case: Kodesh Constructions, where the AI Overview
+    named the real owner correctly in one shot). A single organic-only
+    mention gets found but not trusted, same as tonight's earlier
+    "Contacts Mr" / "Give Tony" / "Midland Cole Jones" false positives,
+    which were all single organic mentions with no AI backing."""
+    items = dedupe_similar_texts(items)
     votes = {}
-    for t in texts:
+    ai_backed = {}
+    for text, is_ai in items:
         seen_here = set()
         for pat in (P_NAME_ROLE, P_ROLE_NAME, P_LISTED_AS):
-            for m in pat.finditer(t):
+            for m in pat.finditer(text):
                 name = m.group(1).strip()
                 if plausible_name(name, company) and name not in seen_here:
                     votes[name] = votes.get(name, 0) + 1
+                    if is_ai:
+                        ai_backed[name] = True
                     seen_here.add(name)
     if not votes:
-        return None, 0
-    best = max(votes.items(), key=lambda kv: kv[1])
-    return best
+        return None, 0, False
+    # prefer an AI-answer-backed candidate first, then by raw vote count
+    best = max(votes.items(), key=lambda kv: (ai_backed.get(kv[0], False), kv[1]))
+    name, count = best
+    return name, count, ai_backed.get(name, False)
 
 
 def headers(minimal=True):
@@ -209,6 +227,33 @@ def state_of(location):
     return STATE_NAMES.get(token, "")
 
 
+async def serp_search_owner(query):
+    """Same search as serp_search(), but tags each result with whether it
+    came from Google's own AI Overview/answer box (True) or an ordinary
+    organic result (False). Only the owner-name search needs this
+    distinction; the email-confirmation searches elsewhere still use
+    the plain serp_search()."""
+    if not SERPAPI_KEY:
+        return []
+    async with httpx.AsyncClient(timeout=30) as c:
+        r = await c.get("https://serpapi.com/search.json",
+                        params={"engine": "google", "q": query, "api_key": SERPAPI_KEY,
+                                "num": 10, "gl": "us", "hl": "en"})
+        data = r.json()
+    items = []
+    for res in data.get("organic_results") or []:
+        t = " ".join(filter(None, [res.get("title"), res.get("snippet")]))
+        if t:
+            items.append((t, False))
+    for box in ("answer_box", "ai_overview", "knowledge_graph"):
+        b = data.get(box)
+        if isinstance(b, dict):
+            blob = " ".join(str(v) for v in b.values() if isinstance(v, str))
+            if blob:
+                items.insert(0, (blob, True))
+    return items
+
+
 async def serp_search(query):
     if not SERPAPI_KEY:
         return []
@@ -257,19 +302,23 @@ async def find_contact(c, log):
     fields = {}
     name = None
     votes = 0
+    name_trusted = False
 
     if not has_name:
-        texts = await serp_search('owner of ' + company + ' ' + city)
-        name, votes = extract_owner(texts, company)
+        texts = await serp_search_owner('owner of ' + company + ' ' + city)
+        name, votes, from_ai = extract_owner(texts, company)
+        name_trusted = from_ai or votes >= 2
         await asyncio.sleep(SLEEP_BETWEEN)
         if not name and state and state.lower() != city.lower():
             await log("    city-scoped owner search empty, retrying at state level...")
-            texts = await serp_search('owner of ' + company + ' ' + state)
-            name, votes = extract_owner(texts, company)
+            texts = await serp_search_owner('owner of ' + company + ' ' + state)
+            name, votes, from_ai = extract_owner(texts, company)
+            name_trusted = from_ai or votes >= 2
             await asyncio.sleep(SLEEP_BETWEEN)
         if name:
-            conf = "high" if votes >= 2 else "medium"
-            await log("    owner search: " + name + " (votes=" + str(votes) + ", " + conf + ")")
+            source_desc = "AI Overview" if from_ai else (str(votes) + " sources")
+            conf = "high" if name_trusted else "unconfirmed"
+            await log("    owner search: " + name + " (" + source_desc + ", " + conf + ")")
     else:
         name = ((c.get("first_name") or "") + " " + (c.get("last_name") or "")).strip()
 
@@ -283,12 +332,10 @@ async def find_contact(c, log):
         best = pick_best_email(candidates, domain)
         if best and is_own_domain_or_freemail(best, domain):
             await log("    confirmed via name+company search: " + best)
-            if not has_name and votes >= 2:
+            if not has_name and name_trusted:
                 fields["first_name"] = name.split()[0]
                 fields["last_name"] = " ".join(name.split()[1:])
                 fields["owner_source"] = "contact_finder_owner_search"
-            elif not has_name:
-                await log("    (name held back: single-source, not writing as first_name)")
             fields["email"] = best
             fields["email_source"] = "name_and_email_confirmed"
             fields["email_confidence"] = "high"
@@ -340,18 +387,10 @@ async def find_contact(c, log):
                     fields["email_source"] = "stage3_pattern_guess"
                     fields["email_confidence"] = "low"
 
-    if name and not has_name and "first_name" not in fields:
-        if votes >= 2:
-            fields["first_name"] = name.split()[0]
-            fields["last_name"] = " ".join(name.split()[1:])
-            fields["owner_source"] = "contact_finder_owner_search"
-        elif not fields:
-            # a real candidate was found but isn't confident enough to
-            # auto-write; hold it for review instead of silently
-            # discarding it (the old behaviour, which reported
-            # "nothing found" even though something genuinely was)
-            fields["_held_candidate_name"] = name
-            fields["_held_candidate_votes"] = votes
+    if name and not has_name and name_trusted and "first_name" not in fields:
+        fields["first_name"] = name.split()[0]
+        fields["last_name"] = " ".join(name.split()[1:])
+        fields["owner_source"] = "contact_finder_owner_search"
 
     return fields or None
 
