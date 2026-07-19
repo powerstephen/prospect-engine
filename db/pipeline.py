@@ -232,7 +232,7 @@ def fetch_pending(vertical, limit):
             break
         rows.extend(batch)
         page += 1
-    rows = [c for c in rows if not c.get("email") or c.get("psi_mobile_lcp") is None]
+    rows = [c for c in rows if not c.get("email") or c.get("psi_mobile_lcp") is None or not c.get("first_name")]
     if limit:
         rows = rows[:limit]
     return rows
