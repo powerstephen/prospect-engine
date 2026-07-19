@@ -164,7 +164,14 @@ async def run_lead(biz, vertical, subsource="", log=None, existing_contact=None)
         "google_rating": biz["google_rating"],
         "review_count": biz["review_count"],
         "psi_mobile_lcp": load_time,
-        "source": source_tag(vertical, subsource),
+        # When updating an EXISTING row (a sweep, not a fresh discovery),
+        # keep its current source tag rather than regenerating one. A
+        # sweep never has the original subsource (e.g. "harvest"), so
+        # regenerating it here would silently strip that provenance off
+        # every row it touches, exactly the class of bug this whole
+        # week's source-tagging discipline exists to prevent.
+        "source": (existing_contact.get("source") if existing_contact and existing_contact.get("source")
+                  else source_tag(vertical, subsource)),
         "pipeline_stage": stage,
         "status": "new",
         "scored_at": datetime.now(timezone.utc).isoformat() if load_time is not None else None,
