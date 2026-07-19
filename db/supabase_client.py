@@ -47,15 +47,32 @@ def get_contacts(status=None, industry=None, limit=500, offset=0, source_like=No
     return r.json() or []
 
 
-def get_contact_stats() -> dict:
-    r = httpx.get(_url("contacts"), params={"select": "status", "limit": 10000}, headers=_headers(), timeout=30)
+def _exact_count(params: dict) -> int:
+    """Asks Postgres for a TRUE row count via the count=exact header,
+    without fetching row data. get_contact_stats was fetching up to
+    10000 rows and counting them in Python with len(), but PostgREST
+    silently caps any row-returning request at its own server-side
+    limit (commonly 1000) regardless of what limit the caller asks
+    for, that is the entire "Moneyball shows 1000" bug. count=exact
+    sidesteps the cap entirely, Postgres computes the real total and
+    hands it back in a response header."""
+    params = {**params, "limit": "1"}
+    headers = {**_headers(), "Prefer": "count=exact"}
+    r = httpx.get(_url("contacts"), params=params, headers=headers, timeout=30)
     r.raise_for_status()
-    rows = r.json() or []
-    stats = {"total": len(rows), "new": 0, "scored": 0, "enriched": 0, "report_sent": 0, "nurture": 0, "archived": 0}
-    for row in rows:
-        s = row.get("status", "new")
-        if s in stats:
-            stats[s] += 1
+    content_range = r.headers.get("content-range", "")
+    try:
+        return int(content_range.split("/")[-1])
+    except (ValueError, IndexError):
+        return 0
+
+
+def get_contact_stats() -> dict:
+    stats = {"total": _exact_count({})}
+    for s in ("new", "scored", "enriched", "report_sent", "nurture", "archived"):
+        stats[s] = _exact_count({"status": f"eq.{s}"})
+    for stage in ("discovered", "enriched", "scored", "loaded", "archived"):
+        stats["stage_" + stage] = _exact_count({"pipeline_stage": f"eq.{stage}"})
     return stats
 
 
