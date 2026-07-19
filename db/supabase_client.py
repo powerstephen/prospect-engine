@@ -67,11 +67,35 @@ def _exact_count(params: dict) -> int:
         return 0
 
 
+def _distinct_values(column: str) -> set:
+    """Paginate through just one narrow column to find every distinct
+    value actually in use, rather than trusting a hardcoded list (which
+    is exactly how the stats breakdown drifted out of sync with real
+    status values like needs_contact/no_website/bot_protected/timeout/
+    needs_review/pending, none of which were in the original six-bucket
+    list)."""
+    values, offset = set(), 0
+    while True:
+        r = httpx.get(_url("contacts"),
+                      params={"select": column, "limit": 1000, "offset": offset},
+                      headers=_headers(), timeout=30)
+        r.raise_for_status()
+        rows = r.json() or []
+        if not rows:
+            break
+        for row in rows:
+            v = row.get(column)
+            if v:
+                values.add(v)
+        offset += 1000
+    return values
+
+
 def get_contact_stats() -> dict:
     stats = {"total": _exact_count({})}
-    for s in ("new", "scored", "enriched", "report_sent", "nurture", "archived"):
+    for s in sorted(_distinct_values("status")):
         stats[s] = _exact_count({"status": f"eq.{s}"})
-    for stage in ("discovered", "enriched", "scored", "loaded", "archived"):
+    for stage in sorted(_distinct_values("pipeline_stage")):
         stats["stage_" + stage] = _exact_count({"pipeline_stage": f"eq.{stage}"})
     return stats
 
